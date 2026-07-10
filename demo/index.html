@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Community — @tours demo</title>
+    <style>
+      :root {
+        --bg: #f4f6fb;
+        --surface: #ffffff;
+        --border: #e2e6ef;
+        --text: #1f2733;
+        --muted: #6b7688;
+        --brand: #3b6cf6;
+        --brand-dark: #2a52c9;
+        --accent: #10b981;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+      }
+
+      /* --- Site header --- */
+      .site-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 32px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 1;
+      }
+
+      .site-header .logo {
+        font-weight: 700;
+        font-size: 18px;
+        color: var(--brand);
+      }
+
+      .site-nav {
+        display: flex;
+        gap: 24px;
+      }
+
+      .site-nav a {
+        color: var(--muted);
+        text-decoration: none;
+        font-weight: 500;
+      }
+
+      .site-nav a:hover {
+        color: var(--text);
+      }
+
+      /* --- Content --- */
+      main {
+        max-width: 760px;
+        margin: 32px auto;
+        padding: 0 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+      }
+
+      .hero {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .hero h1 {
+        margin: 0;
+        font-size: 26px;
+      }
+
+      .hero p {
+        margin: 4px 0 0;
+        color: var(--muted);
+      }
+
+      button {
+        font: inherit;
+        cursor: pointer;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 18px;
+        font-weight: 600;
+      }
+
+      .btn-primary {
+        background: var(--brand);
+        color: #fff;
+      }
+
+      .btn-primary:hover {
+        background: var(--brand-dark);
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 24px;
+      }
+
+      .card h2 {
+        margin: 0 0 16px;
+        font-size: 18px;
+      }
+
+      .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 16px;
+      }
+
+      .form-field label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--muted);
+      }
+
+      .form-field input {
+        font: inherit;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: #fbfcfe;
+      }
+
+      .form-field input:focus {
+        outline: none;
+        border-color: var(--brand);
+      }
+
+      #help-widget {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: #eef3ff;
+        border: 1px solid #d5e0ff;
+      }
+
+      #help-widget .icon {
+        font-size: 22px;
+      }
+
+      /* --- Demo control panel --- */
+      .demo-panel {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 14px;
+        background: #111827;
+        color: #fff;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+      }
+
+      .demo-panel .demo-title {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #9aa4b8;
+        margin-bottom: 2px;
+      }
+
+      .demo-panel button {
+        background: #1f2a3d;
+        color: #fff;
+        text-align: left;
+      }
+
+      .demo-panel button:hover {
+        background: #2b3a55;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <span class="logo">Community</span>
+      <nav class="site-nav">
+        <a href="#feed">Feed</a>
+        <a href="#profile">Profile</a>
+        <a href="#help">Help</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div>
+          <h1>Welcome to the community</h1>
+          <p>Share ideas, ask questions, and find like-minded people.</p>
+        </div>
+        <button id="btn-new-post" class="btn-primary">Write a post</button>
+      </section>
+
+      <section class="card">
+        <h2>Join us</h2>
+        <form id="signup-form">
+          <div class="form-field">
+            <label for="field-name">Name</label>
+            <input id="field-name" name="name" type="text" placeholder="What's your name?" />
+          </div>
+          <div class="form-field">
+            <label for="field-email">Email</label>
+            <input id="field-email" name="email" type="email" placeholder="you@example.com" />
+          </div>
+          <button id="btn-submit" class="btn-primary" type="submit">Sign up</button>
+        </form>
+      </section>
+
+      <section id="help-widget" class="card">
+        <span class="icon">💬</span>
+        <div>
+          <strong>Need help?</strong>
+          <p style="margin: 2px 0 0; color: var(--muted)">
+            Check the Help section or drop us a message — we're always around.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <aside class="demo-panel">
+      <span class="demo-title">@tours demo</span>
+      <button id="run-tour">▶ Run tour</button>
+      <button id="pick-element">🎯 Pick element</button>
+    </aside>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

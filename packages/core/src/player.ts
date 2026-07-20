@@ -14,6 +14,7 @@ import {
 import { PLAYER_STYLES } from './styles.js';
 import { placeCard } from './position.js';
 import { renderCard, CARD_STYLES } from './card.js';
+import { resolveElement, waitForElement } from './selector.js';
 import { createLogger } from './logger.js';
 
 export interface PlayerHandle {
@@ -41,17 +42,9 @@ export function createPlayer(tour: Tour): PlayerHandle {
   const cardRadius = tour.display?.cardRadius ?? DEFAULT_CARD_RADIUS;
   const offset = tour.display?.offset ?? DEFAULT_OFFSET;
 
-  /** Resolve a step's target, trying each candidate selector in order. */
+  /** Resolve a step's target via the re-finder (tries every candidate). */
   function findTarget(step: Step): Element | null {
-    for (const selector of step.selectors) {
-      try {
-        const el = document.querySelector(selector);
-        if (el) return el;
-      } catch {
-        // Invalid selector — try the next candidate.
-      }
-    }
-    return null;
+    return resolveElement(step.selectors);
   }
 
   /** Lazily build the shadow-DOM host: backdrop, spotlight and tooltip. */
@@ -149,14 +142,23 @@ export function createPlayer(tour: Tour): PlayerHandle {
     log.log('render step', index, step.id);
     const target = findTarget(step);
     if (!target) {
-      log.warn(`step "${step.id}" skipped: no element for selectors`, step.selectors);
-      // Advance in the same direction; default forward.
-      if (index < tour.steps.length - 1) {
-        index += 1;
-        render();
-      } else {
-        stop();
-      }
+      // The element may not be in the DOM yet (SPA / lazy). Wait for it, then
+      // render; skip only if it never appears within the timeout.
+      log.log(`step "${step.id}" target not found yet — waiting`, step.selectors);
+      void waitForElement(step.selectors, { timeout: 4000 }).then((el) => {
+        if (!active || tour.steps[index] !== step) return;
+        if (el) {
+          render();
+        } else {
+          log.warn(`step "${step.id}" skipped: no element for selectors`, step.selectors);
+          if (index < tour.steps.length - 1) {
+            index += 1;
+            render();
+          } else {
+            stop();
+          }
+        }
+      });
       return;
     }
 

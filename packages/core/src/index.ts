@@ -13,3 +13,5 @@ export { placeCard, autoSide } from './position.js';
 export type { Side, Align, PlaceInput } from './position.js';
 export { renderCard, CARD_STYLES } from './card.js';
 export type { CardOptions, CardButton } from './card.js';
+export { buildSelectors, resolveElement, waitForElement } from './selector.js';
+export type { WaitOptions } from './selector.js';

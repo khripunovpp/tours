@@ -5,6 +5,7 @@
  * cannot affect it (and vice versa).
  */
 import { PICKER_STYLES } from './styles.js';
+import { buildSelectors } from './selector.js';
 import { createLogger } from './logger.js';
 
 export interface PickerHandle {
@@ -19,49 +20,6 @@ export interface PickerOptions {
    * selector search does not react to the tool's own chrome.
    */
   ignore?: Array<Element | null | undefined>;
-}
-
-/**
- * Build a stable CSS selector for an element.
- * - if the element has an id -> `#id`
- * - otherwise build a tag path with :nth-of-type from <body>
- *
- * Returned as the first (and, for now, only) candidate; the array shape leaves
- * room for fallback selectors later without changing the public contract.
- */
-function buildSelector(el: Element): string {
-  if (el.id) {
-    return `#${CSS.escape(el.id)}`;
-  }
-
-  // Walk up to <body>, prepending each ancestor's tag. When siblings share the
-  // tag, disambiguate with :nth-of-type so the path resolves to one element.
-  const parts: string[] = [];
-  let current: Element | null = el;
-
-  while (current && current !== document.body && current.nodeType === 1) {
-    const tag = current.tagName.toLowerCase();
-    const parent: Element | null = current.parentElement;
-
-    if (!parent) {
-      parts.unshift(tag);
-      break;
-    }
-
-    const sameTag = Array.from(parent.children).filter(
-      (c) => c.tagName === current!.tagName,
-    );
-    if (sameTag.length > 1) {
-      const index = sameTag.indexOf(current) + 1;
-      parts.unshift(`${tag}:nth-of-type(${index})`);
-    } else {
-      parts.unshift(tag);
-    }
-
-    current = parent;
-  }
-
-  return `body > ${parts.join(' > ')}`;
 }
 
 /**
@@ -142,10 +100,10 @@ export function createPicker(
     e.preventDefault();
     e.stopPropagation();
     if (!el) return;
-    const selector = buildSelector(el);
-    log.log('picked', selector);
+    const selectors = buildSelectors(el);
+    log.log('picked', selectors);
     stop();
-    onPick([selector]);
+    onPick(selectors);
   }
 
   /** Esc cancels selection. */

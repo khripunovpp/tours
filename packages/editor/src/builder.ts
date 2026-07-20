@@ -8,7 +8,7 @@
  * Enable in code:   new TourBuilder({ mode: 'edit' }).mount();
  * Enable via URL:   TourBuilder.fromUrl();   // when ?tours-edit=1 is present
  */
-import { createPicker, createPlayer, createLogger, placeCard, renderCard, CARD_STYLES } from '@tours/core';
+import { createPicker, createPlayer, createLogger, placeCard, renderCard, resolveElement, CARD_STYLES } from '@tours/core';
 import type { PickerHandle, PlayerHandle } from '@tours/core';
 import { EDITOR_STYLES } from './styles.js';
 import { ICONS } from './icons.js';
@@ -355,15 +355,7 @@ export class TourBuilder {
 
   /** Resolve a step's target on the page, trying each candidate selector. */
   private resolveTarget(step: DraftStep): Element | null {
-    for (const selector of step.selectors) {
-      try {
-        const el = document.querySelector(selector);
-        if (el) return el;
-      } catch {
-        // Invalid selector — try the next candidate.
-      }
-    }
-    return null;
+    return resolveElement(step.selectors);
   }
 
   /**

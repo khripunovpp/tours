@@ -100,6 +100,7 @@ export function createPlayer(tour: Tour): PlayerHandle {
       side: step.placement ?? 'bottom',
       align: step.align ?? 'center',
       offset,
+      alignOffset: tour.display?.alignOffset ?? 0,
       viewport: { width: window.innerWidth, height: window.innerHeight },
     });
     tooltip.style.left = `${left}px`;

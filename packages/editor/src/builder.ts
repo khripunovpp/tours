@@ -426,6 +426,7 @@ export class TourBuilder {
       side: step.placement,
       align: step.align,
       offset: this.tour.display.offset,
+      alignOffset: this.tour.display.alignOffset,
       viewport: { width: window.innerWidth, height: window.innerHeight },
     });
     preview.style.left = `${left}px`;
@@ -623,8 +624,9 @@ export class TourBuilder {
       wrap.append(
         this.slider('Card corner radius', d.cardRadius, 0, 32, (v) => (d.cardRadius = v)),
         this.slider('Distance from target', d.offset, 0, 48, (v) => (d.offset = v)),
+        this.slider('Alignment inset', d.alignOffset, 0, 48, (v) => (d.alignOffset = v)),
         h('div', { class: 'settings__hint' }, [
-          'The visitor tooltip card. Preview it beside the highlighted target.',
+          'Distance is the gap to the element; alignment inset nudges the card in from the aligned edge (start/end placements).',
         ]),
       );
     }

@@ -22,7 +22,10 @@ export interface PlaceInput {
   /** A fixed side, or 'auto' to pick the side with the most room. */
   side: Side | 'auto';
   align: Align;
+  /** Distance from the target, perpendicular to the side. */
   offset: number;
+  /** Inset along the alignment edge for start/end alignment. Defaults to 0. */
+  alignOffset?: number;
   viewport: { width: number; height: number };
 }
 
@@ -61,6 +64,10 @@ export function placeCard(input: PlaceInput): { top: number; left: number } {
   const side = auto ? autoSide(t, c, v) : input.side;
   // Auto aims for bottom-centre, so it centres along whichever side it lands on.
   const align: Align = auto ? 'center' : input.align;
+  // Inset along the edge, nudging in from the aligned end (start: forward,
+  // end: backward). Ignored for centre alignment.
+  const ao = input.alignOffset ?? 0;
+  const inset = align === 'start' ? ao : align === 'end' ? -ao : 0;
   let top = 0;
   let left = 0;
 
@@ -73,6 +80,7 @@ export function placeCard(input: PlaceInput): { top: number; left: number } {
         : align === 'end'
           ? t.right - c.width
           : t.left + t.width / 2 - c.width / 2;
+    left += inset;
   } else {
     left = side === 'left' ? t.left - c.width - offset : t.right + offset;
     // Align vertically along the chosen edge.
@@ -82,6 +90,7 @@ export function placeCard(input: PlaceInput): { top: number; left: number } {
         : align === 'end'
           ? t.bottom - c.height
           : t.top + t.height / 2 - c.height / 2;
+    top += inset;
   }
 
   left = Math.max(8, Math.min(left, v.width - c.width - 8));

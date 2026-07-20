@@ -53,6 +53,8 @@ export interface DraftDisplay {
   cardRadius: number;
   /** Distance (px) from the target to the card. */
   offset: number;
+  /** Inset (px) along the alignment edge for start/end alignment. */
+  alignOffset: number;
 }
 
 export interface DraftTour {
@@ -101,6 +103,7 @@ export function createDraftTour(): DraftTour {
       radius: DEFAULT_RADIUS,
       cardRadius: DEFAULT_CARD_RADIUS,
       offset: DEFAULT_OFFSET,
+      alignOffset: 0,
     },
   };
 }
@@ -126,6 +129,7 @@ export function normalizeTours(input: unknown): DraftTour[] {
         radius: numOr(t.display?.radius, DEFAULT_RADIUS),
         cardRadius: numOr(t.display?.cardRadius, DEFAULT_CARD_RADIUS),
         offset: numOr(t.display?.offset, DEFAULT_OFFSET),
+        alignOffset: numOr(t.display?.alignOffset, 0),
       },
       steps: t.steps
         .filter((s): s is DraftStep => !!s && typeof s === 'object')
@@ -170,6 +174,7 @@ export function toTour(
       radius: draft.display.radius,
       cardRadius: draft.display.cardRadius,
       offset: draft.display.offset,
+      alignOffset: draft.display.alignOffset,
     },
   };
 

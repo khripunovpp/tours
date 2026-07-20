@@ -86,6 +86,11 @@ export interface DisplaySettings {
   cardRadius?: number;
   /** Distance (px) from the target to the card. Defaults to 12. */
   offset?: number;
+  /**
+   * Inset (px) along the alignment edge for start/end alignment — nudges the
+   * card in from the aligned edge. No effect on centre alignment. Defaults to 0.
+   */
+  alignOffset?: number;
 }
 
 export interface Tour {
@@ -264,7 +269,7 @@ export function validate(
     if (!isRecord(json.display)) {
       errors.push('tour.display must be an object');
     } else {
-      for (const key of ['padding', 'radius', 'cardRadius', 'offset'] as const) {
+      for (const key of ['padding', 'radius', 'cardRadius', 'offset', 'alignOffset'] as const) {
         const v = json.display[key];
         if (v !== undefined && (typeof v !== 'number' || v < 0)) {
           errors.push(`tour.display.${key} must be a non-negative number`);

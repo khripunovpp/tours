@@ -473,6 +473,24 @@ button { font: inherit; cursor: pointer; }
   font-weight: 600;
   color: var(--e-muted);
   font-variant-numeric: tabular-nums;
+  cursor: text;
+  border-radius: 4px;
+  padding: 1px 3px;
+}
+.settings__value:hover { background: var(--e-surface); color: var(--e-fg); }
+.settings__num {
+  width: 48px;
+  text-align: right;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--e-fg);
+  background: #fff;
+  border: 1px solid var(--e-accent);
+  border-radius: 4px;
+  padding: 1px 3px;
+  font-variant-numeric: tabular-nums;
+  outline: none;
 }
 .settings__hint {
   font-size: 12px;

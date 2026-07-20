@@ -652,7 +652,8 @@ export class TourBuilder {
     max: number,
     set: (value: number) => void,
   ): HTMLElement {
-    const value = h('span', { class: 'settings__value' }, [`${current}px`]);
+    let cur = current;
+    const value = h('span', { class: 'settings__value', title: 'Click to type a value' }, [`${cur}px`]);
     const input = h('input', {
       class: 'settings__slider',
       type: 'range',
@@ -660,19 +661,58 @@ export class TourBuilder {
       max: String(max),
       step: '1',
     }) as HTMLInputElement;
-    input.value = String(current);
-    input.addEventListener('input', () => {
-      const v = Number(input.value);
-      set(v);
-      value.textContent = `${v}px`;
+    input.value = String(cur);
+
+    // Single place to apply a new value: clamp, sync slider + label, persist.
+    const apply = (n: number): void => {
+      cur = Math.max(min, Math.min(max, Math.round(n)));
+      input.value = String(cur);
+      value.textContent = `${cur}px`;
+      set(cur);
       this.updateOverlays();
       this.markDirty();
-    });
+    };
+
+    input.addEventListener('input', () => apply(Number(input.value)));
+    // Click the number to type it directly (digits only).
+    value.addEventListener('click', () => this.editNumber(value, cur, apply));
+
     const row = h('div', { class: 'settings__row' });
     row.append(input, value);
     const field = h('div', { class: 'settings__field' });
     field.append(h('label', { class: 'settings__label' }, [label]), row);
     return field;
+  }
+
+  /** Swap a value label for a digits-only input; commit on blur/Enter. */
+  private editNumber(valueEl: HTMLElement, current: number, apply: (n: number) => void): void {
+    const input = h('input', {
+      class: 'settings__num',
+      type: 'text',
+      inputmode: 'numeric',
+    }) as HTMLInputElement;
+    input.value = String(current);
+    valueEl.replaceWith(input);
+    input.focus();
+    input.select();
+
+    // Strip anything that is not a digit as the user types.
+    input.addEventListener('input', () => {
+      input.value = input.value.replace(/[^0-9]/g, '');
+    });
+    const commit = (): void => {
+      const n = input.value === '' ? current : Number(input.value);
+      input.replaceWith(valueEl);
+      apply(n);
+    };
+    input.addEventListener('blur', commit);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') input.blur();
+      if (e.key === 'Escape') {
+        input.value = String(current);
+        input.blur();
+      }
+    });
   }
 
   private renderBody(): HTMLElement {

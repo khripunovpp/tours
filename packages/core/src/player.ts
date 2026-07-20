@@ -16,6 +16,7 @@ import { placeCard } from './position.js';
 import { renderCard, CARD_STYLES } from './card.js';
 import { resolveElement, waitForElement } from './selector.js';
 import { matchUrl } from './url.js';
+import { onLocationChange } from './history.js';
 import {
   type StateBackend,
   readProgress,
@@ -53,6 +54,8 @@ export function createPlayer(tour: Tour, options: PlayerOptions = {}): PlayerHan
   let tooltip: HTMLElement | null = null;
   let active = false;
   let index = 0;
+  // Set while waiting for the page to change to the next step's page (SPA).
+  let unwatch: (() => void) | null = null;
   // Tour-level visual settings shared with the editor.
   const pad = tour.display?.padding ?? DEFAULT_PADDING;
   const radius = tour.display?.radius ?? DEFAULT_RADIUS;
@@ -239,8 +242,43 @@ export function createPlayer(tour: Tour, options: PlayerOptions = {}): PlayerHan
     render();
   }
 
+  /** Hide the spotlight/card without ending the tour (page transition). */
+  function hideVisuals(): void {
+    if (spotlight) spotlight.style.display = 'none';
+    if (tooltip) {
+      tooltip.remove();
+      tooltip = null;
+    }
+  }
+
+  /**
+   * Keep the tour alive but hidden, and continue it once the URL changes to the
+   * page the next step belongs to — no reload needed (SPA / visitor-driven).
+   */
+  function waitForPageChange(): void {
+    hideVisuals();
+    if (unwatch) return;
+    unwatch = onLocationChange(() => {
+      if (!active) {
+        unwatch?.();
+        unwatch = null;
+        return;
+      }
+      const step = tour.steps[index];
+      if (step && onThisPage(step)) {
+        unwatch?.();
+        unwatch = null;
+        render();
+      }
+    });
+  }
+
   /** Remove the UI and listeners, but keep any saved progress. */
   function teardownUi(): void {
+    if (unwatch) {
+      unwatch();
+      unwatch = null;
+    }
     if (!active) return;
     active = false;
     window.removeEventListener('keydown', onKey, true);
@@ -276,17 +314,20 @@ export function createPlayer(tour: Tour, options: PlayerOptions = {}): PlayerHan
       render();
       return;
     }
-    // The next step lives on another page. Remember to resume there, hide the
-    // tour here, and — if the current step declares a navigate action — go.
+    // The next step lives on another page. Remember where to resume.
     index = nextIndex;
     persist();
     const action = tour.steps[index - 1]?.action;
-    log.log('page transition → resume at', index);
-    teardownUi();
     if (action && action.type === 'navigate' && action.url) {
+      // Tour-driven navigation → full load, resumeTour() continues on arrival.
+      log.log('page transition (navigate) → resume at', index);
+      teardownUi();
       window.location.assign(action.url);
+      return;
     }
-    // Otherwise the visitor navigates themselves; resumeTour() picks it up.
+    // Visitor/SPA-driven: stay alive and continue when the URL matches.
+    log.log('page transition (wait) → resume at', index);
+    waitForPageChange();
   }
 
   function prev(): void {

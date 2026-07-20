@@ -322,6 +322,8 @@ button { font: inherit; cursor: pointer; }
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 14px 16px 20px;
+  /* Reserve the scrollbar gutter always, so content width never shifts. */
+  scrollbar-gutter: stable;
   /* Modern thin, auto-hiding scrollbar (Firefox). */
   scrollbar-width: thin;
   scrollbar-color: rgba(100, 116, 139, 0.35) transparent;

@@ -321,9 +321,10 @@ button { font: inherit; cursor: pointer; }
   position: fixed;
   z-index: 2147483105;
   box-sizing: border-box;
-  max-width: 260px;
-  padding: 12px 14px;
-  font-size: 13px;
+  max-width: 280px;
+  min-width: 200px;
+  padding: 14px 16px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--e-fg);
   background: #fff;
@@ -332,6 +333,24 @@ button { font: inherit; cursor: pointer; }
   pointer-events: none;
   display: none;
 }
+.card-preview__content { white-space: pre-wrap; word-break: break-word; }
+.card-preview__content--placeholder { color: var(--e-muted); }
+.card-preview__footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 14px;
+}
+.card-preview__btn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 7px;
+  background: var(--e-surface);
+  border: 1px solid var(--e-border);
+  color: var(--e-fg);
+}
+.card-preview__btn--primary { background: var(--e-accent); border-color: var(--e-accent); color: #fff; }
 
 /* ---------- Display settings ---------- */
 .settings { padding: 4px 2px; }

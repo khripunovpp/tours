@@ -354,7 +354,7 @@ export class TourBuilder {
     if (this.view !== 'edit' || this.mode !== 'build' || this.picking) return hideAll();
     const step = this.activeStep;
     const target = step && step.selectors.length > 0 ? this.resolveTarget(step) : null;
-    if (!target) return hideAll();
+    if (!step || !target) return hideAll();
 
     const rect = target.getBoundingClientRect();
     const { padding, radius, cardRadius } = this.tour.display;
@@ -368,15 +368,78 @@ export class TourBuilder {
     box.style.height = `${rect.height + padding * 2}px`;
     box.style.borderRadius = `${radius}px`;
 
-    // Tooltip-card preview, only while tuning card settings.
-    if (this.tab === 'display' && this.displaySub === 'card') {
-      preview.style.display = 'block';
-      preview.style.borderRadius = `${cardRadius}px`;
-      preview.style.left = `${Math.max(8, rect.left - padding)}px`;
-      preview.style.top = `${rect.bottom + padding + 10}px`;
-    } else {
+    // The step's own card (the visitor tooltip), drawn as soon as there is
+    // something to show — at least some content.
+    this.drawStepCard(preview, step, rect, padding, cardRadius);
+  }
+
+  /**
+   * Render the active step's card near its target, as the visitor will see it.
+   * Shown when the step has any content; in the Card sub-tab a placeholder is
+   * used instead so the radius stays visible before any text is written.
+   */
+  private drawStepCard(
+    preview: HTMLElement,
+    step: DraftStep,
+    rect: DOMRect,
+    padding: number,
+    cardRadius: number,
+  ): void {
+    const content = step.content.trim();
+    const tuningCard = this.tab === 'display' && this.displaySub === 'card';
+    if (!content && !tuningCard) {
       preview.style.display = 'none';
+      return;
     }
+
+    preview.textContent = '';
+    preview.style.display = 'block';
+    preview.style.borderRadius = `${cardRadius}px`;
+
+    const body = h('div', { class: 'card-preview__content' }, [content || 'Step tooltip preview']);
+    if (!content) body.classList.add('card-preview__content--placeholder');
+
+    const footer = h('div', { class: 'card-preview__footer' });
+    footer.append(
+      h('span', { class: 'card-preview__btn' }, [step.backLabel]),
+      h('span', { class: 'card-preview__btn card-preview__btn--primary' }, [step.nextLabel]),
+    );
+    preview.append(body, footer);
+
+    this.positionCard(preview, rect, step.placement, padding);
+  }
+
+  /** Place the card relative to the target per placement, clamped to the viewport. */
+  private positionCard(el: HTMLElement, rect: DOMRect, placement: DraftStep['placement'], padding: number): void {
+    const gap = padding + 10;
+    const w = el.offsetWidth;
+    const hgt = el.offsetHeight;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    let top: number;
+    let left: number;
+    switch (placement) {
+      case 'top':
+        top = rect.top - hgt - gap;
+        left = rect.left + rect.width / 2 - w / 2;
+        break;
+      case 'left':
+        top = rect.top + rect.height / 2 - hgt / 2;
+        left = rect.left - w - gap;
+        break;
+      case 'right':
+        top = rect.top + rect.height / 2 - hgt / 2;
+        left = rect.right + gap;
+        break;
+      default:
+        top = rect.bottom + gap;
+        left = rect.left + rect.width / 2 - w / 2;
+    }
+    left = Math.max(8, Math.min(left, vw - w - 8));
+    top = Math.max(8, Math.min(top, vh - hgt - 8));
+    el.style.left = `${left}px`;
+    el.style.top = `${top}px`;
   }
 
   private renderNav(): HTMLElement {
@@ -687,6 +750,7 @@ export class TourBuilder {
     // Live-save so a re-render (e.g. selecting another card) keeps the text.
     content.addEventListener('input', () => {
       step.content = content.textContent ?? '';
+      this.updateOverlays();
       this.markDirty();
     });
     // Clicking the text of an inactive card activates it (which re-renders);

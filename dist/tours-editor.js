@@ -177,43 +177,43 @@ function F(n) {
 function Le(n, e = {}) {
   const t = F("picker");
   let r = null, i = null, o = null, s = !1;
-  function l(f) {
-    if (f === r) return !0;
-    for (const g of e.ignore ?? [])
-      if (g && g.contains(f)) return !0;
+  function l(g) {
+    if (g === r) return !0;
+    for (const f of e.ignore ?? [])
+      if (f && f.contains(g)) return !0;
     return !1;
   }
   function p() {
     if (r) return;
     r = document.createElement("div"), r.setAttribute("data-tours-picker", ""), i = r.attachShadow({ mode: "open" });
-    const f = document.createElement("style");
-    f.textContent = xe, i.appendChild(f), o = document.createElement("div"), o.className = "tours-picker-overlay", o.style.display = "none", i.appendChild(o);
-    const g = document.createElement("div");
-    g.className = "tours-picker-hint", g.textContent = "Hover and click an element • Esc to cancel", i.appendChild(g), document.body.appendChild(r);
+    const g = document.createElement("style");
+    g.textContent = xe, i.appendChild(g), o = document.createElement("div"), o.className = "tours-picker-overlay", o.style.display = "none", i.appendChild(o);
+    const f = document.createElement("div");
+    f.className = "tours-picker-hint", f.textContent = "Hover and click an element • Esc to cancel", i.appendChild(f), document.body.appendChild(r);
   }
-  function d(f, g) {
-    const m = document.elementFromPoint(f, g);
+  function d(g, f) {
+    const m = document.elementFromPoint(g, f);
     return !m || l(m) ? null : m;
   }
-  function u(f) {
+  function u(g) {
     if (!s || !o) return;
-    const g = d(f.clientX, f.clientY);
-    if (!g) {
+    const f = d(g.clientX, g.clientY);
+    if (!f) {
       o.style.display = "none";
       return;
     }
-    const m = g.getBoundingClientRect();
+    const m = f.getBoundingClientRect();
     o.style.display = "block", o.style.left = `${m.left}px`, o.style.top = `${m.top}px`, o.style.width = `${m.width}px`, o.style.height = `${m.height}px`;
   }
-  function h(f) {
+  function h(g) {
     if (!s) return;
-    const g = d(f.clientX, f.clientY);
-    if (f.preventDefault(), f.stopPropagation(), !g) return;
-    const m = Ee(g);
+    const f = d(g.clientX, g.clientY);
+    if (g.preventDefault(), g.stopPropagation(), !f) return;
+    const m = Ee(f);
     t.log("picked", m), x(), n(m);
   }
-  function _(f) {
-    f.key === "Escape" && (f.preventDefault(), x());
+  function _(g) {
+    g.key === "Escape" && (g.preventDefault(), x());
   }
   function S() {
     s || (s = !0, t.log("start"), p(), document.addEventListener("mousemove", u, !0), document.addEventListener("click", h, !0), document.addEventListener("keydown", _, !0));
@@ -223,7 +223,7 @@ function Le(n, e = {}) {
   }
   return { start: S, stop: x };
 }
-const U = 6, j = 6, V = 10, H = 12, Te = 1;
+const U = 6, j = 6, H = 10, V = 12, Te = 1;
 function w(n) {
   return typeof n == "object" && n !== null && !Array.isArray(n);
 }
@@ -445,11 +445,11 @@ function Me(n) {
 function De(n, e = {}) {
   const t = F("player"), r = e.state;
   let i = null, o = null, s = null, l = null, p = !1, d = 0, u = null;
-  const h = n.display?.padding ?? U, _ = n.display?.radius ?? j, S = n.display?.cardRadius ?? V, x = n.display?.offset ?? H;
-  function f(c) {
+  const h = n.display?.padding ?? U, _ = n.display?.radius ?? j, S = n.display?.cardRadius ?? H, x = n.display?.offset ?? V;
+  function g(c) {
     return T(c.selectors);
   }
-  function g(c) {
+  function f(c) {
     return M(c.pageUrl, window.location.href);
   }
   function m() {
@@ -486,7 +486,7 @@ function De(n, e = {}) {
     });
     l.style.left = `${ve}px`, l.style.top = `${O}px`;
   }
-  function ge(c) {
+  function fe(c) {
     const b = n.steps.length;
     l && l.remove(), l = ce({
       contentText: c.content.default,
@@ -510,14 +510,14 @@ function De(n, e = {}) {
       return;
     }
     t.log("render step", d, c.id);
-    const b = f(c);
+    const b = g(c);
     if (!b) {
       t.log(`step "${c.id}" target not found yet — waiting`, c.selectors), $e(c.selectors, { timeout: 4e3 }).then((O) => {
         !p || n.steps[d] !== c || (O ? k() : (t.warn(`step "${c.id}" skipped: no element for selectors`, c.selectors), d < n.steps.length - 1 ? (d += 1, k()) : E()));
       });
       return;
     }
-    J(), b.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" }), ge(c);
+    J(), b.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" }), fe(c);
     const v = b.getBoundingClientRect();
     Y(v), q(v, c);
   }
@@ -528,7 +528,7 @@ function De(n, e = {}) {
     if (!p) return;
     const c = n.steps[d];
     if (!c) return;
-    const b = f(c);
+    const b = g(c);
     if (!b) return;
     const v = b.getBoundingClientRect();
     Y(v), q(v, c);
@@ -546,7 +546,7 @@ function De(n, e = {}) {
         return;
       }
       const c = n.steps[d];
-      c && g(c) && (u?.(), u = null, k());
+      c && f(c) && (u?.(), u = null, k());
     }));
   }
   function X() {
@@ -562,7 +562,7 @@ function De(n, e = {}) {
       E();
       return;
     }
-    if (g(b)) {
+    if (f(b)) {
       d = c, m(), k();
       return;
     }
@@ -578,7 +578,7 @@ function De(n, e = {}) {
     if (!p) return;
     const c = n.steps[d - 1];
     if (c) {
-      if (g(c)) {
+      if (f(c)) {
         d -= 1, m(), k();
         return;
       }
@@ -1210,8 +1210,8 @@ function R(n = "tour") {
     display: {
       padding: U,
       radius: j,
-      cardRadius: V,
-      offset: H,
+      cardRadius: H,
+      offset: V,
       alignOffset: 0
     }
   };
@@ -1253,8 +1253,8 @@ function he(n) {
       display: {
         padding: $(r.display?.padding, U),
         radius: $(r.display?.radius, j),
-        cardRadius: $(r.display?.cardRadius, V),
-        offset: $(r.display?.offset, H),
+        cardRadius: $(r.display?.cardRadius, H),
+        offset: $(r.display?.offset, V),
         alignOffset: $(r.display?.alignOffset, 0)
       },
       steps: r.steps.filter((i) => !!i && typeof i == "object").map((i) => ({
@@ -1295,7 +1295,7 @@ function je(n) {
   };
   return Ae(t);
 }
-function Ve(n = "tours:drafts") {
+function He(n = "tours:drafts") {
   return {
     async load() {
       try {
@@ -1313,7 +1313,7 @@ function Ve(n = "tours:drafts") {
     }
   };
 }
-function We(n) {
+function Je(n) {
   const e = { "Content-Type": "application/json" };
   return n.nonce && (e["X-WP-Nonce"] = n.nonce), {
     async load() {
@@ -1342,7 +1342,20 @@ function y(n, e, t = "") {
   const r = a("button", { class: `iconbtn ${t}`.trim(), title: e, type: "button" });
   return r.innerHTML = B[n] ?? "", r;
 }
-function He(n) {
+function Ve(n) {
+  switch (n) {
+    case "load":
+      return "Starts automatically as soon as a matching page loads.";
+    case "selector":
+      return "Starts when an element matching the selector appears in the page (waits for it).";
+    case "timer":
+      return "Starts after the delay elapses on a matching page.";
+    case "manual":
+    default:
+      return 'Starts from the [site_tour] shortcode or any element with a data-site-tour="<id>" attribute.';
+  }
+}
+function We(n) {
   switch (n) {
     case "load":
       return { type: "load" };
@@ -1354,9 +1367,9 @@ function He(n) {
       return { type: "manual" };
   }
 }
-class fe {
+class ge {
   constructor(e = {}) {
-    this.options = e, this.log = F("editor"), this.host = null, this.root = null, this.tours = [R()], this.openTourId = this.tours[0].id, this.view = "edit", this.listFilter = "tour", this.menuOpen = !1, this.activeStepId = this.tours[0].steps[0]?.id ?? null, this.tab = "steps", this.displaySub = "tour", this.openSections = /* @__PURE__ */ new Set(), this.mode = "build", this.picker = null, this.picking = !1, this.player = null, this.highlight = null, this.cardPreview = null, this.focusStepId = null, this.onViewportChange = () => this.updateOverlays(), this.saveTimer = null, this.navPosition = e.navPosition ?? "bottom", this.panelPosition = e.panelPosition ?? "right", this.topOffset = Math.max(0, e.topOffset ?? 0), this.local = Ve(e.storageKey), this.secondary = e.storage ?? null;
+    this.options = e, this.log = F("editor"), this.host = null, this.root = null, this.tours = [R()], this.openTourId = this.tours[0].id, this.view = "edit", this.listFilter = "tour", this.menuOpen = !1, this.activeStepId = this.tours[0].steps[0]?.id ?? null, this.tab = "steps", this.displaySub = "tour", this.openSections = /* @__PURE__ */ new Set(), this.mode = "build", this.picker = null, this.picking = !1, this.player = null, this.highlight = null, this.cardPreview = null, this.focusStepId = null, this.onViewportChange = () => this.updateOverlays(), this.saveTimer = null, this.navPosition = e.navPosition ?? "bottom", this.panelPosition = e.panelPosition ?? "right", this.topOffset = Math.max(0, e.topOffset ?? 0), this.local = He(e.storageKey), this.secondary = e.storage ?? null;
   }
   /**
    * Auto-mount when the page URL carries the flag (default `?tours-edit=1`), so
@@ -1366,7 +1379,7 @@ class fe {
   static fromUrl(e = {}) {
     const t = e.urlFlag ?? "tours-edit", r = new URLSearchParams(window.location.search).get(t);
     if (r === null || r === "0" || r === "false") return null;
-    const i = new fe(e);
+    const i = new ge(e);
     return i.mount(), i;
   }
   /** Render the UI onto the page. Idempotent. */
@@ -1527,8 +1540,8 @@ ${e.errors.join(`
       return;
     }
     const s = this.tour.steps, l = s.indexOf(e), p = (x) => () => {
-      const f = s[x];
-      f && this.setActive(f.id);
+      const g = s[x];
+      g && this.setActive(g.id);
     }, d = ce({
       ghost: !0,
       contentText: i || "Step tooltip preview",
@@ -1797,7 +1810,7 @@ ${e.errors.join(`
           ["timer", "After a delay"]
         ],
         (r) => {
-          t.trigger = He(r), this.markDirty(), this.render();
+          t.trigger = We(r), this.markDirty(), this.render();
         }
       )
     ), t.trigger.type === "selector" ? e.append(
@@ -1808,11 +1821,7 @@ ${e.errors.join(`
       this.textField("Delay (ms)", String(t.trigger.delay), "3000", (r) => {
         t.trigger.type === "timer" && (t.trigger.delay = Math.max(0, Number(r.replace(/[^0-9]/g, "")) || 0));
       })
-    ), e.append(
-      a("div", { class: "settings__hint" }, [
-        'Manual tours start from the [site_tour] shortcode or any element with a data-site-tour="<id>" attribute.'
-      ])
-    ), e;
+    ), e.append(a("div", { class: "settings__hint" }, [Ve(t.trigger.type)])), e;
   }
   /** A labelled <select>. */
   selectField(e, t, r, i) {
@@ -1980,12 +1989,12 @@ ${e.errors.join(`
   }
 }
 export {
-  fe as TourBuilder,
+  ge as TourBuilder,
   ae as cloneDraft,
   W as createDraftStep,
   R as createDraftTour,
-  Ve as createLocalStore,
-  We as createWordPressStore,
+  He as createLocalStore,
+  Je as createWordPressStore,
   he as normalizeTours,
   je as toTour
 };

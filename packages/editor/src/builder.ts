@@ -73,6 +73,21 @@ function iconButton(icon: string, title: string, cls = ''): HTMLButtonElement {
   return btn;
 }
 
+/** Hint text explaining the selected trigger. */
+function triggerHint(type: Trigger['type']): string {
+  switch (type) {
+    case 'load':
+      return 'Starts automatically as soon as a matching page loads.';
+    case 'selector':
+      return 'Starts when an element matching the selector appears in the page (waits for it).';
+    case 'timer':
+      return 'Starts after the delay elapses on a matching page.';
+    case 'manual':
+    default:
+      return 'Starts from the [site_tour] shortcode or any element with a data-site-tour="<id>" attribute.';
+  }
+}
+
 /** A fresh trigger of the given type with sensible defaults. */
 function defaultTrigger(type: Trigger['type']): Trigger {
   switch (type) {
@@ -912,11 +927,7 @@ export class TourBuilder {
       );
     }
 
-    wrap.append(
-      h('div', { class: 'settings__hint' }, [
-        'Manual tours start from the [site_tour] shortcode or any element with a data-site-tour="<id>" attribute.',
-      ]),
-    );
+    wrap.append(h('div', { class: 'settings__hint' }, [triggerHint(t.trigger.type)]));
     return wrap;
   }
 

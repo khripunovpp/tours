@@ -4,7 +4,7 @@
  * opt-in debug logger.
  */
 export { createPicker } from './picker.js';
-export type { PickerHandle } from './picker.js';
+export type { PickerHandle, PickerOptions } from './picker.js';
 export { createPlayer } from './player.js';
 export type { PlayerHandle } from './player.js';
 export { createLogger, isLoggingEnabled } from './logger.js';

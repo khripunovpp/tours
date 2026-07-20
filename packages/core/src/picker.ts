@@ -12,6 +12,15 @@ export interface PickerHandle {
   stop(): void;
 }
 
+export interface PickerOptions {
+  /**
+   * Elements the picker must never highlight or capture (e.g. the editor's own
+   * UI). Anything at or inside one of these is treated as empty space, so the
+   * selector search does not react to the tool's own chrome.
+   */
+  ignore?: Array<Element | null | undefined>;
+}
+
 /**
  * Build a stable CSS selector for an element.
  * - if the element has an id -> `#id`
@@ -60,12 +69,24 @@ function buildSelector(el: Element): string {
  * onPick fires once with the captured selector(s), after which the picker stops
  * itself automatically.
  */
-export function createPicker(onPick: (selectors: string[]) => void): PickerHandle {
+export function createPicker(
+  onPick: (selectors: string[]) => void,
+  options: PickerOptions = {},
+): PickerHandle {
   const log = createLogger('picker');
   let host: HTMLElement | null = null;
   let root: ShadowRoot | null = null;
   let overlay: HTMLElement | null = null;
   let active = false;
+
+  /** True if the element is (or lives inside) our own UI or an ignored one. */
+  function isIgnored(el: Element): boolean {
+    if (el === host) return true;
+    for (const ignored of options.ignore ?? []) {
+      if (ignored && ignored.contains(el)) return true;
+    }
+    return false;
+  }
 
   /** Lazily create the shadow-DOM host, highlight overlay and hint banner. */
   function ensureUi(): void {
@@ -91,10 +112,10 @@ export function createPicker(onPick: (selectors: string[]) => void): PickerHandl
     document.body.appendChild(host);
   }
 
-  /** Element under the cursor, ignoring our own picker UI. */
+  /** Element under the cursor, skipping our own UI and any ignored elements. */
   function elementUnder(x: number, y: number): Element | null {
     const found = document.elementFromPoint(x, y);
-    if (!found || found === host) return null;
+    if (!found || isIgnored(found)) return null;
     return found;
   }
 

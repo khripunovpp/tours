@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@tours/core": "workspace:*",
+    "@tours/editor": "workspace:*",
     "@tours/schema": "workspace:*"
   },
   "devDependencies": {

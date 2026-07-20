@@ -5,9 +5,14 @@
  * core's stage logs in the console.
  */
 import { createPlayer, createPicker, createLogger } from '@tours/core';
+import { TourBuilder } from '@tours/editor';
 import type { Tour } from '@tours/schema';
 
 const log = createLogger('demo');
+
+// Auto-mount the builder when the page URL carries ?tours-edit=1 — this is the
+// "no code" activation path a site owner would use.
+let builder = TourBuilder.fromUrl();
 
 /** Sample three-step tour targeting elements on the mock community page. */
 const tour: Tour = {
@@ -42,8 +47,15 @@ const tour: Tour = {
   ],
 };
 
+const openBuilderBtn = document.querySelector<HTMLButtonElement>('#open-builder');
 const runTourBtn = document.querySelector<HTMLButtonElement>('#run-tour');
 const pickElementBtn = document.querySelector<HTMLButtonElement>('#pick-element');
+
+// Launch the builder in code — the "in-code" activation path.
+openBuilderBtn?.addEventListener('click', () => {
+  if (!builder) builder = new TourBuilder({ mode: 'edit' });
+  builder.mount();
+});
 
 // Run the sample tour.
 runTourBtn?.addEventListener('click', () => {

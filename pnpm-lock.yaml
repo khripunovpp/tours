@@ -17,6 +17,9 @@ importers:
       '@tours/core':
         specifier: workspace:*
         version: link:../packages/core
+      '@tours/editor':
+        specifier: workspace:*
+        version: link:../packages/editor
       '@tours/schema':
         specifier: workspace:*
         version: link:../packages/schema
@@ -30,6 +33,15 @@ importers:
 
   packages/core:
     dependencies:
+      '@tours/schema':
+        specifier: workspace:*
+        version: link:../schema
+
+  packages/editor:
+    dependencies:
+      '@tours/core':
+        specifier: workspace:*
+        version: link:../core
       '@tours/schema':
         specifier: workspace:*
         version: link:../schema

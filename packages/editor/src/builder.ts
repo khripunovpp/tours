@@ -82,8 +82,6 @@ function defaultTrigger(type: Trigger['type']): Trigger {
       return { type: 'selector', selector: '' };
     case 'timer':
       return { type: 'timer', delay: 3000 };
-    case 'request':
-      return { type: 'request' };
     default:
       return { type: 'manual' };
   }
@@ -890,7 +888,6 @@ export class TourBuilder {
           ['load', 'On page load'],
           ['selector', 'When an element appears'],
           ['timer', 'After a delay'],
-          ['request', 'After a request completes'],
         ],
         (v) => {
           t.trigger = defaultTrigger(v as Trigger['type']);
@@ -911,12 +908,6 @@ export class TourBuilder {
       wrap.append(
         this.textField('Delay (ms)', String(t.trigger.delay), '3000', (v) => {
           if (t.trigger.type === 'timer') t.trigger.delay = Math.max(0, Number(v.replace(/[^0-9]/g, '')) || 0);
-        }),
-      );
-    } else if (t.trigger.type === 'request') {
-      wrap.append(
-        this.textField('Request URL contains (optional)', t.trigger.url ?? '', '/wp-json/', (v) => {
-          if (t.trigger.type === 'request') t.trigger.url = v || undefined;
         }),
       );
     }

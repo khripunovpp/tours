@@ -151,7 +151,6 @@ function normalizeTrigger(value: unknown): Trigger {
     if (t.type === 'load') return { type: 'load' };
     if (t.type === 'selector' && typeof t.selector === 'string') return { type: 'selector', selector: t.selector };
     if (t.type === 'timer' && typeof t.delay === 'number') return { type: 'timer', delay: t.delay };
-    if (t.type === 'request') return { type: 'request', url: typeof t.url === 'string' ? t.url : undefined };
   }
   return { type: 'manual' };
 }

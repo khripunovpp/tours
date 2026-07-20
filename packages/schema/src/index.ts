@@ -85,8 +85,7 @@ export type Trigger =
   | { type: 'manual' }
   | { type: 'load' }
   | { type: 'selector'; selector: string }
-  | { type: 'timer'; delay: number }
-  | { type: 'request'; url?: string };
+  | { type: 'timer'; delay: number };
 
 /** Tour-level visual settings, read by both the player and the editor. */
 export interface DisplaySettings {
@@ -292,15 +291,13 @@ export function validate(
 
   if (json.trigger !== undefined) {
     const tr = json.trigger;
-    const types = ['manual', 'load', 'selector', 'timer', 'request'];
+    const types = ['manual', 'load', 'selector', 'timer'];
     if (!isRecord(tr) || typeof tr.type !== 'string' || !types.includes(tr.type)) {
       errors.push(`tour.trigger.type must be one of ${types.join('|')}`);
     } else if (tr.type === 'selector' && (typeof tr.selector !== 'string' || tr.selector.length === 0)) {
       errors.push('tour.trigger.selector must be a non-empty string');
     } else if (tr.type === 'timer' && (typeof tr.delay !== 'number' || tr.delay < 0)) {
       errors.push('tour.trigger.delay must be a non-negative number');
-    } else if (tr.type === 'request' && tr.url !== undefined && typeof tr.url !== 'string') {
-      errors.push('tour.trigger.url must be a string');
     }
   }
 

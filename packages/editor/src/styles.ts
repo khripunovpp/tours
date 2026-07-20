@@ -60,6 +60,45 @@ button { font: inherit; cursor: pointer; }
 .panel__title:hover { background: var(--e-surface); }
 .panel__title:focus { outline: none; border-color: var(--e-accent); background: #fff; }
 
+.panel__title--static { pointer-events: none; }
+.panel__title--static:hover { background: transparent; }
+
+.newtour {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--e-accent);
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  white-space: nowrap;
+}
+.newtour:hover { background: #1d4ed8; }
+
+/* ---------- Tour list ---------- */
+.tourlist { display: flex; flex-direction: column; gap: 8px; }
+.tourrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: var(--e-bg);
+  border: 1px solid var(--e-border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.tourrow:hover { border-color: var(--e-accent); box-shadow: 0 0 0 3px var(--e-accent-soft); }
+.tourrow__main { flex: 1; min-width: 0; }
+.tourrow__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--e-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tourrow__meta { font-size: 12px; color: var(--e-muted); margin-top: 2px; }
+
 .status {
   font-size: 11px;
   font-weight: 600;

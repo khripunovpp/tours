@@ -26,6 +26,7 @@ export type PanelPosition = 'left' | 'right';
 type Mode = 'build' | 'preview';
 type Tab = 'steps' | 'display' | 'assets';
 type DisplaySub = 'tour' | 'card';
+type PanelView = 'list' | 'edit';
 
 export interface TourBuilderOptions {
   /** Start mounted in edit mode. Default: true. */
@@ -60,8 +61,10 @@ export class TourBuilder {
   private host: HTMLElement | null = null;
   private root: ShadowRoot | null = null;
 
-  private tour: DraftTour = createDraftTour();
-  private activeStepId: string | null = this.tour.steps[0]?.id ?? null;
+  private tours: DraftTour[] = [createDraftTour()];
+  private openTourId: string = this.tours[0].id;
+  private view: PanelView = 'edit';
+  private activeStepId: string | null = this.tours[0].steps[0]?.id ?? null;
   private tab: Tab = 'steps';
   private displaySub: DisplaySub = 'tour';
   private mode: Mode = 'build';
@@ -141,8 +144,38 @@ export class TourBuilder {
 
   // ---------- state mutations ----------
 
+  /** The currently open tour (falls back to the first if the id is stale). */
+  private get tour(): DraftTour {
+    return this.tours.find((t) => t.id === this.openTourId) ?? this.tours[0];
+  }
+
   private get activeStep(): DraftStep | null {
     return this.tour.steps.find((s) => s.id === this.activeStepId) ?? null;
+  }
+
+  /** Open a tour for editing and reset the active step to its first. */
+  private openTour(id: string): void {
+    this.openTourId = id;
+    this.view = 'edit';
+    this.tab = 'steps';
+    this.activeStepId = this.tour.steps[0]?.id ?? null;
+    this.render();
+  }
+
+  private createTour(): void {
+    const tour = createDraftTour();
+    this.tours.push(tour);
+    this.openTour(tour.id);
+  }
+
+  private deleteTour(id: string): void {
+    const i = this.tours.findIndex((t) => t.id === id);
+    if (i === -1) return;
+    this.tours.splice(i, 1);
+    // Never leave zero tours — seed a fresh one.
+    if (this.tours.length === 0) this.tours.push(createDraftTour());
+    if (this.openTourId === id) this.openTourId = this.tours[0].id;
+    this.render();
   }
 
   private setActive(id: string): void {
@@ -262,7 +295,7 @@ export class TourBuilder {
       box.style.display = 'none';
       preview.style.display = 'none';
     };
-    if (this.mode !== 'build' || this.picking) return hideAll();
+    if (this.view !== 'edit' || this.mode !== 'build' || this.picking) return hideAll();
     const step = this.activeStep;
     const target = step && step.selectors.length > 0 ? this.resolveTarget(step) : null;
     if (!target) return hideAll();
@@ -315,8 +348,51 @@ export class TourBuilder {
 
   private renderPanel(): HTMLElement {
     const panel = h('div', { class: `panel panel--${this.panelPosition}` });
-    panel.append(this.renderHeader(), this.renderToolbar(), this.renderTabs(), this.renderBody());
+    if (this.view === 'list') {
+      panel.append(this.renderListHeader(), this.renderList());
+    } else {
+      panel.append(this.renderHeader(), this.renderToolbar(), this.renderTabs(), this.renderBody());
+    }
     return panel;
+  }
+
+  private renderListHeader(): HTMLElement {
+    const header = h('div', { class: 'panel__header' });
+    const title = h('span', { class: 'panel__title panel__title--static' }, ['Tours']);
+    const add = h('button', { class: 'newtour', type: 'button', title: 'New tour' }, ['+ New']);
+    add.addEventListener('click', () => this.createTour());
+    header.append(title, add);
+    return header;
+  }
+
+  private renderList(): HTMLElement {
+    const body = h('div', { class: 'panel__body' });
+    const list = h('div', { class: 'tourlist' });
+    this.tours.forEach((t) => {
+      const row = h('div', { class: 'tourrow' });
+      row.addEventListener('click', () => this.openTour(t.id));
+
+      const main = h('div', { class: 'tourrow__main' });
+      main.append(
+        h('div', { class: 'tourrow__name' }, [t.name]),
+        h('div', { class: 'tourrow__meta' }, [
+          `${t.steps.length} step${t.steps.length === 1 ? '' : 's'}`,
+        ]),
+      );
+
+      const status = h('span', { class: `status status--${t.status}` }, [t.status]);
+
+      const del = iconButton('trash', 'Delete tour');
+      del.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.deleteTour(t.id);
+      });
+
+      row.append(main, status, del);
+      list.append(row);
+    });
+    body.append(list);
+    return body;
   }
 
   private renderHeader(): HTMLElement {
@@ -347,7 +423,11 @@ export class TourBuilder {
     const bar = h('div', { class: 'panel__toolbar' });
 
     const back = iconButton('back', 'Back to tours');
-    back.addEventListener('click', () => this.log.log('back to tour list (list view TODO)'));
+    back.addEventListener('click', () => {
+      this.stopPicking();
+      this.view = 'list';
+      this.render();
+    });
 
     const side = iconButton('panelSide', 'Move panel (left/right)');
     side.addEventListener('click', () => {

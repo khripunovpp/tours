@@ -10,10 +10,16 @@
   "dependencies": {
     "@tours/core": "workspace:*",
     "@tours/editor": "workspace:*",
-    "@tours/schema": "workspace:*"
+    "@tours/schema": "workspace:*",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0"
   },
   "devDependencies": {
     "vite": "^6.0.0",
-    "typescript": "~5.6.0"
+    "typescript": "~5.6.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1"
   }
 }

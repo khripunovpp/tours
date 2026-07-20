@@ -1,7 +1,9 @@
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
+  plugins: [react()],
   server: {
     open: true,
   },
@@ -12,6 +14,7 @@ export default defineConfig({
         profile: resolve(import.meta.dirname, 'profile.html'),
         triggers: resolve(import.meta.dirname, 'triggers.html'),
         spa: resolve(import.meta.dirname, 'spa.html'),
+        spaReact: resolve(import.meta.dirname, 'spa-react.html'),
       },
     },
   },

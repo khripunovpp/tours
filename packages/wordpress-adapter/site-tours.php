@@ -27,10 +27,15 @@ define( 'SITE_TOURS_URL', plugin_dir_url( __FILE__ ) );
 require_once SITE_TOURS_DIR . 'includes/class-site-tours-cpt.php';
 require_once SITE_TOURS_DIR . 'includes/class-site-tours-rest.php';
 require_once SITE_TOURS_DIR . 'includes/class-site-tours-assets.php';
+require_once SITE_TOURS_DIR . 'includes/class-site-tours-admin.php';
 
 Site_Tours_CPT::init();
 Site_Tours_REST::init();
 Site_Tours_Assets::init();
+
+if ( is_admin() ) {
+	Site_Tours_Admin::init();
+}
 
 // Register the post type on activation, then refresh rewrite rules once.
 register_activation_hook(

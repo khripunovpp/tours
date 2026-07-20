@@ -1,0 +1,64 @@
+{
+  "id": "employee-onboarding",
+  "schemaVersion": 1,
+  "title": {
+    "default": "New employee onboarding",
+    "ru": "Онбординг нового сотрудника"
+  },
+  "rules": [
+    {
+      "when": {
+        "url": { "glob": "https://app.example.com/**" },
+        "role": "employee",
+        "firstVisitOnly": true,
+        "device": "desktop",
+        "maxShows": 1
+      }
+    }
+  ],
+  "steps": [
+    {
+      "id": "app-open-inbox",
+      "pageUrl": { "glob": "https://app.example.com/dashboard*" },
+      "selectors": ["#nav-inbox", "[data-nav=\"inbox\"]"],
+      "content": {
+        "default": "Start in your dashboard. Open the inbox to see assigned tasks.",
+        "ru": "Начните с дашборда. Откройте входящие, чтобы увидеть задачи."
+      },
+      "placement": "right",
+      "condition": { "unlessSeen": true }
+    },
+    {
+      "id": "app-go-to-admin",
+      "pageUrl": { "glob": "https://app.example.com/dashboard*" },
+      "selectors": ["#link-admin", "a[href*=\"admin.example.com\"]"],
+      "content": {
+        "default": "Next, head to the admin console to set up your profile.",
+        "ru": "Далее перейдите в админ-консоль, чтобы настроить профиль."
+      },
+      "placement": "bottom",
+      "action": { "type": "navigate", "url": "https://admin.example.com/profile" }
+    },
+    {
+      "id": "admin-set-name",
+      "pageUrl": { "regex": "^https://admin\\.example\\.com/profile" },
+      "selectors": ["#profile-display-name", "form input[name=\"displayName\"]"],
+      "content": {
+        "default": "Enter your display name so teammates can recognize you.",
+        "ru": "Введите отображаемое имя, чтобы коллеги вас узнавали."
+      },
+      "placement": "top",
+      "action": { "type": "input", "value": "Your name" }
+    },
+    {
+      "id": "mail-first-message",
+      "pageUrl": { "glob": "https://mail.example.com/**" },
+      "selectors": ["#compose", "[gh=\"cm\"]"],
+      "content": {
+        "default": "Finally, send a hello message to your team in webmail.",
+        "ru": "Наконец, отправьте приветствие команде в почте."
+      },
+      "placement": "right"
+    }
+  ]
+}

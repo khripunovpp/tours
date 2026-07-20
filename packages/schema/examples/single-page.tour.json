@@ -1,0 +1,42 @@
+{
+  "id": "community-onboarding",
+  "schemaVersion": 1,
+  "title": {
+    "default": "Community onboarding",
+    "ru": "Знакомство с сообществом",
+    "de": "Community-Einführung"
+  },
+  "steps": [
+    {
+      "id": "step-new-post",
+      "selectors": ["#btn-new-post", "[data-testid=\"new-post\"]", "header button.primary"],
+      "content": {
+        "default": "Click here to write your first post and share an idea.",
+        "ru": "Нажмите здесь, чтобы написать первый пост и поделиться идеей.",
+        "de": "Klicke hier, um deinen ersten Beitrag zu schreiben."
+      },
+      "placement": "bottom"
+    },
+    {
+      "id": "step-signup",
+      "selectors": ["#field-name", "form input[name=\"name\"]"],
+      "content": {
+        "default": "Fill in the short sign-up form to become a member.",
+        "ru": "Заполните короткую форму регистрации, чтобы стать участником.",
+        "de": "Fülle das kurze Anmeldeformular aus, um Mitglied zu werden."
+      },
+      "placement": "right"
+    },
+    {
+      "id": "step-submit",
+      "selectors": ["#btn-submit", "form button[type=\"submit\"]"],
+      "content": {
+        "default": "All set! Click \"Sign up\" — welcome to the community.",
+        "ru": "Готово! Нажмите «Зарегистрироваться» — добро пожаловать.",
+        "de": "Fertig! Klicke auf \"Registrieren\" — willkommen."
+      },
+      "placement": "top",
+      "action": { "type": "click" }
+    }
+  ]
+}

@@ -124,8 +124,12 @@ export function createPlayer(tour: Tour): PlayerHandle {
       showClose: true,
       onClose: stop,
       radius: cardRadius,
-      back: { label: 'Back', disabled: index === 0, onClick: prev },
-      next: { label: index === total - 1 ? 'Done' : 'Next', primary: true, onClick: next },
+      back: { label: step.backLabel ?? 'Back', disabled: index === 0, onClick: prev },
+      next: {
+        label: step.nextLabel ?? (index === total - 1 ? 'Done' : 'Next'),
+        primary: true,
+        onClick: next,
+      },
     });
     root?.appendChild(tooltip);
   }

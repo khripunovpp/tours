@@ -162,6 +162,8 @@ export function toTour(
       content: { default: s.content },
       placement: s.placement,
       align: s.align,
+      backLabel: s.backLabel,
+      nextLabel: s.nextLabel,
     }));
 
   const candidate: Tour = {

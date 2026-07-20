@@ -96,7 +96,8 @@ export const CARD_STYLES = `
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
 }
 .tours-card--ghost { pointer-events: none; }
-.tours-card--ghost .tours-card__btn { pointer-events: auto; }
+.tours-card--ghost .tours-card__btn,
+.tours-card--ghost .tours-card__close { pointer-events: auto; }
 .tours-card__content {
   white-space: pre-wrap;
   word-break: break-word;

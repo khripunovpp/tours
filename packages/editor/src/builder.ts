@@ -403,6 +403,12 @@ export class TourBuilder {
     const card = renderCard({
       ghost: true,
       contentText: content || 'Step tooltip preview',
+      progress: `Step ${index + 1} of ${steps.length}`,
+      showClose: true,
+      onClose: () => {
+        this.activeStepId = null;
+        this.render();
+      },
       radius: cardRadius,
       back: { label: step.backLabel, disabled: index <= 0, onClick: goto(index - 1) },
       next: { label: step.nextLabel, primary: true, disabled: index >= steps.length - 1, onClick: goto(index + 1) },

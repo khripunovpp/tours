@@ -58,6 +58,10 @@ export interface Step {
   placement?: 'top' | 'bottom' | 'left' | 'right' | 'auto';
   /** Alignment along that side. Defaults to 'center'. */
   align?: 'start' | 'center' | 'end';
+  /** Custom label for the back button. Defaults to 'Back'. */
+  backLabel?: string;
+  /** Custom label for the next button. Defaults to 'Next' (or 'Done' on the last step). */
+  nextLabel?: string;
   /** Page this step belongs to (multi-page / cross-domain tours). */
   pageUrl?: UrlMatch;
   /** Runtime gate: only show this step when the condition holds. */
@@ -252,6 +256,12 @@ export function validate(
       }
       if (step.align !== undefined && !ALIGNS.includes(step.align as string)) {
         errors.push(`steps[${i}].align must be one of ${ALIGNS.join('|')}`);
+      }
+      if (step.backLabel !== undefined && typeof step.backLabel !== 'string') {
+        errors.push(`steps[${i}].backLabel must be a string`);
+      }
+      if (step.nextLabel !== undefined && typeof step.nextLabel !== 'string') {
+        errors.push(`steps[${i}].nextLabel must be a string`);
       }
       if (step.pageUrl !== undefined) {
         validateUrlMatch(step.pageUrl, `steps[${i}].pageUrl`, errors);

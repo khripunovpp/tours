@@ -69,8 +69,11 @@ export class TourBuilder {
   private picker: PickerHandle | null = null;
   private picking = false;
   private player: PlayerHandle | null = null;
+  /** Dashed outline over the active step's target element (no backdrop). */
+  private highlight: HTMLElement | null = null;
   /** Step whose content should regain focus after the next render. */
   private focusStepId: string | null = null;
+  private readonly onViewportChange = (): void => this.updateHighlight();
 
   constructor(private readonly options: TourBuilderOptions = {}) {
     this.navPosition = options.navPosition ?? 'bottom';
@@ -100,7 +103,14 @@ export class TourBuilder {
     const style = document.createElement('style');
     style.textContent = EDITOR_STYLES;
     this.root.appendChild(style);
+    // The highlight is created once and survives re-renders (render() only
+    // rebuilds .panel/.nav), so it can track the target smoothly.
+    this.highlight = h('div', { class: 'highlight' });
+    this.root.appendChild(this.highlight);
     document.body.appendChild(this.host);
+    // Keep the outline glued to the target as the page scrolls or resizes.
+    window.addEventListener('scroll', this.onViewportChange, true);
+    window.addEventListener('resize', this.onViewportChange, true);
     this.log.log('mounted');
     this.render();
   }
@@ -110,9 +120,12 @@ export class TourBuilder {
     this.stopPicking();
     this.player?.stop();
     this.player = null;
+    window.removeEventListener('scroll', this.onViewportChange, true);
+    window.removeEventListener('resize', this.onViewportChange, true);
     if (this.host?.parentNode) this.host.parentNode.removeChild(this.host);
     this.host = null;
     this.root = null;
+    this.highlight = null;
   }
 
   /** The current draft as a validated tour (or validation errors). */
@@ -213,6 +226,47 @@ export class TourBuilder {
       this.focusContent(this.focusStepId);
       this.focusStepId = null;
     }
+    this.updateHighlight();
+  }
+
+  /** Resolve a step's target on the page, trying each candidate selector. */
+  private resolveTarget(step: DraftStep): Element | null {
+    for (const selector of step.selectors) {
+      try {
+        const el = document.querySelector(selector);
+        if (el) return el;
+      } catch {
+        // Invalid selector — try the next candidate.
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Draw the dashed outline around the active step's target. Shown only in
+   * build mode when the active step resolves to an element; hidden while
+   * picking (the picker shows its own overlay) or in preview. No backdrop, so
+   * nothing dims or flickers.
+   */
+  private updateHighlight(): void {
+    const box = this.highlight;
+    if (!box) return;
+    const hide = (): void => {
+      box.style.display = 'none';
+    };
+    if (this.mode !== 'build' || this.picking) return hide();
+    const step = this.activeStep;
+    if (!step || step.selectors.length === 0) return hide();
+    const target = this.resolveTarget(step);
+    if (!target) return hide();
+
+    const rect = target.getBoundingClientRect();
+    const pad = 6;
+    box.style.display = 'block';
+    box.style.left = `${rect.left - pad}px`;
+    box.style.top = `${rect.top - pad}px`;
+    box.style.width = `${rect.width + pad * 2}px`;
+    box.style.height = `${rect.height + pad * 2}px`;
   }
 
   private renderNav(): HTMLElement {

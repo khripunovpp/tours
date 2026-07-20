@@ -252,6 +252,19 @@ button { font: inherit; cursor: pointer; }
 .nav--top { top: 18px; }
 .nav__sep { width: 1px; height: 22px; background: var(--e-border); margin: 0 4px; }
 
+/* ---------- Active-step target highlight (dashed, no backdrop) ---------- */
+.highlight {
+  position: fixed;
+  z-index: 2147483100;
+  box-sizing: border-box;
+  border: 2px dashed var(--e-accent);
+  border-radius: 6px;
+  background: rgba(37, 99, 235, 0.06);
+  pointer-events: none;
+  transition: all 120ms ease-out;
+  display: none;
+}
+
 .assets-empty {
   color: var(--e-muted);
   font-size: 13px;

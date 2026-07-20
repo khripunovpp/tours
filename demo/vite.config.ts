@@ -15,6 +15,7 @@ export default defineConfig({
         triggers: resolve(import.meta.dirname, 'triggers.html'),
         spa: resolve(import.meta.dirname, 'spa.html'),
         spaReact: resolve(import.meta.dirname, 'spa-react.html'),
+        spaVue: resolve(import.meta.dirname, 'spa-vue.html'),
       },
     },
   },

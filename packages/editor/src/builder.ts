@@ -75,6 +75,8 @@ export class TourBuilder {
   private activeStepId: string | null = this.tours[0].steps[0]?.id ?? null;
   private tab: Tab = 'steps';
   private displaySub: DisplaySub = 'tour';
+  /** Which card-settings accordion sections are expanded (by key). */
+  private readonly openSections = new Set<string>();
   private mode: Mode = 'build';
   private navPosition: NavPosition;
   private panelPosition: PanelPosition;
@@ -698,33 +700,46 @@ export class TourBuilder {
     card.addEventListener('mousedown', () => this.setActive(step.id));
 
     card.append(this.renderCardControl(step, index), this.renderCardContent(step), this.renderCardFooter(step));
-    if (isActive) card.append(this.renderPlacement(step));
+    // Card-settings accordion sections, shown only for the active card.
+    if (isActive) {
+      card.append(this.section('placement', 'Card position', () => this.renderPlacementBody(step)));
+    }
     return card;
   }
 
   /**
-   * Per-step placement control: a 12-anchor picker (each side × start/center/
-   * end) around a mock target, plus a distance slider. Editing re-renders so
-   * the on-page card and the active anchor update together.
+   * A collapsible card-settings section: a header with a left caret + title;
+   * clicking toggles it. Collapsed by default; open state persists across
+   * renders (keyed) so switching steps keeps the same sections expanded.
    */
-  private renderPlacement(step: DraftStep): HTMLElement {
-    const wrap = h('div', { class: 'place' });
+  private section(key: string, title: string, body: () => HTMLElement): HTMLElement {
+    const open = this.openSections.has(key);
+    const sec = h('div', { class: `acc ${open ? 'acc--open' : ''}`.trim() });
 
-    const head = h('div', { class: 'place__head' });
-    head.append(h('span', { class: 'place__label' }, ['Card position']));
-    const auto = h('button', {
-      class: `place__auto ${step.placement === 'auto' ? 'place__auto--active' : ''}`.trim(),
-      type: 'button',
-      title: 'Pick the side with the most room automatically',
-    }, ['Auto']);
-    auto.addEventListener('click', () => {
-      step.placement = 'auto';
+    const head = h('button', { class: 'acc__head', type: 'button' });
+    const caret = h('span', { class: 'acc__caret' });
+    caret.innerHTML = ICONS.chevron;
+    head.append(caret, h('span', { class: 'acc__title' }, [title]));
+    head.addEventListener('click', () => {
+      if (open) this.openSections.delete(key);
+      else this.openSections.add(key);
       this.render();
     });
-    head.append(auto);
-    wrap.append(head);
+    sec.append(head);
+    if (open) sec.append(body());
+    return sec;
+  }
+
+  /**
+   * Placement picker body: an Auto toggle plus a 12-anchor grid (each side ×
+   * start/center/end) around a mock target. Editing re-renders so the on-page
+   * card and the active anchor update together.
+   */
+  private renderPlacementBody(step: DraftStep): HTMLElement {
+    const wrap = h('div', { class: 'place' });
 
     const grid = h('div', { class: 'place__grid' });
+    grid.append(h('div', { class: 'place__el' }));
     grid.append(h('div', { class: 'place__el' }));
 
     // Anchor coordinates (px) inside the grid, matching .place__el's edges.
@@ -759,6 +774,18 @@ export class TourBuilder {
       grid.append(dot);
     }
     wrap.append(grid);
+
+    // Auto toggle sits below the grid.
+    const auto = h('button', {
+      class: `place__auto ${step.placement === 'auto' ? 'place__auto--active' : ''}`.trim(),
+      type: 'button',
+      title: 'Pick the side with the most room automatically',
+    }, ['Auto']);
+    auto.addEventListener('click', () => {
+      step.placement = 'auto';
+      this.render();
+    });
+    wrap.append(auto);
     return wrap;
   }
 

@@ -82,7 +82,7 @@ export function createDraftStep(type: CardType = 'step'): DraftStep {
     included: true,
     selectors: [],
     content: '',
-    placement: 'bottom',
+    placement: 'auto',
     align: 'center',
     backLabel: 'Back',
     nextLabel: 'Next',

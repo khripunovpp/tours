@@ -316,26 +316,38 @@ button { font: inherit; cursor: pointer; }
   padding: 32px 12px;
 }
 
-/* ---------- Per-step placement picker ---------- */
-.place {
-  padding: 10px 12px 12px;
-  border-top: 1px solid var(--e-border);
-  background: var(--e-surface);
-}
-.place__head {
+/* ---------- Card-settings accordion ---------- */
+.acc { border-top: 1px solid var(--e-border); }
+.acc__head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-.place__label {
-  font-size: 11px;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 13px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  color: var(--e-fg);
+  text-align: left;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.acc__head:hover { background: var(--e-surface); }
+.acc__caret {
+  display: inline-flex;
   color: var(--e-muted);
+  transition: transform 120ms ease;
+}
+.acc__caret svg { width: 16px; height: 16px; }
+.acc--open .acc__caret { transform: rotate(90deg); }
+
+/* ---------- Per-step placement picker ---------- */
+.place {
+  padding: 2px 12px 12px;
 }
 .place__auto {
+  display: block;
+  margin: 10px auto 0;
   font-size: 12px;
   font-weight: 600;
   color: var(--e-muted);

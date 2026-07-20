@@ -3,10 +3,11 @@ node_modules/
 .pnp/
 .pnp.js
 
-# Build output
-dist/
+# Build output (the root /dist holds committed library bundles — kept on purpose)
 build/
 *.tsbuildinfo
+demo/dist/
+packages/*/dist/
 
 # Extension build artifacts
 *.zip

@@ -9,5 +9,7 @@ export type {
   NavPosition,
   PanelPosition,
 } from './builder.js';
-export { toTour, createDraftTour, createDraftStep } from './state.js';
+export { toTour, createDraftTour, createDraftStep, normalizeTours } from './state.js';
 export type { DraftTour, DraftStep, DraftDisplay, CardType, TourStatus, Placement } from './state.js';
+export { createLocalStore, createWordPressStore } from './storage.js';
+export type { DraftStore, WordPressStoreConfig } from './storage.js';

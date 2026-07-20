@@ -98,6 +98,42 @@ export function createDraftTour(): DraftTour {
 }
 
 /**
+ * Coerce loaded (possibly older or partial) data into well-formed drafts,
+ * filling in fields added since it was stored. Drops anything unrecognizable so
+ * a corrupt entry can never crash the builder.
+ */
+export function normalizeTours(input: unknown): DraftTour[] {
+  if (!Array.isArray(input)) return [];
+  const out: DraftTour[] = [];
+  for (const raw of input) {
+    if (!raw || typeof raw !== 'object') continue;
+    const t = raw as Partial<DraftTour>;
+    if (typeof t.id !== 'string' || !Array.isArray(t.steps)) continue;
+    out.push({
+      id: t.id,
+      name: typeof t.name === 'string' ? t.name : 'Untitled tour',
+      status: t.status === 'published' ? 'published' : 'draft',
+      display: {
+        padding: numOr(t.display?.padding, DEFAULT_PADDING),
+        radius: numOr(t.display?.radius, DEFAULT_RADIUS),
+        cardRadius: numOr(t.display?.cardRadius, DEFAULT_CARD_RADIUS),
+      },
+      steps: t.steps
+        .filter((s): s is DraftStep => !!s && typeof s === 'object')
+        .map((s) => ({
+          ...createDraftStep(s.type === 'action' ? 'action' : 'step'),
+          ...s,
+        })),
+    });
+  }
+  return out;
+}
+
+function numOr(value: unknown, fallback: number): number {
+  return typeof value === 'number' && value >= 0 ? value : fallback;
+}
+
+/**
  * Compile a draft into a validated Tour. Only included steps with at least one
  * selector are shipped. Returns validation errors instead of throwing so the
  * builder can surface them.

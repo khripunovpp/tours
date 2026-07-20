@@ -20,6 +20,7 @@ import {
   type DraftStep,
   type DraftTour,
 } from './state.js';
+import { createLocalStore, type DraftStore } from './storage.js';
 
 export type NavPosition = 'top' | 'bottom';
 export type PanelPosition = 'left' | 'right';
@@ -35,6 +36,13 @@ export interface TourBuilderOptions {
   panelPosition?: PanelPosition;
   /** URL query flag that auto-mounts the builder (used by `fromUrl`). */
   urlFlag?: string;
+  /**
+   * Secondary persistence strategy, always tried in addition to localStorage
+   * (e.g. `createWordPressStore(...)`). Failures are logged, not fatal.
+   */
+  storage?: DraftStore;
+  /** localStorage key for the default store. */
+  storageKey?: string;
 }
 
 /** Small typed element factory to keep rendering terse. */
@@ -82,9 +90,16 @@ export class TourBuilder {
   private focusStepId: string | null = null;
   private readonly onViewportChange = (): void => this.updateOverlays();
 
+  /** Default store (always written) and the optional secondary strategy. */
+  private readonly local: DraftStore;
+  private readonly secondary: DraftStore | null;
+  private saveTimer: ReturnType<typeof setTimeout> | null = null;
+
   constructor(private readonly options: TourBuilderOptions = {}) {
     this.navPosition = options.navPosition ?? 'bottom';
     this.panelPosition = options.panelPosition ?? 'right';
+    this.local = createLocalStore(options.storageKey);
+    this.secondary = options.storage ?? null;
   }
 
   /**
@@ -121,6 +136,40 @@ export class TourBuilder {
     window.addEventListener('resize', this.onViewportChange, true);
     this.log.log('mounted');
     this.render();
+    void this.hydrate();
+  }
+
+  /** Load stored drafts (localStorage by default) and show them. */
+  private async hydrate(): Promise<void> {
+    const stored = await this.local.load();
+    if (!stored || stored.length === 0) return;
+    this.tours = stored;
+    this.openTourId = stored[0].id;
+    this.activeStepId = stored[0].steps[0]?.id ?? null;
+    this.log.log('hydrated', `${stored.length} tour(s)`);
+    this.render();
+  }
+
+  /** Debounce a save so rapid edits (typing, dragging a slider) coalesce. */
+  private markDirty(): void {
+    if (this.saveTimer !== null) clearTimeout(this.saveTimer);
+    this.saveTimer = setTimeout(() => {
+      this.saveTimer = null;
+      void this.persist();
+    }, 400);
+  }
+
+  /** Always write localStorage; also try the secondary strategy best-effort. */
+  private async persist(): Promise<void> {
+    const snapshot = this.tours;
+    await this.local.save(snapshot);
+    if (this.secondary) {
+      try {
+        await this.secondary.save(snapshot);
+      } catch (err) {
+        this.log.warn('secondary store save failed (localStorage kept the draft)', err);
+      }
+    }
   }
 
   /** Remove the UI and any active picker/player. */
@@ -128,6 +177,12 @@ export class TourBuilder {
     this.stopPicking();
     this.player?.stop();
     this.player = null;
+    // Flush any pending debounced save before tearing down.
+    if (this.saveTimer !== null) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+      void this.persist();
+    }
     window.removeEventListener('scroll', this.onViewportChange, true);
     window.removeEventListener('resize', this.onViewportChange, true);
     if (this.host?.parentNode) this.host.parentNode.removeChild(this.host);
@@ -266,6 +321,7 @@ export class TourBuilder {
       this.focusStepId = null;
     }
     this.updateOverlays();
+    this.markDirty();
   }
 
   /** Resolve a step's target on the page, trying each candidate selector. */
@@ -402,6 +458,7 @@ export class TourBuilder {
     (title as HTMLInputElement).value = this.tour.name;
     title.addEventListener('change', () => {
       this.tour.name = (title as HTMLInputElement).value.trim() || 'Untitled tour';
+      this.markDirty();
     });
 
     const status = h('span', { class: `status status--${this.tour.status}` }, [this.tour.status]);
@@ -542,6 +599,7 @@ export class TourBuilder {
       set(v);
       value.textContent = `${v}px`;
       this.updateOverlays();
+      this.markDirty();
     });
     const row = h('div', { class: 'settings__row' });
     row.append(input, value);
@@ -629,6 +687,7 @@ export class TourBuilder {
     // Live-save so a re-render (e.g. selecting another card) keeps the text.
     content.addEventListener('input', () => {
       step.content = content.textContent ?? '';
+      this.markDirty();
     });
     // Clicking the text of an inactive card activates it (which re-renders);
     // remember to restore focus/caret to this step's content afterwards.
@@ -660,6 +719,7 @@ export class TourBuilder {
       const commit = (): void => {
         step[key] = input.value.trim() || (key === 'backLabel' ? 'Back' : 'Next');
         input.replaceWith(this.renderEditableButton(step, key));
+        this.markDirty();
       };
       input.addEventListener('blur', commit);
       input.addEventListener('keydown', (ev) => {

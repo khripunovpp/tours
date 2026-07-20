@@ -419,9 +419,20 @@ export class TourBuilder {
     footer.append(nav(step.backLabel, index - 1, false), nav(step.nextLabel, index + 1, true));
     preview.append(body, footer);
 
+    // Measure from the outline (target inflated by the padding), matching the
+    // player, so alignment/offset are relative to the visible frame.
+    const pad = this.tour.display.padding;
+    const framed = {
+      top: rect.top - pad,
+      left: rect.left - pad,
+      right: rect.right + pad,
+      bottom: rect.bottom + pad,
+      width: rect.width + pad * 2,
+      height: rect.height + pad * 2,
+    };
     // Same placement math the player uses (side + alignment + distance).
     const { top, left } = placeCard({
-      target: rect,
+      target: framed,
       card: { width: preview.offsetWidth, height: preview.offsetHeight },
       side: step.placement,
       align: step.align,

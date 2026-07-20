@@ -94,8 +94,18 @@ export function createPlayer(tour: Tour): PlayerHandle {
   /** Place the tooltip per the step's side/alignment/offset, clamped on screen. */
   function positionTooltip(rect: DOMRect, step: Step): void {
     if (!tooltip) return;
+    // Measure from the outline (target inflated by the spotlight padding), so
+    // 0 distance sits flush against the visible frame.
+    const framed = {
+      top: rect.top - pad,
+      left: rect.left - pad,
+      right: rect.right + pad,
+      bottom: rect.bottom + pad,
+      width: rect.width + pad * 2,
+      height: rect.height + pad * 2,
+    };
     const { top, left } = placeCard({
-      target: rect,
+      target: framed,
       card: { width: tooltip.offsetWidth, height: tooltip.offsetHeight },
       side: step.placement ?? 'bottom',
       align: step.align ?? 'center',

@@ -26,7 +26,11 @@ export interface PlaceInput {
   viewport: { width: number; height: number };
 }
 
-/** Pick the side with the most free space, preferring ones where the card fits. */
+/**
+ * Choose a side in auto mode. Prefers bottom (then top, right, left) and stays
+ * there as long as the card fits, only moving elsewhere when it does not; if no
+ * side fits, falls back to the one with the most room (bottom on ties).
+ */
 export function autoSide(
   t: Rect,
   c: { width: number; height: number },
@@ -45,15 +49,18 @@ export function autoSide(
     right: c.width,
   };
   const order: Side[] = ['bottom', 'top', 'right', 'left'];
-  const fitting = order.filter((s) => space[s] >= needed[s] + 8);
-  const pool = fitting.length ? fitting : order;
-  return pool.reduce((best, s) => (space[s] > space[best] ? s : best), pool[0]);
+  const firstFit = order.find((s) => space[s] >= needed[s] + 8);
+  if (firstFit) return firstFit;
+  return order.reduce((best, s) => (space[s] > space[best] ? s : best), order[0]);
 }
 
 /** Compute the card's viewport position, clamped so it stays on screen. */
 export function placeCard(input: PlaceInput): { top: number; left: number } {
-  const { target: t, card: c, align, offset, viewport: v } = input;
-  const side = input.side === 'auto' ? autoSide(t, c, v) : input.side;
+  const { target: t, card: c, offset, viewport: v } = input;
+  const auto = input.side === 'auto';
+  const side = auto ? autoSide(t, c, v) : input.side;
+  // Auto aims for bottom-centre, so it centres along whichever side it lands on.
+  const align: Align = auto ? 'center' : input.align;
   let top = 0;
   let left = 0;
 

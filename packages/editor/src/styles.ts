@@ -40,6 +40,7 @@ button { font: inherit; cursor: pointer; }
 .panel--left { left: 16px; }
 
 .panel__header {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -62,6 +63,59 @@ button { font: inherit; cursor: pointer; }
 
 .panel__title--static { pointer-events: none; }
 .panel__title--static:hover { background: transparent; }
+
+/* Tours / Templates switch in the list header */
+.listtabs { display: flex; gap: 12px; flex: 1; }
+.listtab {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--e-muted);
+  background: transparent;
+  border: none;
+  padding: 2px 0;
+  cursor: pointer;
+}
+.listtab:hover { color: var(--e-fg); }
+.listtab--active { color: var(--e-accent); }
+
+.tourrow__use {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--e-accent);
+  border: none;
+  border-radius: 7px;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+.tourrow__use:hover { background: #1d4ed8; }
+
+/* ⋯ dropdown menu */
+.menu {
+  position: absolute;
+  top: 46px;
+  right: 12px;
+  z-index: 5;
+  min-width: 160px;
+  padding: 6px;
+  background: var(--e-bg);
+  border: 1px solid var(--e-border);
+  border-radius: 10px;
+  box-shadow: var(--e-shadow);
+  display: flex;
+  flex-direction: column;
+}
+.menu__item {
+  text-align: left;
+  font-size: 13px;
+  color: var(--e-fg);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.menu__item:hover { background: var(--e-surface); }
 
 .newtour {
   font-size: 13px;

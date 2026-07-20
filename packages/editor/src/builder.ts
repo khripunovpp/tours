@@ -15,10 +15,12 @@ import { ICONS } from './icons.js';
 import {
   createDraftStep,
   createDraftTour,
+  cloneDraft,
   toTour,
   type CardType,
   type DraftStep,
   type DraftTour,
+  type TourKind,
 } from './state.js';
 import { createLocalStore, type DraftStore } from './storage.js';
 
@@ -72,6 +74,10 @@ export class TourBuilder {
   private tours: DraftTour[] = [createDraftTour()];
   private openTourId: string = this.tours[0].id;
   private view: PanelView = 'edit';
+  /** Which kind the list view shows (tours vs templates). */
+  private listFilter: TourKind = 'tour';
+  /** Whether the tour ⋯ dropdown menu is open. */
+  private menuOpen = false;
   private activeStepId: string | null = this.tours[0].steps[0]?.id ?? null;
   private tab: Tab = 'steps';
   private displaySub: DisplaySub = 'tour';
@@ -219,20 +225,41 @@ export class TourBuilder {
     this.render();
   }
 
-  private createTour(): void {
-    const tour = createDraftTour();
-    this.tours.push(tour);
-    this.openTour(tour.id);
+  /** Create a fresh entity of the currently listed kind (tour or template). */
+  private createEntity(): void {
+    const entity = createDraftTour(this.listFilter);
+    this.tours.push(entity);
+    this.openTour(entity.id);
   }
 
-  private deleteTour(id: string): void {
+  private deleteEntity(id: string): void {
     const i = this.tours.findIndex((t) => t.id === id);
     if (i === -1) return;
     this.tours.splice(i, 1);
-    // Never leave zero tours — seed a fresh one.
-    if (this.tours.length === 0) this.tours.push(createDraftTour());
+    // Never leave zero tours — seed a fresh one (templates may all be removed).
+    if (!this.tours.some((t) => t.kind === 'tour')) this.tours.push(createDraftTour());
     if (this.openTourId === id) this.openTourId = this.tours[0].id;
     this.render();
+  }
+
+  /** Copy the open tour into a new template and jump to the Templates list. */
+  private saveAsTemplate(): void {
+    const tpl = cloneDraft(this.tour, 'template', `${this.tour.name} (template)`);
+    this.tours.push(tpl);
+    this.listFilter = 'template';
+    this.view = 'list';
+    this.menuOpen = false;
+    this.log.log('saved as template', tpl.id);
+    this.render();
+  }
+
+  /** Create a new tour from a template and open it for editing. */
+  private createFromTemplate(id: string): void {
+    const tpl = this.tours.find((t) => t.id === id);
+    if (!tpl) return;
+    const tour = cloneDraft(tpl, 'tour', tpl.name.replace(/\s*\(template\)\s*$/, ''));
+    this.tours.push(tour);
+    this.openTour(tour.id);
   }
 
   private setActive(id: string): void {
@@ -481,17 +508,43 @@ export class TourBuilder {
 
   private renderListHeader(): HTMLElement {
     const header = h('div', { class: 'panel__header' });
-    const title = h('span', { class: 'panel__title panel__title--static' }, ['Tours']);
-    const add = h('button', { class: 'newtour', type: 'button', title: 'New tour' }, ['+ New']);
-    add.addEventListener('click', () => this.createTour());
-    header.append(title, add);
+
+    // Tours / Templates switch — active one in the accent colour.
+    const tabs = h('div', { class: 'listtabs' });
+    for (const [kind, label] of [['tour', 'Tours'], ['template', 'Templates']] as const) {
+      const t = h('button', {
+        class: `listtab ${this.listFilter === kind ? 'listtab--active' : ''}`.trim(),
+        type: 'button',
+      }, [label]);
+      t.addEventListener('click', () => {
+        this.listFilter = kind;
+        this.render();
+      });
+      tabs.append(t);
+    }
+
+    const add = h('button', { class: 'newtour', type: 'button', title: 'New' }, ['+ New']);
+    add.addEventListener('click', () => this.createEntity());
+
+    header.append(tabs, add);
     return header;
   }
 
   private renderList(): HTMLElement {
     const body = h('div', { class: 'panel__body' });
     const list = h('div', { class: 'tourlist' });
-    this.tours.forEach((t) => {
+    const items = this.tours.filter((t) => t.kind === this.listFilter);
+
+    if (items.length === 0) {
+      body.append(
+        h('div', { class: 'assets-empty' }, [
+          this.listFilter === 'template' ? 'No templates yet.' : 'No tours yet.',
+        ]),
+      );
+      return body;
+    }
+
+    items.forEach((t) => {
       const row = h('div', { class: 'tourrow' });
       row.addEventListener('click', () => this.openTour(t.id));
 
@@ -502,16 +555,26 @@ export class TourBuilder {
           `${t.steps.length} step${t.steps.length === 1 ? '' : 's'}`,
         ]),
       );
+      row.append(main);
 
-      const status = h('span', { class: `status status--${t.status}` }, [t.status]);
+      // Templates get a "Use" action to spawn a tour from them.
+      if (t.kind === 'template') {
+        const use = h('button', { class: 'tourrow__use', type: 'button', title: 'Create a tour from this template' }, ['Use']);
+        use.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.createFromTemplate(t.id);
+        });
+        row.append(use);
+      } else {
+        row.append(h('span', { class: `status status--${t.status}` }, [t.status]));
+      }
 
-      const del = iconButton('trash', 'Delete tour');
+      const del = iconButton('trash', 'Delete');
       del.addEventListener('click', (e) => {
         e.stopPropagation();
-        this.deleteTour(t.id);
+        this.deleteEntity(t.id);
       });
-
-      row.append(main, status, del);
+      row.append(del);
       list.append(row);
     });
     body.append(list);
@@ -536,11 +599,40 @@ export class TourBuilder {
     status.setAttribute('title', 'Toggle status');
     (status as HTMLElement).style.cursor = 'pointer';
 
-    const menu = iconButton('menu', 'Tour menu');
-    menu.addEventListener('click', () => this.openMenu());
+    const menu = iconButton('menu', 'Menu', this.menuOpen ? 'iconbtn--active' : '');
+    menu.addEventListener('click', () => {
+      this.menuOpen = !this.menuOpen;
+      this.render();
+    });
 
     header.append(title, status, menu);
+    if (this.menuOpen) header.append(this.renderMenu());
     return header;
+  }
+
+  /** The ⋯ dropdown: save-as-template (tours only) and JSON export. */
+  private renderMenu(): HTMLElement {
+    const menu = h('div', { class: 'menu' });
+    const item = (label: string, onClick: () => void): HTMLElement => {
+      const b = h('button', { class: 'menu__item', type: 'button' }, [label]);
+      b.addEventListener('click', () => {
+        this.menuOpen = false;
+        onClick();
+      });
+      return b;
+    };
+    if (this.tour.kind === 'tour') {
+      menu.append(item('Save as template', () => this.saveAsTemplate()));
+    }
+    menu.append(item('Export JSON', () => this.exportJson()));
+    return menu;
+  }
+
+  private exportJson(): void {
+    const result = this.export();
+    this.log.log('tour JSON', result);
+    window.prompt('Tour JSON (copy):', result.ok ? JSON.stringify(result.tour) : result.errors.join('; '));
+    this.render();
   }
 
   private renderToolbar(): HTMLElement {
@@ -930,14 +1022,6 @@ export class TourBuilder {
   }
 
   // ---------- misc ----------
-
-  private openMenu(): void {
-    const result = this.export();
-    const json = result.ok ? JSON.stringify(result.tour, null, 2) : `INVALID:\n${result.errors.join('\n')}`;
-    this.log.log('tour JSON', json);
-    // Minimal menu action for now: dump/export the tour JSON.
-    window.prompt('Tour JSON (copy):', result.ok ? JSON.stringify(result.tour) : '');
-  }
 
   /** Focus a card's content area and place the caret at the end. */
   private focusContent(stepId: string): void {

@@ -44,6 +44,9 @@ export interface DraftStep {
 
 export type TourStatus = 'draft' | 'published';
 
+/** A draft is either a real tour or a reusable template. */
+export type TourKind = 'tour' | 'template';
+
 export interface DraftDisplay {
   /** Gap in px between the target element and the outline (player + editor). */
   padding: number;
@@ -59,6 +62,7 @@ export interface DraftDisplay {
 
 export interface DraftTour {
   id: string;
+  kind: TourKind;
   name: string;
   status: TourStatus;
   steps: DraftStep[];
@@ -91,11 +95,12 @@ export function createDraftStep(type: CardType = 'step'): DraftStep {
   };
 }
 
-/** A fresh, empty tour with one starter step. */
-export function createDraftTour(): DraftTour {
+/** A fresh, empty tour (or template) with one starter step. */
+export function createDraftTour(kind: TourKind = 'tour'): DraftTour {
   return {
-    id: uid('tour'),
-    name: 'Untitled tour',
+    id: uid(kind),
+    kind,
+    name: kind === 'template' ? 'Untitled template' : 'Untitled tour',
     status: 'draft',
     steps: [createDraftStep()],
     display: {
@@ -105,6 +110,21 @@ export function createDraftTour(): DraftTour {
       offset: DEFAULT_OFFSET,
       alignOffset: 0,
     },
+  };
+}
+
+/**
+ * Deep-copy a draft into a new one of the given kind, with fresh ids so it is
+ * independent of the source. Used for save-as-template and create-from-template.
+ */
+export function cloneDraft(src: DraftTour, kind: TourKind, name?: string): DraftTour {
+  return {
+    id: uid(kind),
+    kind,
+    name: name ?? src.name,
+    status: 'draft',
+    steps: src.steps.map((s) => ({ ...s, id: uid('step'), selectors: [...s.selectors] })),
+    display: { ...src.display },
   };
 }
 
@@ -122,6 +142,7 @@ export function normalizeTours(input: unknown): DraftTour[] {
     if (typeof t.id !== 'string' || !Array.isArray(t.steps)) continue;
     out.push({
       id: t.id,
+      kind: t.kind === 'template' ? 'template' : 'tour',
       name: typeof t.name === 'string' ? t.name : 'Untitled tour',
       status: t.status === 'published' ? 'published' : 'draft',
       display: {

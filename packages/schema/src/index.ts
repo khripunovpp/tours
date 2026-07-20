@@ -254,3 +254,60 @@ export function validate(
 
   return { ok: true, tour: json as unknown as Tour };
 }
+
+/** Upgrades a tour object from one schema version to the next. */
+type Migration = (data: Record<string, unknown>) => Record<string, unknown>;
+
+/**
+ * Migration registry: `migrations[n]` upgrades a tour from version `n` to
+ * `n + 1`. Data with no `schemaVersion` is treated as version 0 (pre-versioned
+ * exports), so the 0→1 step simply stamps the current version. Add the next
+ * entry here whenever SCHEMA_VERSION is bumped — never mutate an existing one.
+ */
+const migrations: Record<number, Migration> = {
+  0: (data) => ({ ...data, schemaVersion: 1 }),
+};
+
+/** Reads a numeric schemaVersion, defaulting missing/invalid ones to 0. */
+function versionOf(data: Record<string, unknown>): number {
+  return typeof data.schemaVersion === 'number' ? data.schemaVersion : 0;
+}
+
+/**
+ * Bring possibly-outdated tour JSON up to the current schema version, then
+ * validate it. Applies migrations in sequence (v0 → v1 → …). Fails if the data
+ * is newer than this build supports or if no migration path exists — callers
+ * get human-readable errors, never a throw.
+ */
+export function migrate(
+  input: unknown,
+): { ok: true; tour: Tour } | { ok: false; errors: string[] } {
+  if (!isRecord(input)) {
+    return { ok: false, errors: ['tour must be an object'] };
+  }
+
+  let data: Record<string, unknown> = { ...input };
+  let version = versionOf(data);
+
+  if (version > SCHEMA_VERSION) {
+    return {
+      ok: false,
+      errors: [
+        `tour.schemaVersion ${version} is newer than supported ${SCHEMA_VERSION}`,
+      ],
+    };
+  }
+
+  while (version < SCHEMA_VERSION) {
+    const step = migrations[version];
+    if (!step) {
+      return { ok: false, errors: [`no migration from schema version ${version}`] };
+    }
+    data = step(data);
+    const next = versionOf(data);
+    // Guard against a migration that fails to advance the version.
+    version = next > version ? next : version + 1;
+  }
+
+  return validate(data);
+}

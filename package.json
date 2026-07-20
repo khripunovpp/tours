@@ -7,12 +7,10 @@
     "dev": "pnpm --filter @tours/demo dev",
     "build": "pnpm --filter @tours/demo build",
     "preview": "pnpm --filter @tours/demo preview",
-    "typecheck": "pnpm -r exec tsc --noEmit"
+    "typecheck": "pnpm -r exec tsc --noEmit",
+    "test": "echo \"(no tests yet — added at the end of M0)\""
   },
   "devDependencies": {
     "typescript": "~5.6.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"]
   }
 }

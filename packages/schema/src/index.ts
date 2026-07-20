@@ -70,6 +70,15 @@ export interface Rule {
   when: Condition;
 }
 
+/** Tour-level visual settings, read by both the player and the editor. */
+export interface DisplaySettings {
+  /**
+   * Gap in pixels between the target element and the spotlight/highlight
+   * outline. Applies everywhere the target is framed. Defaults to 6.
+   */
+  padding?: number;
+}
+
 export interface Tour {
   id: string;
   schemaVersion: number;
@@ -77,7 +86,12 @@ export interface Tour {
   steps: Step[];
   /** Optional auto-start rules. */
   rules?: Rule[];
+  /** Optional visual settings shared by player and editor. */
+  display?: DisplaySettings;
 }
+
+/** Default gap between a framed target and its outline, in pixels. */
+export const DEFAULT_PADDING = 6;
 
 export const SCHEMA_VERSION = 1;
 
@@ -225,6 +239,17 @@ export function validate(
         validateAction(step.action, `steps[${i}].action`, errors);
       }
     });
+  }
+
+  if (json.display !== undefined) {
+    if (!isRecord(json.display)) {
+      errors.push('tour.display must be an object');
+    } else if (
+      json.display.padding !== undefined &&
+      (typeof json.display.padding !== 'number' || json.display.padding < 0)
+    ) {
+      errors.push('tour.display.padding must be a non-negative number');
+    }
   }
 
   if (json.rules !== undefined) {

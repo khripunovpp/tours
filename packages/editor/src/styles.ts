@@ -265,10 +265,41 @@ button { font: inherit; cursor: pointer; }
   display: none;
 }
 
+.highlight--settings {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.10);
+}
+
 .assets-empty {
   color: var(--e-muted);
   font-size: 13px;
   text-align: center;
   padding: 32px 12px;
+}
+
+/* ---------- Display settings ---------- */
+.settings { padding: 4px 2px; }
+.settings__field { margin-bottom: 12px; }
+.settings__label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--e-fg);
+  margin-bottom: 8px;
+}
+.settings__row { display: flex; align-items: center; gap: 12px; }
+.settings__slider { flex: 1; accent-color: #f59e0b; }
+.settings__value {
+  min-width: 42px;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--e-muted);
+  font-variant-numeric: tabular-nums;
+}
+.settings__hint {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--e-muted);
 }
 `;

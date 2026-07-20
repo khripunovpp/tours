@@ -5,7 +5,7 @@
  * tour; only included steps make it into the output.
  */
 import type { Tour, Step } from '@tours/schema';
-import { SCHEMA_VERSION, validate } from '@tours/schema';
+import { SCHEMA_VERSION, DEFAULT_PADDING, validate } from '@tours/schema';
 
 export type Placement = 'top' | 'bottom' | 'left' | 'right';
 
@@ -34,11 +34,17 @@ export interface DraftStep {
 
 export type TourStatus = 'draft' | 'published';
 
+export interface DraftDisplay {
+  /** Gap in px between the target element and the outline (player + editor). */
+  padding: number;
+}
+
 export interface DraftTour {
   id: string;
   name: string;
   status: TourStatus;
   steps: DraftStep[];
+  display: DraftDisplay;
 }
 
 let idCounter = 0;
@@ -73,6 +79,7 @@ export function createDraftTour(): DraftTour {
     name: 'Untitled tour',
     status: 'draft',
     steps: [createDraftStep()],
+    display: { padding: DEFAULT_PADDING },
   };
 }
 
@@ -98,6 +105,7 @@ export function toTour(
     schemaVersion: SCHEMA_VERSION,
     title: { default: draft.name },
     steps,
+    display: { padding: draft.display.padding },
   };
 
   return validate(candidate);

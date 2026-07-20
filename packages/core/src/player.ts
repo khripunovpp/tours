@@ -5,6 +5,7 @@
  * shadow DOM so the host page's styles cannot interfere.
  */
 import type { Step, Tour } from '@tours/schema';
+import { DEFAULT_PADDING } from '@tours/schema';
 import { PLAYER_STYLES } from './styles.js';
 import { createLogger } from './logger.js';
 
@@ -30,6 +31,8 @@ export function createPlayer(tour: Tour): PlayerHandle {
   let tooltip: HTMLElement | null = null;
   let active = false;
   let index = 0;
+  // Tour-level gap between the target and the spotlight outline.
+  const pad = tour.display?.padding ?? DEFAULT_PADDING;
 
   /** Resolve a step's target, trying each candidate selector in order. */
   function findTarget(step: Step): Element | null {
@@ -73,7 +76,6 @@ export function createPlayer(tour: Tour): PlayerHandle {
   /** Size and place the spotlight cut-out around the target (with padding). */
   function positionSpotlight(rect: DOMRect): void {
     if (!spotlight) return;
-    const pad = 6;
     spotlight.style.display = 'block';
     spotlight.style.left = `${rect.left - pad}px`;
     spotlight.style.top = `${rect.top - pad}px`;

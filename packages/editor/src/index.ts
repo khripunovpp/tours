@@ -10,4 +10,4 @@ export type {
   PanelPosition,
 } from './builder.js';
 export { toTour, createDraftTour, createDraftStep } from './state.js';
-export type { DraftTour, DraftStep, CardType, TourStatus, Placement } from './state.js';
+export type { DraftTour, DraftStep, DraftDisplay, CardType, TourStatus, Placement } from './state.js';

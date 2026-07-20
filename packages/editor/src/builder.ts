@@ -24,7 +24,7 @@ import {
 export type NavPosition = 'top' | 'bottom';
 export type PanelPosition = 'left' | 'right';
 type Mode = 'build' | 'preview';
-type Tab = 'steps' | 'assets';
+type Tab = 'steps' | 'display' | 'assets';
 
 export interface TourBuilderOptions {
   /** Start mounted in edit mode. Default: true. */
@@ -261,7 +261,10 @@ export class TourBuilder {
     if (!target) return hide();
 
     const rect = target.getBoundingClientRect();
-    const pad = 6;
+    // Tour-level spacing (same value the player uses).
+    const pad = this.tour.display.padding;
+    // In the Display tab the outline switches color to signal "tuning" mode.
+    box.className = `highlight ${this.tab === 'display' ? 'highlight--settings' : ''}`.trim();
     box.style.display = 'block';
     box.style.left = `${rect.left - pad}px`;
     box.style.top = `${rect.top - pad}px`;
@@ -347,10 +350,17 @@ export class TourBuilder {
 
   private renderTabs(): HTMLElement {
     const tabs = h('div', { class: 'tabs' });
-    for (const [key, label] of [['steps', 'Steps'], ['assets', 'Assets']] as const) {
+    for (const [key, label] of [
+      ['steps', 'Steps'],
+      ['display', 'Display'],
+      ['assets', 'Assets'],
+    ] as const) {
       const tab = h('button', { class: `tab ${this.tab === key ? 'tab--active' : ''}`, type: 'button' }, [label]);
       tab.addEventListener('click', () => {
         this.tab = key;
+        // Entering Display: focus a step whose target is actually on the page,
+        // so there is something to frame while tuning the spacing.
+        if (key === 'display') this.selectFirstResolvableStep();
         this.render();
       });
       tabs.append(tab);
@@ -358,10 +368,66 @@ export class TourBuilder {
     return tabs;
   }
 
+  /** Activate the first step whose selector resolves to an on-page element. */
+  private selectFirstResolvableStep(): void {
+    const found = this.tour.steps.find((s) => this.resolveTarget(s) !== null);
+    if (found) this.activeStepId = found.id;
+  }
+
+  /** The Display tab: tune the tour-level outline spacing with live feedback. */
+  private renderDisplaySettings(): HTMLElement {
+    const wrap = h('div', { class: 'settings' });
+
+    if (!this.activeStep || !this.resolveTarget(this.activeStep)) {
+      wrap.append(
+        h('div', { class: 'assets-empty' }, [
+          'Give a step a selector first — then its target frames here so you can tune the spacing.',
+        ]),
+      );
+      return wrap;
+    }
+
+    const value = h('span', { class: 'settings__value' }, [`${this.tour.display.padding}px`]);
+    const slider = h('input', {
+      class: 'settings__slider',
+      type: 'range',
+      min: '0',
+      max: '40',
+      step: '1',
+    }) as HTMLInputElement;
+    slider.value = String(this.tour.display.padding);
+    slider.addEventListener('input', () => {
+      this.tour.display.padding = Number(slider.value);
+      value.textContent = `${this.tour.display.padding}px`;
+      this.updateHighlight();
+    });
+
+    const field = h('div', { class: 'settings__field' });
+    field.append(
+      h('label', { class: 'settings__label' }, ['Outline spacing']),
+      (() => {
+        const row = h('div', { class: 'settings__row' });
+        row.append(slider, value);
+        return row;
+      })(),
+    );
+    wrap.append(
+      field,
+      h('div', { class: 'settings__hint' }, [
+        'Applied everywhere the target is framed — the builder outline and the live tour spotlight.',
+      ]),
+    );
+    return wrap;
+  }
+
   private renderBody(): HTMLElement {
     const body = h('div', { class: 'panel__body' });
     if (this.tab === 'assets') {
       body.append(h('div', { class: 'assets-empty' }, ['Assets — coming soon']));
+      return body;
+    }
+    if (this.tab === 'display') {
+      body.append(this.renderDisplaySettings());
       return body;
     }
     const list = h('div', { class: 'steps' });

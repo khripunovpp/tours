@@ -4,8 +4,12 @@
  * page; this compiles them to schema Tours (client-side, so no tour logic lives
  * in PHP) and runs the player. Templates and unpublished tours are excluded.
  */
-import { createPlayer } from '@tours/core';
+import { createPlayer, createLocalState, resumeTour } from '@tours/core';
 import { toTour, normalizeTours, type DraftTour } from '@tours/editor';
+import type { Tour } from '@tours/schema';
+
+// Player progress persists here so multi-page tours continue after navigation.
+const state = createLocalState();
 
 interface WpData {
   drafts?: unknown;
@@ -27,20 +31,32 @@ export function list(): Array<{ id: string; name: string }> {
   return published().map((d) => ({ id: d.id, name: d.name }));
 }
 
+/** Compile the published tours to schema Tours. */
+function compiled(): Tour[] {
+  const out: Tour[] = [];
+  for (const d of published()) {
+    const r = toTour(d);
+    if (r.ok) out.push(r.tour);
+  }
+  return out;
+}
+
 /** Compile and play a published tour (the first one if no id is given). */
 export function run(tourId?: string): void {
-  const tours = published();
-  const draft = tourId ? tours.find((d) => d.id === tourId) : tours[0];
-  if (!draft) {
+  const tours = compiled();
+  const tour = tourId ? tours.find((t) => t.id === tourId) : tours[0];
+  if (!tour) {
     console.warn('[tours] no published tour to run', tourId ?? '');
     return;
   }
-  const result = toTour(draft);
-  if (!result.ok) {
-    console.warn('[tours] tour is invalid', result.errors);
-    return;
+  createPlayer(tour, { state }).start();
+}
+
+/** Continue a multi-page tour that is mid-flight on this page. */
+function resumeInFlight(): void {
+  for (const tour of compiled()) {
+    if (resumeTour(tour, { state })) break;
   }
-  createPlayer(result.tour).start();
 }
 
 /** Wire up any `[data-site-tour]` triggers the shortcode rendered. */
@@ -52,9 +68,14 @@ function bindTriggers(): void {
   }
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', bindTriggers);
-} else {
+function init(): void {
   bindTriggers();
+  resumeInFlight();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
 }
 

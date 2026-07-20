@@ -34,6 +34,8 @@ export interface DraftStep {
   selectors: string[];
   /** Plain-text step content. Rich formatting (WYSIWYG) is deferred. */
   content: string;
+  /** Page this step belongs to, as a URL glob. Empty = any page. */
+  page: string;
   placement: Placement;
   /** Alignment of the card along the placement side. */
   align: Align;
@@ -88,6 +90,7 @@ export function createDraftStep(type: CardType = 'step'): DraftStep {
     included: true,
     selectors: [],
     content: '',
+    page: '',
     placement: 'auto',
     align: 'center',
     backLabel: 'Back',
@@ -185,6 +188,7 @@ export function toTour(
       align: s.align,
       backLabel: s.backLabel,
       nextLabel: s.nextLabel,
+      ...(s.page ? { pageUrl: { glob: s.page } } : {}),
     }));
 
   const candidate: Tour = {

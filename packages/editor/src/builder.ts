@@ -8,7 +8,7 @@
  * Enable in code:   new TourBuilder({ mode: 'edit' }).mount();
  * Enable via URL:   TourBuilder.fromUrl();   // when ?tours-edit=1 is present
  */
-import { createPicker, createPlayer, createLogger, placeCard, renderCard, resolveElement, CARD_STYLES } from '@tours/core';
+import { createPicker, createPlayer, createLogger, placeCard, renderCard, resolveElement, matchUrl, CARD_STYLES } from '@tours/core';
 import type { PickerHandle, PlayerHandle } from '@tours/core';
 import { EDITOR_STYLES } from './styles.js';
 import { ICONS } from './icons.js';
@@ -270,9 +270,16 @@ export class TourBuilder {
 
   private addStepAfter(index: number, type: CardType = 'step'): void {
     const step = createDraftStep(type);
+    // New steps belong to the page they were created on (multi-page authoring).
+    step.page = this.currentPage();
     this.tour.steps.splice(index + 1, 0, step);
     this.activeStepId = step.id;
     this.render();
+  }
+
+  /** A URL glob for the current page (matches its query/hash variations). */
+  private currentPage(): string {
+    return `${window.location.origin}${window.location.pathname}*`;
   }
 
   private removeStep(id: string): void {
@@ -298,6 +305,8 @@ export class TourBuilder {
     this.picker = createPicker(
       (selectors) => {
         step.selectors = selectors;
+        // The element was picked on this page — bind the step to it.
+        if (!step.page) step.page = this.currentPage();
         this.picking = false;
         this.picker = null;
         this.log.log('bound selector to step', step.id, selectors);
@@ -838,12 +847,43 @@ export class TourBuilder {
     });
     card.addEventListener('mousedown', () => this.setActive(step.id));
 
+    // Dim steps that belong to another page (their target is not here).
+    if (step.page && !matchUrl({ glob: step.page }, window.location.href)) {
+      card.classList.add('card--offpage');
+    }
     card.append(this.renderCardControl(step, index), this.renderCardContent(step), this.renderCardFooter(step));
     // Card-settings accordion sections, shown only for the active card.
     if (isActive) {
       card.append(this.section('placement', 'Card position', () => this.renderPlacementBody(step)));
+      card.append(this.section('page', 'Page', () => this.renderPageBody(step)));
     }
     return card;
+  }
+
+  /** Page sub-panel: which pages this step shows on (multi-page tours). */
+  private renderPageBody(step: DraftStep): HTMLElement {
+    const wrap = h('div', { class: 'settings' });
+    const input = h('input', { class: 'pagecfg__input', placeholder: 'Any page' }) as HTMLInputElement;
+    input.value = step.page;
+    input.addEventListener('change', () => {
+      step.page = input.value.trim();
+      this.markDirty();
+      this.render();
+    });
+    const use = h('button', { class: 'pagecfg__use', type: 'button' }, ['Use current page']);
+    use.addEventListener('click', () => {
+      step.page = this.currentPage();
+      this.render();
+    });
+    wrap.append(
+      h('label', { class: 'settings__label' }, ['Show on pages matching (URL glob)']),
+      input,
+      use,
+      h('div', { class: 'settings__hint' }, [
+        'Empty = any page. New steps get the current page automatically; navigate your site (with the builder on) to add steps on other pages.',
+      ]),
+    );
+    return wrap;
   }
 
   /**
@@ -951,7 +991,13 @@ export class TourBuilder {
     const del = iconButton('trash', 'Delete step');
     del.addEventListener('click', () => this.removeStep(step.id));
 
-    row.append(check, idx, type, h('div', { class: 'spacer' }), selEl, del);
+    row.append(check, idx, type, h('div', { class: 'spacer' }));
+    // Show a page chip when the step is for another page.
+    if (step.page && !matchUrl({ glob: step.page }, window.location.href)) {
+      const path = step.page.replace(/^https?:\/\/[^/]+/, '').replace(/\*$/, '') || '/';
+      row.append(h('span', { class: 'card__page', title: step.page }, [`⧉ ${path}`]));
+    }
+    row.append(selEl, del);
     return row;
   }
 

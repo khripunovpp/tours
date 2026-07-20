@@ -250,6 +250,44 @@ button { font: inherit; cursor: pointer; }
 }
 .card--active { border-color: var(--e-accent); box-shadow: 0 0 0 3px var(--e-accent-soft); }
 .card--excluded { opacity: 0.55; }
+.card--offpage .card__content { opacity: 0.6; }
+.card__page {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--e-muted);
+  background: var(--e-surface);
+  border: 1px solid var(--e-border);
+  border-radius: 5px;
+  padding: 1px 6px;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pagecfg__input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 9px;
+  border: 1px solid var(--e-border);
+  border-radius: 8px;
+  background: #fff;
+  margin-bottom: 8px;
+}
+.pagecfg__input:focus { outline: none; border-color: var(--e-accent); }
+.pagecfg__use {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--e-accent);
+  background: var(--e-accent-soft);
+  border: 1px solid #c7d6ff;
+  border-radius: 7px;
+  padding: 5px 12px;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+.pagecfg__use:hover { background: #e3ebff; }
 
 .card__control {
   display: flex;

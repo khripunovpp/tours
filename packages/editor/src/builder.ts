@@ -423,7 +423,7 @@ export class TourBuilder {
       card: { width: preview.offsetWidth, height: preview.offsetHeight },
       side: step.placement,
       align: step.align,
-      offset: step.offset,
+      offset: this.tour.display.offset,
       viewport: { width: window.innerWidth, height: window.innerHeight },
     });
     preview.style.left = `${left}px`;
@@ -620,6 +620,7 @@ export class TourBuilder {
     } else {
       wrap.append(
         this.slider('Card corner radius', d.cardRadius, 0, 32, (v) => (d.cardRadius = v)),
+        this.slider('Distance from target', d.offset, 0, 48, (v) => (d.offset = v)),
         h('div', { class: 'settings__hint' }, [
           'The visitor tooltip card. Preview it beside the highlighted target.',
         ]),
@@ -708,7 +709,20 @@ export class TourBuilder {
    */
   private renderPlacement(step: DraftStep): HTMLElement {
     const wrap = h('div', { class: 'place' });
-    wrap.append(h('div', { class: 'place__label' }, ['Card position']));
+
+    const head = h('div', { class: 'place__head' });
+    head.append(h('span', { class: 'place__label' }, ['Card position']));
+    const auto = h('button', {
+      class: `place__auto ${step.placement === 'auto' ? 'place__auto--active' : ''}`.trim(),
+      type: 'button',
+      title: 'Pick the side with the most room automatically',
+    }, ['Auto']);
+    auto.addEventListener('click', () => {
+      step.placement = 'auto';
+      this.render();
+    });
+    head.append(auto);
+    wrap.append(head);
 
     const grid = h('div', { class: 'place__grid' });
     grid.append(h('div', { class: 'place__el' }));
@@ -745,7 +759,6 @@ export class TourBuilder {
       grid.append(dot);
     }
     wrap.append(grid);
-    wrap.append(this.slider('Distance', step.offset, 0, 48, (v) => (step.offset = v)));
     return wrap;
   }
 

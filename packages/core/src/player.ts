@@ -38,6 +38,7 @@ export function createPlayer(tour: Tour): PlayerHandle {
   const pad = tour.display?.padding ?? DEFAULT_PADDING;
   const radius = tour.display?.radius ?? DEFAULT_RADIUS;
   const cardRadius = tour.display?.cardRadius ?? DEFAULT_CARD_RADIUS;
+  const offset = tour.display?.offset ?? DEFAULT_OFFSET;
 
   /** Resolve a step's target, trying each candidate selector in order. */
   function findTarget(step: Step): Element | null {
@@ -98,7 +99,7 @@ export function createPlayer(tour: Tour): PlayerHandle {
       card: { width: tooltip.offsetWidth, height: tooltip.offsetHeight },
       side: step.placement ?? 'bottom',
       align: step.align ?? 'center',
-      offset: step.offset ?? DEFAULT_OFFSET,
+      offset,
       viewport: { width: window.innerWidth, height: window.innerHeight },
     });
     tooltip.style.left = `${left}px`;

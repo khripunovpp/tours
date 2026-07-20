@@ -14,7 +14,7 @@ import {
   validate,
 } from '@tours/schema';
 
-export type Placement = 'top' | 'bottom' | 'left' | 'right';
+export type Placement = 'top' | 'bottom' | 'left' | 'right' | 'auto';
 export type Align = 'start' | 'center' | 'end';
 
 /** The kind of card, shown as a badge on the card's control row. */
@@ -37,8 +37,6 @@ export interface DraftStep {
   placement: Placement;
   /** Alignment of the card along the placement side. */
   align: Align;
-  /** Distance in px from the target to the card. */
-  offset: number;
   /** Editable footer button labels. */
   backLabel: string;
   nextLabel: string;
@@ -53,6 +51,8 @@ export interface DraftDisplay {
   radius: number;
   /** Corner radius (px) of the visitor tooltip card. */
   cardRadius: number;
+  /** Distance (px) from the target to the card. */
+  offset: number;
 }
 
 export interface DraftTour {
@@ -84,7 +84,6 @@ export function createDraftStep(type: CardType = 'step'): DraftStep {
     content: '',
     placement: 'bottom',
     align: 'center',
-    offset: DEFAULT_OFFSET,
     backLabel: 'Back',
     nextLabel: 'Next',
   };
@@ -101,6 +100,7 @@ export function createDraftTour(): DraftTour {
       padding: DEFAULT_PADDING,
       radius: DEFAULT_RADIUS,
       cardRadius: DEFAULT_CARD_RADIUS,
+      offset: DEFAULT_OFFSET,
     },
   };
 }
@@ -125,6 +125,7 @@ export function normalizeTours(input: unknown): DraftTour[] {
         padding: numOr(t.display?.padding, DEFAULT_PADDING),
         radius: numOr(t.display?.radius, DEFAULT_RADIUS),
         cardRadius: numOr(t.display?.cardRadius, DEFAULT_CARD_RADIUS),
+        offset: numOr(t.display?.offset, DEFAULT_OFFSET),
       },
       steps: t.steps
         .filter((s): s is DraftStep => !!s && typeof s === 'object')
@@ -157,7 +158,6 @@ export function toTour(
       content: { default: s.content },
       placement: s.placement,
       align: s.align,
-      offset: s.offset,
     }));
 
   const candidate: Tour = {
@@ -169,6 +169,7 @@ export function toTour(
       padding: draft.display.padding,
       radius: draft.display.radius,
       cardRadius: draft.display.cardRadius,
+      offset: draft.display.offset,
     },
   };
 

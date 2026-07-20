@@ -9,5 +9,5 @@ export { createPlayer } from './player.js';
 export type { PlayerHandle } from './player.js';
 export { createLogger, isLoggingEnabled } from './logger.js';
 export type { Logger } from './logger.js';
-export { placeCard } from './position.js';
+export { placeCard, autoSide } from './position.js';
 export type { Side, Align, PlaceInput } from './position.js';

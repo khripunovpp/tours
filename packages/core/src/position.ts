@@ -19,15 +19,41 @@ interface Rect {
 export interface PlaceInput {
   target: Rect;
   card: { width: number; height: number };
-  side: Side;
+  /** A fixed side, or 'auto' to pick the side with the most room. */
+  side: Side | 'auto';
   align: Align;
   offset: number;
   viewport: { width: number; height: number };
 }
 
+/** Pick the side with the most free space, preferring ones where the card fits. */
+export function autoSide(
+  t: Rect,
+  c: { width: number; height: number },
+  v: { width: number; height: number },
+): Side {
+  const space: Record<Side, number> = {
+    top: t.top,
+    bottom: v.height - t.bottom,
+    left: t.left,
+    right: v.width - t.right,
+  };
+  const needed: Record<Side, number> = {
+    top: c.height,
+    bottom: c.height,
+    left: c.width,
+    right: c.width,
+  };
+  const order: Side[] = ['bottom', 'top', 'right', 'left'];
+  const fitting = order.filter((s) => space[s] >= needed[s] + 8);
+  const pool = fitting.length ? fitting : order;
+  return pool.reduce((best, s) => (space[s] > space[best] ? s : best), pool[0]);
+}
+
 /** Compute the card's viewport position, clamped so it stays on screen. */
 export function placeCard(input: PlaceInput): { top: number; left: number } {
-  const { target: t, card: c, side, align, offset, viewport: v } = input;
+  const { target: t, card: c, align, offset, viewport: v } = input;
+  const side = input.side === 'auto' ? autoSide(t, c, v) : input.side;
   let top = 0;
   let left = 0;
 

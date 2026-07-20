@@ -322,14 +322,31 @@ button { font: inherit; cursor: pointer; }
   border-top: 1px solid var(--e-border);
   background: var(--e-surface);
 }
+.place__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
 .place__label {
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--e-muted);
-  margin-bottom: 8px;
 }
+.place__auto {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--e-muted);
+  background: var(--e-bg);
+  border: 1px solid var(--e-border);
+  border-radius: 999px;
+  padding: 3px 12px;
+  cursor: pointer;
+}
+.place__auto:hover { color: var(--e-fg); }
+.place__auto--active { color: #fff; background: var(--e-accent); border-color: var(--e-accent); }
 .place__grid {
   position: relative;
   width: 132px;

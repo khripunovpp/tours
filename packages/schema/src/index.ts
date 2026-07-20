@@ -54,12 +54,10 @@ export interface Step {
   id: string;
   selectors: string[];
   content: LocalizedText;
-  /** Which side of the target the card sits on. Defaults to 'bottom'. */
-  placement?: 'top' | 'bottom' | 'left' | 'right';
+  /** Which side of the target the card sits on, or 'auto'. Defaults to 'bottom'. */
+  placement?: 'top' | 'bottom' | 'left' | 'right' | 'auto';
   /** Alignment along that side. Defaults to 'center'. */
   align?: 'start' | 'center' | 'end';
-  /** Distance in px from the target to the card. Defaults to 12. */
-  offset?: number;
   /** Page this step belongs to (multi-page / cross-domain tours). */
   pageUrl?: UrlMatch;
   /** Runtime gate: only show this step when the condition holds. */
@@ -86,6 +84,8 @@ export interface DisplaySettings {
   radius?: number;
   /** Corner radius (px) of the visitor tooltip card. Defaults to 10. */
   cardRadius?: number;
+  /** Distance (px) from the target to the card. Defaults to 12. */
+  offset?: number;
 }
 
 export interface Tour {
@@ -120,7 +120,7 @@ function isLocalizedText(value: unknown): value is LocalizedText {
   return isRecord(value) && typeof value.default === 'string';
 }
 
-const PLACEMENTS = ['top', 'bottom', 'left', 'right'];
+const PLACEMENTS = ['top', 'bottom', 'left', 'right', 'auto'];
 const ALIGNS = ['start', 'center', 'end'];
 const DEVICES = ['mobile', 'tablet', 'desktop'];
 const ACTION_TYPES = ['click', 'input', 'navigate', 'none'];
@@ -248,12 +248,6 @@ export function validate(
       if (step.align !== undefined && !ALIGNS.includes(step.align as string)) {
         errors.push(`steps[${i}].align must be one of ${ALIGNS.join('|')}`);
       }
-      if (
-        step.offset !== undefined &&
-        (typeof step.offset !== 'number' || step.offset < 0)
-      ) {
-        errors.push(`steps[${i}].offset must be a non-negative number`);
-      }
       if (step.pageUrl !== undefined) {
         validateUrlMatch(step.pageUrl, `steps[${i}].pageUrl`, errors);
       }
@@ -270,7 +264,7 @@ export function validate(
     if (!isRecord(json.display)) {
       errors.push('tour.display must be an object');
     } else {
-      for (const key of ['padding', 'radius', 'cardRadius'] as const) {
+      for (const key of ['padding', 'radius', 'cardRadius', 'offset'] as const) {
         const v = json.display[key];
         if (v !== undefined && (typeof v !== 'number' || v < 0)) {
           errors.push(`tour.display.${key} must be a non-negative number`);

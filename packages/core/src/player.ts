@@ -54,6 +54,8 @@ export function createPlayer(tour: Tour, options: PlayerOptions = {}): PlayerHan
   let tooltip: HTMLElement | null = null;
   let active = false;
   let index = 0;
+  // Steps skipped because their target never appeared — excluded from progress.
+  let skipped = 0;
   // Set while waiting for the page to change to the next step's page (SPA).
   let unwatch: (() => void) | null = null;
   // Tour-level visual settings shared with the editor.
@@ -138,12 +140,14 @@ export function createPlayer(tour: Tour, options: PlayerOptions = {}): PlayerHan
 
   /** (Re)build the tooltip card for the given step via the shared renderer. */
   function renderTooltip(step: Step): void {
-    const total = tour.steps.length;
+    // Exclude skipped (unfindable) steps from the progress counter.
+    const total = Math.max(1, tour.steps.length - skipped);
+    const position = Math.max(1, Math.min(index + 1 - skipped, total));
     if (tooltip) tooltip.remove();
     // i18n is deferred; for now show the default-language text.
     tooltip = renderCard({
       contentText: step.content.default,
-      progress: `Step ${index + 1} of ${total}`,
+      progress: `Step ${position} of ${total}`,
       showClose: true,
       onClose: stop,
       radius: cardRadius,
@@ -181,6 +185,7 @@ export function createPlayer(tour: Tour, options: PlayerOptions = {}): PlayerHan
           render();
         } else {
           log.warn(`step "${step.id}" skipped: no element for selectors`, step.selectors);
+          skipped += 1; // drop it from the progress total
           if (index < tour.steps.length - 1) {
             index += 1;
             render();
@@ -232,6 +237,7 @@ export function createPlayer(tour: Tour, options: PlayerOptions = {}): PlayerHan
     if (tour.steps.length === 0) return;
     active = true;
     index = Math.max(0, Math.min(startIndex, tour.steps.length - 1));
+    skipped = 0;
     log.log('start', tour.id, `at ${index}/${tour.steps.length}`);
     ensureUi();
     // Capture phase so navigation keys work even if the page listens too.
@@ -319,10 +325,18 @@ export function createPlayer(tour: Tour, options: PlayerOptions = {}): PlayerHan
     persist();
     const action = tour.steps[index - 1]?.action;
     if (action && action.type === 'navigate' && action.url) {
-      // Tour-driven navigation → full load, resumeTour() continues on arrival.
-      log.log('page transition (navigate) → resume at', index);
-      teardownUi();
-      window.location.assign(action.url);
+      if (action.url.startsWith('#')) {
+        // Hash navigation is client-side (SPA): change the hash without a
+        // reload and continue in place once the view updates.
+        log.log('page transition (hash navigate) → resume at', index);
+        waitForPageChange();
+        window.location.hash = action.url;
+      } else {
+        // Full navigation → reload; resumeTour() continues on arrival.
+        log.log('page transition (navigate) → resume at', index);
+        teardownUi();
+        window.location.assign(action.url);
+      }
       return;
     }
     // Visitor/SPA-driven: stay alive and continue when the URL matches.

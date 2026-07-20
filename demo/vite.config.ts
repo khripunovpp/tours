@@ -10,6 +10,8 @@ export default defineConfig({
       input: {
         main: resolve(import.meta.dirname, 'index.html'),
         profile: resolve(import.meta.dirname, 'profile.html'),
+        triggers: resolve(import.meta.dirname, 'triggers.html'),
+        spa: resolve(import.meta.dirname, 'spa.html'),
       },
     },
   },

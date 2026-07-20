@@ -9,7 +9,8 @@
     "preview": "pnpm --filter @tours/demo preview",
     "typecheck": "pnpm -r exec tsc --noEmit",
     "test": "echo \"(no tests yet — added at the end of M0)\"",
-    "build:lib": "node scripts/build-lib.mjs"
+    "build:lib": "node scripts/build-lib.mjs",
+    "build:wp": "node scripts/build-wp.mjs"
   },
   "devDependencies": {
     "typescript": "~5.6.0",

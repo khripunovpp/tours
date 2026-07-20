@@ -51,6 +51,18 @@ importers:
 
   packages/schema: {}
 
+  packages/wordpress-adapter:
+    dependencies:
+      '@tours/core':
+        specifier: workspace:*
+        version: link:../core
+      '@tours/editor':
+        specifier: workspace:*
+        version: link:../editor
+      '@tours/schema':
+        specifier: workspace:*
+        version: link:../schema
+
 packages:
 
   '@esbuild/aix-ppc64@0.25.12':

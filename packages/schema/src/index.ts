@@ -77,6 +77,10 @@ export interface DisplaySettings {
    * outline. Applies everywhere the target is framed. Defaults to 6.
    */
   padding?: number;
+  /** Corner radius (px) of the spotlight/highlight outline. Defaults to 6. */
+  radius?: number;
+  /** Corner radius (px) of the visitor tooltip card. Defaults to 10. */
+  cardRadius?: number;
 }
 
 export interface Tour {
@@ -92,6 +96,10 @@ export interface Tour {
 
 /** Default gap between a framed target and its outline, in pixels. */
 export const DEFAULT_PADDING = 6;
+/** Default corner radius of the outline, in pixels. */
+export const DEFAULT_RADIUS = 6;
+/** Default corner radius of the visitor tooltip card, in pixels. */
+export const DEFAULT_CARD_RADIUS = 10;
 
 export const SCHEMA_VERSION = 1;
 
@@ -244,11 +252,13 @@ export function validate(
   if (json.display !== undefined) {
     if (!isRecord(json.display)) {
       errors.push('tour.display must be an object');
-    } else if (
-      json.display.padding !== undefined &&
-      (typeof json.display.padding !== 'number' || json.display.padding < 0)
-    ) {
-      errors.push('tour.display.padding must be a non-negative number');
+    } else {
+      for (const key of ['padding', 'radius', 'cardRadius'] as const) {
+        const v = json.display[key];
+        if (v !== undefined && (typeof v !== 'number' || v < 0)) {
+          errors.push(`tour.display.${key} must be a non-negative number`);
+        }
+      }
     }
   }
 

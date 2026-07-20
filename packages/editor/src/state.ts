@@ -5,7 +5,13 @@
  * tour; only included steps make it into the output.
  */
 import type { Tour, Step } from '@tours/schema';
-import { SCHEMA_VERSION, DEFAULT_PADDING, validate } from '@tours/schema';
+import {
+  SCHEMA_VERSION,
+  DEFAULT_PADDING,
+  DEFAULT_RADIUS,
+  DEFAULT_CARD_RADIUS,
+  validate,
+} from '@tours/schema';
 
 export type Placement = 'top' | 'bottom' | 'left' | 'right';
 
@@ -37,6 +43,10 @@ export type TourStatus = 'draft' | 'published';
 export interface DraftDisplay {
   /** Gap in px between the target element and the outline (player + editor). */
   padding: number;
+  /** Corner radius (px) of the outline. */
+  radius: number;
+  /** Corner radius (px) of the visitor tooltip card. */
+  cardRadius: number;
 }
 
 export interface DraftTour {
@@ -79,7 +89,11 @@ export function createDraftTour(): DraftTour {
     name: 'Untitled tour',
     status: 'draft',
     steps: [createDraftStep()],
-    display: { padding: DEFAULT_PADDING },
+    display: {
+      padding: DEFAULT_PADDING,
+      radius: DEFAULT_RADIUS,
+      cardRadius: DEFAULT_CARD_RADIUS,
+    },
   };
 }
 
@@ -105,7 +119,11 @@ export function toTour(
     schemaVersion: SCHEMA_VERSION,
     title: { default: draft.name },
     steps,
-    display: { padding: draft.display.padding },
+    display: {
+      padding: draft.display.padding,
+      radius: draft.display.radius,
+      cardRadius: draft.display.cardRadius,
+    },
   };
 
   return validate(candidate);

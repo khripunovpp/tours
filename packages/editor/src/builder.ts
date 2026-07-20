@@ -25,6 +25,7 @@ export type NavPosition = 'top' | 'bottom';
 export type PanelPosition = 'left' | 'right';
 type Mode = 'build' | 'preview';
 type Tab = 'steps' | 'display' | 'assets';
+type DisplaySub = 'tour' | 'card';
 
 export interface TourBuilderOptions {
   /** Start mounted in edit mode. Default: true. */
@@ -62,6 +63,7 @@ export class TourBuilder {
   private tour: DraftTour = createDraftTour();
   private activeStepId: string | null = this.tour.steps[0]?.id ?? null;
   private tab: Tab = 'steps';
+  private displaySub: DisplaySub = 'tour';
   private mode: Mode = 'build';
   private navPosition: NavPosition;
   private panelPosition: PanelPosition;
@@ -71,9 +73,11 @@ export class TourBuilder {
   private player: PlayerHandle | null = null;
   /** Dashed outline over the active step's target element (no backdrop). */
   private highlight: HTMLElement | null = null;
+  /** Live preview of the visitor tooltip card, shown in the Card sub-tab. */
+  private cardPreview: HTMLElement | null = null;
   /** Step whose content should regain focus after the next render. */
   private focusStepId: string | null = null;
-  private readonly onViewportChange = (): void => this.updateHighlight();
+  private readonly onViewportChange = (): void => this.updateOverlays();
 
   constructor(private readonly options: TourBuilderOptions = {}) {
     this.navPosition = options.navPosition ?? 'bottom';
@@ -106,7 +110,8 @@ export class TourBuilder {
     // The highlight is created once and survives re-renders (render() only
     // rebuilds .panel/.nav), so it can track the target smoothly.
     this.highlight = h('div', { class: 'highlight' });
-    this.root.appendChild(this.highlight);
+    this.cardPreview = h('div', { class: 'card-preview' }, ['Step tooltip preview']);
+    this.root.append(this.highlight, this.cardPreview);
     document.body.appendChild(this.host);
     // Keep the outline glued to the target as the page scrolls or resizes.
     window.addEventListener('scroll', this.onViewportChange, true);
@@ -126,6 +131,7 @@ export class TourBuilder {
     this.host = null;
     this.root = null;
     this.highlight = null;
+    this.cardPreview = null;
   }
 
   /** The current draft as a validated tour (or validation errors). */
@@ -226,7 +232,7 @@ export class TourBuilder {
       this.focusContent(this.focusStepId);
       this.focusStepId = null;
     }
-    this.updateHighlight();
+    this.updateOverlays();
   }
 
   /** Resolve a step's target on the page, trying each candidate selector. */
@@ -243,33 +249,45 @@ export class TourBuilder {
   }
 
   /**
-   * Draw the dashed outline around the active step's target. Shown only in
-   * build mode when the active step resolves to an element; hidden while
-   * picking (the picker shows its own overlay) or in preview. No backdrop, so
-   * nothing dims or flickers.
+   * Draw the dashed outline around the active step's target, and (in the Card
+   * sub-tab) a live tooltip-card preview beside it. Both use the same
+   * tour-level values the player reads. Shown only in build mode when the
+   * active step resolves; hidden while picking or in preview. No backdrop.
    */
-  private updateHighlight(): void {
+  private updateOverlays(): void {
     const box = this.highlight;
-    if (!box) return;
-    const hide = (): void => {
+    const preview = this.cardPreview;
+    if (!box || !preview) return;
+    const hideAll = (): void => {
       box.style.display = 'none';
+      preview.style.display = 'none';
     };
-    if (this.mode !== 'build' || this.picking) return hide();
+    if (this.mode !== 'build' || this.picking) return hideAll();
     const step = this.activeStep;
-    if (!step || step.selectors.length === 0) return hide();
-    const target = this.resolveTarget(step);
-    if (!target) return hide();
+    const target = step && step.selectors.length > 0 ? this.resolveTarget(step) : null;
+    if (!target) return hideAll();
 
     const rect = target.getBoundingClientRect();
-    // Tour-level spacing (same value the player uses).
-    const pad = this.tour.display.padding;
-    // In the Display tab the outline switches color to signal "tuning" mode.
+    const { padding, radius, cardRadius } = this.tour.display;
+
+    // Outline. In the Display tab it turns amber to signal "tuning" mode.
     box.className = `highlight ${this.tab === 'display' ? 'highlight--settings' : ''}`.trim();
     box.style.display = 'block';
-    box.style.left = `${rect.left - pad}px`;
-    box.style.top = `${rect.top - pad}px`;
-    box.style.width = `${rect.width + pad * 2}px`;
-    box.style.height = `${rect.height + pad * 2}px`;
+    box.style.left = `${rect.left - padding}px`;
+    box.style.top = `${rect.top - padding}px`;
+    box.style.width = `${rect.width + padding * 2}px`;
+    box.style.height = `${rect.height + padding * 2}px`;
+    box.style.borderRadius = `${radius}px`;
+
+    // Tooltip-card preview, only while tuning card settings.
+    if (this.tab === 'display' && this.displaySub === 'card') {
+      preview.style.display = 'block';
+      preview.style.borderRadius = `${cardRadius}px`;
+      preview.style.left = `${Math.max(8, rect.left - padding)}px`;
+      preview.style.top = `${rect.bottom + padding + 10}px`;
+    } else {
+      preview.style.display = 'none';
+    }
   }
 
   private renderNav(): HTMLElement {
@@ -374,50 +392,82 @@ export class TourBuilder {
     if (found) this.activeStepId = found.id;
   }
 
-  /** The Display tab: tune the tour-level outline spacing with live feedback. */
+  /**
+   * The Display tab: two sub-tabs of tour-level visual settings — Tour (the
+   * target outline) and Card (the visitor tooltip) — tuned live.
+   */
   private renderDisplaySettings(): HTMLElement {
     const wrap = h('div', { class: 'settings' });
+
+    // Sub-tab switcher.
+    const subs = h('div', { class: 'subtabs' });
+    for (const [key, label] of [['tour', 'Tour'], ['card', 'Card']] as const) {
+      const b = h('button', { class: `subtab ${this.displaySub === key ? 'subtab--active' : ''}`, type: 'button' }, [label]);
+      b.addEventListener('click', () => {
+        this.displaySub = key;
+        this.render();
+      });
+      subs.append(b);
+    }
+    wrap.append(subs);
 
     if (!this.activeStep || !this.resolveTarget(this.activeStep)) {
       wrap.append(
         h('div', { class: 'assets-empty' }, [
-          'Give a step a selector first — then its target frames here so you can tune the spacing.',
+          'Give a step a selector first — then its target frames here so you can tune the look.',
         ]),
       );
       return wrap;
     }
 
-    const value = h('span', { class: 'settings__value' }, [`${this.tour.display.padding}px`]);
-    const slider = h('input', {
+    const d = this.tour.display;
+    if (this.displaySub === 'tour') {
+      wrap.append(
+        this.slider('Outline spacing', d.padding, 0, 40, (v) => (d.padding = v)),
+        this.slider('Outline corner radius', d.radius, 0, 40, (v) => (d.radius = v)),
+        h('div', { class: 'settings__hint' }, [
+          'The outline framing the target — applied in the builder and in the live tour spotlight.',
+        ]),
+      );
+    } else {
+      wrap.append(
+        this.slider('Card corner radius', d.cardRadius, 0, 32, (v) => (d.cardRadius = v)),
+        h('div', { class: 'settings__hint' }, [
+          'The visitor tooltip card. Preview it beside the highlighted target.',
+        ]),
+      );
+    }
+    return wrap;
+  }
+
+  /** A labelled range slider that writes through `set` and re-draws overlays live. */
+  private slider(
+    label: string,
+    current: number,
+    min: number,
+    max: number,
+    set: (value: number) => void,
+  ): HTMLElement {
+    const value = h('span', { class: 'settings__value' }, [`${current}px`]);
+    const input = h('input', {
       class: 'settings__slider',
       type: 'range',
-      min: '0',
-      max: '40',
+      min: String(min),
+      max: String(max),
       step: '1',
     }) as HTMLInputElement;
-    slider.value = String(this.tour.display.padding);
-    slider.addEventListener('input', () => {
-      this.tour.display.padding = Number(slider.value);
-      value.textContent = `${this.tour.display.padding}px`;
-      this.updateHighlight();
+    input.value = String(current);
+    input.addEventListener('input', () => {
+      const v = Number(input.value);
+      set(v);
+      value.textContent = `${v}px`;
+      this.updateOverlays();
     });
-
+    const row = h('div', { class: 'settings__row' });
+    row.append(input, value);
     const field = h('div', { class: 'settings__field' });
-    field.append(
-      h('label', { class: 'settings__label' }, ['Outline spacing']),
-      (() => {
-        const row = h('div', { class: 'settings__row' });
-        row.append(slider, value);
-        return row;
-      })(),
-    );
-    wrap.append(
-      field,
-      h('div', { class: 'settings__hint' }, [
-        'Applied everywhere the target is framed — the builder outline and the live tour spotlight.',
-      ]),
-    );
-    return wrap;
+    field.append(h('label', { class: 'settings__label' }, [label]), row);
+    return field;
   }
 
   private renderBody(): HTMLElement {

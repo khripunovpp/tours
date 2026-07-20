@@ -277,8 +277,43 @@ button { font: inherit; cursor: pointer; }
   padding: 32px 12px;
 }
 
+/* ---------- Card preview (Display > Card) ---------- */
+.card-preview {
+  position: fixed;
+  z-index: 2147483105;
+  box-sizing: border-box;
+  max-width: 260px;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--e-fg);
+  background: #fff;
+  border: 1px solid var(--e-border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+  display: none;
+}
+
 /* ---------- Display settings ---------- */
 .settings { padding: 4px 2px; }
+.subtabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  margin-bottom: 14px;
+  background: var(--e-surface);
+  border-radius: 9px;
+}
+.subtab {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--e-muted);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 12px;
+}
+.subtab--active { color: var(--e-fg); background: #fff; box-shadow: 0 1px 2px rgba(15,23,42,0.08); }
 .settings__field { margin-bottom: 12px; }
 .settings__label {
   display: block;

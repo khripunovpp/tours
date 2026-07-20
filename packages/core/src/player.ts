@@ -5,7 +5,7 @@
  * shadow DOM so the host page's styles cannot interfere.
  */
 import type { Step, Tour } from '@tours/schema';
-import { DEFAULT_PADDING } from '@tours/schema';
+import { DEFAULT_PADDING, DEFAULT_RADIUS, DEFAULT_CARD_RADIUS } from '@tours/schema';
 import { PLAYER_STYLES } from './styles.js';
 import { createLogger } from './logger.js';
 
@@ -31,8 +31,10 @@ export function createPlayer(tour: Tour): PlayerHandle {
   let tooltip: HTMLElement | null = null;
   let active = false;
   let index = 0;
-  // Tour-level gap between the target and the spotlight outline.
+  // Tour-level visual settings shared with the editor.
   const pad = tour.display?.padding ?? DEFAULT_PADDING;
+  const radius = tour.display?.radius ?? DEFAULT_RADIUS;
+  const cardRadius = tour.display?.cardRadius ?? DEFAULT_CARD_RADIUS;
 
   /** Resolve a step's target, trying each candidate selector in order. */
   function findTarget(step: Step): Element | null {
@@ -64,10 +66,12 @@ export function createPlayer(tour: Tour): PlayerHandle {
 
     spotlight = document.createElement('div');
     spotlight.className = 'tours-spotlight';
+    spotlight.style.borderRadius = `${radius}px`;
     root.appendChild(spotlight);
 
     tooltip = document.createElement('div');
     tooltip.className = 'tours-tooltip';
+    tooltip.style.borderRadius = `${cardRadius}px`;
     root.appendChild(tooltip);
 
     document.body.appendChild(host);

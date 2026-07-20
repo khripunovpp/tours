@@ -333,10 +333,19 @@ export function createPlayer(tour: Tour, options: PlayerOptions = {}): PlayerHan
   function prev(): void {
     if (!active) return;
     const prevStep = tour.steps[index - 1];
-    if (!prevStep || !onThisPage(prevStep)) return; // stay on this page
+    if (!prevStep) return;
+    if (onThisPage(prevStep)) {
+      index -= 1;
+      persist();
+      render();
+      return;
+    }
+    // The previous step is on another page — go back to it and resume there.
     index -= 1;
     persist();
-    render();
+    log.log('page transition back → resume at', index);
+    waitForPageChange();
+    window.history.back();
   }
 
   return { start, stop, next, prev };

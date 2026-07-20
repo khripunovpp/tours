@@ -534,7 +534,7 @@ function De(r, e = {}) {
   function me() {
     s && (s.style.display = "none"), l && (l.remove(), l = null);
   }
-  function X() {
+  function K() {
     me(), !u && (u = Ie(() => {
       if (!p) {
         u?.(), u = null;
@@ -544,11 +544,11 @@ function De(r, e = {}) {
       c && g(c) && (u?.(), u = null, k());
     }));
   }
-  function K() {
+  function X() {
     u && (u(), u = null), p && (p = !1, window.removeEventListener("keydown", G, !0), window.removeEventListener("resize", L, !0), window.removeEventListener("scroll", L, !0), i && i.parentNode && i.parentNode.removeChild(i), i = null, o = null, s = null, l = null);
   }
   function E() {
-    t.log("stop"), K(), n && Me(n);
+    t.log("stop"), X(), n && Me(n);
   }
   function A() {
     if (!p) return;
@@ -564,10 +564,10 @@ function De(r, e = {}) {
     d = c, m();
     const v = r.steps[d - 1]?.action;
     if (v && v.type === "navigate" && v.url) {
-      t.log("page transition (navigate) → resume at", d), K(), window.location.assign(v.url);
+      t.log("page transition (navigate) → resume at", d), X(), window.location.assign(v.url);
       return;
     }
-    t.log("page transition (wait) → resume at", d), X();
+    t.log("page transition (wait) → resume at", d), K();
   }
   function N() {
     if (!p) return;
@@ -577,7 +577,7 @@ function De(r, e = {}) {
         d -= 1, m(), k();
         return;
       }
-      d -= 1, m(), t.log("page transition back → resume at", d), X(), window.history.back();
+      d -= 1, m(), t.log("page transition back → resume at", d), K(), window.history.back();
     }
   }
   return { start: be, stop: E, next: A, prev: N };
@@ -602,7 +602,7 @@ button { font: inherit; cursor: pointer; }
 /* ---------- Builder panel ---------- */
 .panel {
   position: fixed;
-  top: 16px;
+  top: calc(16px + var(--e-top, 0px));
   bottom: 76px;
   width: 380px;
   z-index: 2147483200;
@@ -790,7 +790,26 @@ button { font: inherit; cursor: pointer; }
 .panel__body {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 14px 16px 20px;
+  /* Modern thin, auto-hiding scrollbar (Firefox). */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.35) transparent;
+}
+/* WebKit/Blink: slim, rounded, only-thumb, fades in on hover. */
+.panel__body::-webkit-scrollbar { width: 10px; }
+.panel__body::-webkit-scrollbar-track { background: transparent; }
+.panel__body::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+.panel__body:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 116, 139, 0.35);
+}
+.panel__body::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(100, 116, 139, 0.6);
 }
 
 /* ---------- Step list ---------- */
@@ -959,7 +978,7 @@ button { font: inherit; cursor: pointer; }
   box-shadow: var(--e-shadow);
 }
 .nav--bottom { bottom: 18px; }
-.nav--top { top: 18px; }
+.nav--top { top: calc(18px + var(--e-top, 0px)); }
 .nav__sep { width: 1px; height: 22px; background: var(--e-border); margin: 0 4px; }
 
 /* ---------- Active-step target highlight (dashed, no backdrop) ---------- */
@@ -1288,7 +1307,7 @@ function y(r, e, t = "") {
 }
 class fe {
   constructor(e = {}) {
-    this.options = e, this.log = U("editor"), this.host = null, this.root = null, this.tours = [R()], this.openTourId = this.tours[0].id, this.view = "edit", this.listFilter = "tour", this.menuOpen = !1, this.activeStepId = this.tours[0].steps[0]?.id ?? null, this.tab = "steps", this.displaySub = "tour", this.openSections = /* @__PURE__ */ new Set(), this.mode = "build", this.picker = null, this.picking = !1, this.player = null, this.highlight = null, this.cardPreview = null, this.focusStepId = null, this.onViewportChange = () => this.updateOverlays(), this.saveTimer = null, this.navPosition = e.navPosition ?? "bottom", this.panelPosition = e.panelPosition ?? "right", this.local = je(e.storageKey), this.secondary = e.storage ?? null;
+    this.options = e, this.log = U("editor"), this.host = null, this.root = null, this.tours = [R()], this.openTourId = this.tours[0].id, this.view = "edit", this.listFilter = "tour", this.menuOpen = !1, this.activeStepId = this.tours[0].steps[0]?.id ?? null, this.tab = "steps", this.displaySub = "tour", this.openSections = /* @__PURE__ */ new Set(), this.mode = "build", this.picker = null, this.picking = !1, this.player = null, this.highlight = null, this.cardPreview = null, this.focusStepId = null, this.onViewportChange = () => this.updateOverlays(), this.saveTimer = null, this.navPosition = e.navPosition ?? "bottom", this.panelPosition = e.panelPosition ?? "right", this.topOffset = Math.max(0, e.topOffset ?? 0), this.local = je(e.storageKey), this.secondary = e.storage ?? null;
   }
   /**
    * Auto-mount when the page URL carries the flag (default `?tours-edit=1`), so
@@ -1304,7 +1323,7 @@ class fe {
   /** Render the UI onto the page. Idempotent. */
   mount() {
     if (this.host || this.options.mode === "off") return;
-    this.host = a("div", { "data-tours-editor": "" }), this.root = this.host.attachShadow({ mode: "open" });
+    this.host = a("div", { "data-tours-editor": "" }), this.host.style.setProperty("--e-top", `${this.topOffset}px`), this.root = this.host.attachShadow({ mode: "open" });
     const e = document.createElement("style");
     e.textContent = Be + pe, this.root.appendChild(e), this.highlight = a("div", { class: "highlight" }), this.root.append(this.highlight), document.body.appendChild(this.host), window.addEventListener("scroll", this.onViewportChange, !0), window.addEventListener("resize", this.onViewportChange, !0), this.log.log("mounted"), this.render(), this.hydrate();
   }

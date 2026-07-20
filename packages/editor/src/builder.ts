@@ -39,6 +39,11 @@ export interface TourBuilderOptions {
   /** URL query flag that auto-mounts the builder (used by `fromUrl`). */
   urlFlag?: string;
   /**
+   * Extra top offset in px, added above the panel and a top-positioned nav —
+   * e.g. to clear a host's fixed bar (the WordPress admin bar).
+   */
+  topOffset?: number;
+  /**
    * Secondary persistence strategy, always tried in addition to localStorage
    * (e.g. `createWordPressStore(...)`). Failures are logged, not fatal.
    */
@@ -103,9 +108,12 @@ export class TourBuilder {
   private readonly secondary: DraftStore | null;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
 
+  private readonly topOffset: number;
+
   constructor(private readonly options: TourBuilderOptions = {}) {
     this.navPosition = options.navPosition ?? 'bottom';
     this.panelPosition = options.panelPosition ?? 'right';
+    this.topOffset = Math.max(0, options.topOffset ?? 0);
     this.local = createLocalStore(options.storageKey);
     this.secondary = options.storage ?? null;
   }
@@ -129,6 +137,8 @@ export class TourBuilder {
     if (this.host) return;
     if (this.options.mode === 'off') return;
     this.host = h('div', { 'data-tours-editor': '' });
+    // Extra top offset (e.g. to clear the WordPress admin bar), read by the CSS.
+    this.host.style.setProperty('--e-top', `${this.topOffset}px`);
     this.root = this.host.attachShadow({ mode: 'open' });
     const style = document.createElement('style');
     style.textContent = EDITOR_STYLES + CARD_STYLES;

@@ -23,7 +23,7 @@ button { font: inherit; cursor: pointer; }
 /* ---------- Builder panel ---------- */
 .panel {
   position: fixed;
-  top: 16px;
+  top: calc(16px + var(--e-top, 0px));
   bottom: 76px;
   width: 380px;
   z-index: 2147483200;
@@ -211,7 +211,26 @@ button { font: inherit; cursor: pointer; }
 .panel__body {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 14px 16px 20px;
+  /* Modern thin, auto-hiding scrollbar (Firefox). */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.35) transparent;
+}
+/* WebKit/Blink: slim, rounded, only-thumb, fades in on hover. */
+.panel__body::-webkit-scrollbar { width: 10px; }
+.panel__body::-webkit-scrollbar-track { background: transparent; }
+.panel__body::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+.panel__body:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 116, 139, 0.35);
+}
+.panel__body::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(100, 116, 139, 0.6);
 }
 
 /* ---------- Step list ---------- */
@@ -380,7 +399,7 @@ button { font: inherit; cursor: pointer; }
   box-shadow: var(--e-shadow);
 }
 .nav--bottom { bottom: 18px; }
-.nav--top { top: 18px; }
+.nav--top { top: calc(18px + var(--e-top, 0px)); }
 .nav__sep { width: 1px; height: 22px; background: var(--e-border); margin: 0 4px; }
 
 /* ---------- Active-step target highlight (dashed, no backdrop) ---------- */

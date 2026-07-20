@@ -65,7 +65,9 @@ class Site_Tours_Assets {
 		);
 		return 'window.addEventListener("load",function(){'
 			. 'var S=window.SiteToursAdmin;if(!S)return;'
-			. 'S.TourBuilder.fromUrl({storage:S.createWordPressStore(' . $cfg . ')});'
+			. 'var b=document.getElementById("wpadminbar");'
+			. 'var off=b?b.offsetHeight:0;'
+			. 'S.TourBuilder.fromUrl({topOffset:off,storage:S.createWordPressStore(' . $cfg . ')});'
 			. '});';
 	}
 

@@ -15,21 +15,38 @@ import { PLAYER_STYLES } from './styles.js';
 import { placeCard } from './position.js';
 import { renderCard, CARD_STYLES } from './card.js';
 import { resolveElement, waitForElement } from './selector.js';
+import { matchUrl } from './url.js';
+import {
+  type StateBackend,
+  readProgress,
+  writeProgress,
+  clearProgress,
+} from './state.js';
 import { createLogger } from './logger.js';
 
 export interface PlayerHandle {
-  start(): void;
+  /** Start the tour, optionally at a given step index (default 0). */
+  start(startIndex?: number): void;
   stop(): void;
   next(): void;
   prev(): void;
+}
+
+export interface PlayerOptions {
+  /**
+   * Where to persist progress so a multi-page tour can continue after the
+   * visitor navigates. Omit for single-page tours.
+   */
+  state?: StateBackend;
 }
 
 /**
  * Create a player for a tour. Returns handles to drive it: start/stop and
  * next/prev. The player owns its own shadow-DOM UI and cleans it up on stop().
  */
-export function createPlayer(tour: Tour): PlayerHandle {
+export function createPlayer(tour: Tour, options: PlayerOptions = {}): PlayerHandle {
   const log = createLogger('player');
+  const state = options.state;
   let host: HTMLElement | null = null;
   let root: ShadowRoot | null = null;
   let spotlight: HTMLElement | null = null;
@@ -45,6 +62,16 @@ export function createPlayer(tour: Tour): PlayerHandle {
   /** Resolve a step's target via the re-finder (tries every candidate). */
   function findTarget(step: Step): Element | null {
     return resolveElement(step.selectors);
+  }
+
+  /** True if a step belongs to the current page (no pageUrl ⇒ any page). */
+  function onThisPage(step: Step): boolean {
+    return matchUrl(step.pageUrl, window.location.href);
+  }
+
+  /** Remember where to resume (or clear when the tour is over). */
+  function persist(): void {
+    if (state) writeProgress(state, { tourId: tour.id, index });
   }
 
   /** Lazily build the shadow-DOM host: backdrop, spotlight and tooltip. */
@@ -197,24 +224,25 @@ export function createPlayer(tour: Tour): PlayerHandle {
     positionTooltip(rect, step);
   }
 
-  function start(): void {
+  function start(startIndex = 0): void {
     if (active) return;
     if (tour.steps.length === 0) return;
     active = true;
-    index = 0;
-    log.log('start', tour.id, `${tour.steps.length} steps`);
+    index = Math.max(0, Math.min(startIndex, tour.steps.length - 1));
+    log.log('start', tour.id, `at ${index}/${tour.steps.length}`);
     ensureUi();
     // Capture phase so navigation keys work even if the page listens too.
     window.addEventListener('keydown', onKey, true);
     window.addEventListener('resize', reposition, true);
     window.addEventListener('scroll', reposition, true);
+    persist();
     render();
   }
 
-  function stop(): void {
+  /** Remove the UI and listeners, but keep any saved progress. */
+  function teardownUi(): void {
     if (!active) return;
     active = false;
-    log.log('stop');
     window.removeEventListener('keydown', onKey, true);
     window.removeEventListener('resize', reposition, true);
     window.removeEventListener('scroll', reposition, true);
@@ -227,22 +255,70 @@ export function createPlayer(tour: Tour): PlayerHandle {
     tooltip = null;
   }
 
+  /** End the tour (finished or dismissed): tear down and forget progress. */
+  function stop(): void {
+    log.log('stop');
+    teardownUi();
+    if (state) clearProgress(state);
+  }
+
   function next(): void {
     if (!active) return;
-    if (index >= tour.steps.length - 1) {
-      stop();
+    const nextIndex = index + 1;
+    const nextStep = tour.steps[nextIndex];
+    if (!nextStep) {
+      stop(); // reached the end
       return;
     }
-    index += 1;
-    render();
+    if (onThisPage(nextStep)) {
+      index = nextIndex;
+      persist();
+      render();
+      return;
+    }
+    // The next step lives on another page. Remember to resume there, hide the
+    // tour here, and — if the current step declares a navigate action — go.
+    index = nextIndex;
+    persist();
+    const action = tour.steps[index - 1]?.action;
+    log.log('page transition → resume at', index);
+    teardownUi();
+    if (action && action.type === 'navigate' && action.url) {
+      window.location.assign(action.url);
+    }
+    // Otherwise the visitor navigates themselves; resumeTour() picks it up.
   }
 
   function prev(): void {
     if (!active) return;
-    if (index <= 0) return;
+    const prevStep = tour.steps[index - 1];
+    if (!prevStep || !onThisPage(prevStep)) return; // stay on this page
     index -= 1;
+    persist();
     render();
   }
 
   return { start, stop, next, prev };
+}
+
+/**
+ * Resume an in-progress tour after navigation. Reads saved progress; if it is
+ * for this tour and the pending step belongs to the current page, starts the
+ * player there. Returns the player, or null when there is nothing to resume
+ * here yet. Call on every page load for multi-page tours.
+ */
+export function resumeTour(tour: Tour, options: PlayerOptions = {}): PlayerHandle | null {
+  const state = options.state;
+  if (!state) return null;
+  const progress = readProgress(state);
+  if (!progress || progress.tourId !== tour.id) return null;
+  const step = tour.steps[progress.index];
+  if (!step) {
+    clearProgress(state);
+    return null;
+  }
+  if (!matchUrl(step.pageUrl, window.location.href)) return null; // not our page yet
+  const player = createPlayer(tour, { state });
+  player.start(progress.index);
+  return player;
 }

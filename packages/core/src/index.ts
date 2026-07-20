@@ -5,8 +5,17 @@
  */
 export { createPicker } from './picker.js';
 export type { PickerHandle, PickerOptions } from './picker.js';
-export { createPlayer } from './player.js';
-export type { PlayerHandle } from './player.js';
+export { createPlayer, resumeTour } from './player.js';
+export type { PlayerHandle, PlayerOptions } from './player.js';
+export { matchUrl } from './url.js';
+export {
+  createLocalState,
+  readProgress,
+  writeProgress,
+  clearProgress,
+  PROGRESS_KEY,
+} from './state.js';
+export type { StateBackend, TourProgress } from './state.js';
 export { createLogger, isLoggingEnabled } from './logger.js';
 export type { Logger } from './logger.js';
 export { placeCard, autoSide } from './position.js';

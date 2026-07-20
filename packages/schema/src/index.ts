@@ -54,7 +54,12 @@ export interface Step {
   id: string;
   selectors: string[];
   content: LocalizedText;
+  /** Which side of the target the card sits on. Defaults to 'bottom'. */
   placement?: 'top' | 'bottom' | 'left' | 'right';
+  /** Alignment along that side. Defaults to 'center'. */
+  align?: 'start' | 'center' | 'end';
+  /** Distance in px from the target to the card. Defaults to 12. */
+  offset?: number;
   /** Page this step belongs to (multi-page / cross-domain tours). */
   pageUrl?: UrlMatch;
   /** Runtime gate: only show this step when the condition holds. */
@@ -100,6 +105,8 @@ export const DEFAULT_PADDING = 6;
 export const DEFAULT_RADIUS = 6;
 /** Default corner radius of the visitor tooltip card, in pixels. */
 export const DEFAULT_CARD_RADIUS = 10;
+/** Default distance from the target to the card, in pixels. */
+export const DEFAULT_OFFSET = 12;
 
 export const SCHEMA_VERSION = 1;
 
@@ -114,6 +121,7 @@ function isLocalizedText(value: unknown): value is LocalizedText {
 }
 
 const PLACEMENTS = ['top', 'bottom', 'left', 'right'];
+const ALIGNS = ['start', 'center', 'end'];
 const DEVICES = ['mobile', 'tablet', 'desktop'];
 const ACTION_TYPES = ['click', 'input', 'navigate', 'none'];
 
@@ -236,6 +244,15 @@ export function validate(
         !PLACEMENTS.includes(step.placement as string)
       ) {
         errors.push(`steps[${i}].placement must be one of ${PLACEMENTS.join('|')}`);
+      }
+      if (step.align !== undefined && !ALIGNS.includes(step.align as string)) {
+        errors.push(`steps[${i}].align must be one of ${ALIGNS.join('|')}`);
+      }
+      if (
+        step.offset !== undefined &&
+        (typeof step.offset !== 'number' || step.offset < 0)
+      ) {
+        errors.push(`steps[${i}].offset must be a non-negative number`);
       }
       if (step.pageUrl !== undefined) {
         validateUrlMatch(step.pageUrl, `steps[${i}].pageUrl`, errors);

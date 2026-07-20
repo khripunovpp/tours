@@ -5,8 +5,14 @@
  * shadow DOM so the host page's styles cannot interfere.
  */
 import type { Step, Tour } from '@tours/schema';
-import { DEFAULT_PADDING, DEFAULT_RADIUS, DEFAULT_CARD_RADIUS } from '@tours/schema';
+import {
+  DEFAULT_PADDING,
+  DEFAULT_RADIUS,
+  DEFAULT_CARD_RADIUS,
+  DEFAULT_OFFSET,
+} from '@tours/schema';
 import { PLAYER_STYLES } from './styles.js';
+import { placeCard } from './position.js';
 import { createLogger } from './logger.js';
 
 export interface PlayerHandle {
@@ -15,9 +21,6 @@ export interface PlayerHandle {
   next(): void;
   prev(): void;
 }
-
-/** Gap in pixels between the target element and the tooltip. */
-const TOOLTIP_GAP = 12;
 
 /**
  * Create a player for a tour. Returns handles to drive it: start/stop and
@@ -87,50 +90,17 @@ export function createPlayer(tour: Tour): PlayerHandle {
     spotlight.style.height = `${rect.height + pad * 2}px`;
   }
 
-  /**
-   * Place the tooltip relative to the target per the step's placement, then
-   * flip/clamp so it stays within the viewport.
-   */
-  function positionTooltip(rect: DOMRect, placement: Step['placement']): void {
+  /** Place the tooltip per the step's side/alignment/offset, clamped on screen. */
+  function positionTooltip(rect: DOMRect, step: Step): void {
     if (!tooltip) return;
-    const tw = tooltip.offsetWidth;
-    const th = tooltip.offsetHeight;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-
-    let top: number;
-    let left: number;
-
-    const place = placement ?? 'bottom';
-    switch (place) {
-      case 'top':
-        top = rect.top - th - TOOLTIP_GAP;
-        left = rect.left + rect.width / 2 - tw / 2;
-        break;
-      case 'left':
-        top = rect.top + rect.height / 2 - th / 2;
-        left = rect.left - tw - TOOLTIP_GAP;
-        break;
-      case 'right':
-        top = rect.top + rect.height / 2 - th / 2;
-        left = rect.right + TOOLTIP_GAP;
-        break;
-      case 'bottom':
-      default:
-        top = rect.bottom + TOOLTIP_GAP;
-        left = rect.left + rect.width / 2 - tw / 2;
-        break;
-    }
-
-    // If it does not fit below, flip above.
-    if (place === 'bottom' && top + th > vh) {
-      top = rect.top - th - TOOLTIP_GAP;
-    }
-
-    // Clamp into the viewport so the card is never partly off-screen.
-    left = Math.max(8, Math.min(left, vw - tw - 8));
-    top = Math.max(8, Math.min(top, vh - th - 8));
-
+    const { top, left } = placeCard({
+      target: rect,
+      card: { width: tooltip.offsetWidth, height: tooltip.offsetHeight },
+      side: step.placement ?? 'bottom',
+      align: step.align ?? 'center',
+      offset: step.offset ?? DEFAULT_OFFSET,
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+    });
     tooltip.style.left = `${left}px`;
     tooltip.style.top = `${top}px`;
   }
@@ -219,7 +189,7 @@ export function createPlayer(tour: Tour): PlayerHandle {
     renderTooltip(step);
     const rect = target.getBoundingClientRect();
     positionSpotlight(rect);
-    positionTooltip(rect, step.placement);
+    positionTooltip(rect, step);
   }
 
   /** Keyboard navigation: Esc closes, arrows move between steps. */
@@ -244,7 +214,7 @@ export function createPlayer(tour: Tour): PlayerHandle {
     if (!target) return;
     const rect = target.getBoundingClientRect();
     positionSpotlight(rect);
-    positionTooltip(rect, step.placement);
+    positionTooltip(rect, step);
   }
 
   function start(): void {

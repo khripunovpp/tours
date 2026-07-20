@@ -10,10 +10,12 @@ import {
   DEFAULT_PADDING,
   DEFAULT_RADIUS,
   DEFAULT_CARD_RADIUS,
+  DEFAULT_OFFSET,
   validate,
 } from '@tours/schema';
 
 export type Placement = 'top' | 'bottom' | 'left' | 'right';
+export type Align = 'start' | 'center' | 'end';
 
 /** The kind of card, shown as a badge on the card's control row. */
 export type CardType = 'step' | 'action';
@@ -33,6 +35,10 @@ export interface DraftStep {
   /** Plain-text step content. Rich formatting (WYSIWYG) is deferred. */
   content: string;
   placement: Placement;
+  /** Alignment of the card along the placement side. */
+  align: Align;
+  /** Distance in px from the target to the card. */
+  offset: number;
   /** Editable footer button labels. */
   backLabel: string;
   nextLabel: string;
@@ -77,6 +83,8 @@ export function createDraftStep(type: CardType = 'step'): DraftStep {
     selectors: [],
     content: '',
     placement: 'bottom',
+    align: 'center',
+    offset: DEFAULT_OFFSET,
     backLabel: 'Back',
     nextLabel: 'Next',
   };
@@ -148,6 +156,8 @@ export function toTour(
       selectors: s.selectors,
       content: { default: s.content },
       placement: s.placement,
+      align: s.align,
+      offset: s.offset,
     }));
 
   const candidate: Tour = {

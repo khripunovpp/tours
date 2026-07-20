@@ -8,7 +8,7 @@
  * Enable in code:   new TourBuilder({ mode: 'edit' }).mount();
  * Enable via URL:   TourBuilder.fromUrl();   // when ?tours-edit=1 is present
  */
-import { createPicker, createPlayer, createLogger } from '@tours/core';
+import { createPicker, createPlayer, createLogger, placeCard } from '@tours/core';
 import type { PickerHandle, PlayerHandle } from '@tours/core';
 import { EDITOR_STYLES } from './styles.js';
 import { ICONS } from './icons.js';
@@ -370,7 +370,7 @@ export class TourBuilder {
 
     // The step's own card (the visitor tooltip), drawn as soon as there is
     // something to show — at least some content.
-    this.drawStepCard(preview, step, rect, padding, cardRadius);
+    this.drawStepCard(preview, step, rect, cardRadius);
   }
 
   /**
@@ -382,7 +382,6 @@ export class TourBuilder {
     preview: HTMLElement,
     step: DraftStep,
     rect: DOMRect,
-    padding: number,
     cardRadius: number,
   ): void {
     const content = step.content.trim();
@@ -418,40 +417,17 @@ export class TourBuilder {
     footer.append(nav(step.backLabel, index - 1, false), nav(step.nextLabel, index + 1, true));
     preview.append(body, footer);
 
-    this.positionCard(preview, rect, step.placement, padding);
-  }
-
-  /** Place the card relative to the target per placement, clamped to the viewport. */
-  private positionCard(el: HTMLElement, rect: DOMRect, placement: DraftStep['placement'], padding: number): void {
-    const gap = padding + 10;
-    const w = el.offsetWidth;
-    const hgt = el.offsetHeight;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-
-    let top: number;
-    let left: number;
-    switch (placement) {
-      case 'top':
-        top = rect.top - hgt - gap;
-        left = rect.left + rect.width / 2 - w / 2;
-        break;
-      case 'left':
-        top = rect.top + rect.height / 2 - hgt / 2;
-        left = rect.left - w - gap;
-        break;
-      case 'right':
-        top = rect.top + rect.height / 2 - hgt / 2;
-        left = rect.right + gap;
-        break;
-      default:
-        top = rect.bottom + gap;
-        left = rect.left + rect.width / 2 - w / 2;
-    }
-    left = Math.max(8, Math.min(left, vw - w - 8));
-    top = Math.max(8, Math.min(top, vh - hgt - 8));
-    el.style.left = `${left}px`;
-    el.style.top = `${top}px`;
+    // Same placement math the player uses (side + alignment + distance).
+    const { top, left } = placeCard({
+      target: rect,
+      card: { width: preview.offsetWidth, height: preview.offsetHeight },
+      side: step.placement,
+      align: step.align,
+      offset: step.offset,
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+    });
+    preview.style.left = `${left}px`;
+    preview.style.top = `${top}px`;
   }
 
   private renderNav(): HTMLElement {
@@ -721,7 +697,56 @@ export class TourBuilder {
     card.addEventListener('mousedown', () => this.setActive(step.id));
 
     card.append(this.renderCardControl(step, index), this.renderCardContent(step), this.renderCardFooter(step));
+    if (isActive) card.append(this.renderPlacement(step));
     return card;
+  }
+
+  /**
+   * Per-step placement control: a 12-anchor picker (each side × start/center/
+   * end) around a mock target, plus a distance slider. Editing re-renders so
+   * the on-page card and the active anchor update together.
+   */
+  private renderPlacement(step: DraftStep): HTMLElement {
+    const wrap = h('div', { class: 'place' });
+    wrap.append(h('div', { class: 'place__label' }, ['Card position']));
+
+    const grid = h('div', { class: 'place__grid' });
+    grid.append(h('div', { class: 'place__el' }));
+
+    // Anchor coordinates (px) inside the grid, matching .place__el's edges.
+    const anchors: Array<{ side: DraftStep['placement']; align: DraftStep['align']; x: number; y: number }> = [
+      { side: 'top', align: 'start', x: 40, y: 16 },
+      { side: 'top', align: 'center', x: 66, y: 16 },
+      { side: 'top', align: 'end', x: 92, y: 16 },
+      { side: 'bottom', align: 'start', x: 40, y: 80 },
+      { side: 'bottom', align: 'center', x: 66, y: 80 },
+      { side: 'bottom', align: 'end', x: 92, y: 80 },
+      { side: 'left', align: 'start', x: 24, y: 32 },
+      { side: 'left', align: 'center', x: 24, y: 48 },
+      { side: 'left', align: 'end', x: 24, y: 64 },
+      { side: 'right', align: 'start', x: 108, y: 32 },
+      { side: 'right', align: 'center', x: 108, y: 48 },
+      { side: 'right', align: 'end', x: 108, y: 64 },
+    ];
+    for (const a of anchors) {
+      const on = step.placement === a.side && step.align === a.align;
+      const dot = h('button', {
+        class: `place__dot ${on ? 'place__dot--active' : ''}`.trim(),
+        type: 'button',
+        title: `${a.side} · ${a.align}`,
+      });
+      dot.style.left = `${a.x - 6}px`;
+      dot.style.top = `${a.y - 6}px`;
+      dot.addEventListener('click', () => {
+        step.placement = a.side;
+        step.align = a.align;
+        this.render();
+      });
+      grid.append(dot);
+    }
+    wrap.append(grid);
+    wrap.append(this.slider('Distance', step.offset, 0, 48, (v) => (step.offset = v)));
+    return wrap;
   }
 
   private renderCardControl(step: DraftStep, index: number): HTMLElement {

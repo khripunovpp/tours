@@ -316,6 +316,55 @@ button { font: inherit; cursor: pointer; }
   padding: 32px 12px;
 }
 
+/* ---------- Per-step placement picker ---------- */
+.place {
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--e-border);
+  background: var(--e-surface);
+}
+.place__label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--e-muted);
+  margin-bottom: 8px;
+}
+.place__grid {
+  position: relative;
+  width: 132px;
+  height: 96px;
+  margin: 0 auto 6px;
+  background: var(--e-bg);
+  border: 1px solid var(--e-border);
+  border-radius: 8px;
+}
+.place__el {
+  position: absolute;
+  left: 40px;
+  top: 32px;
+  width: 52px;
+  height: 32px;
+  background: var(--e-accent-soft);
+  border: 1px solid #c7d6ff;
+  border-radius: 5px;
+}
+.place__dot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border-radius: 999px;
+  background: #cdd3de;
+  border: 2px solid var(--e-bg);
+  cursor: pointer;
+}
+.place__dot:hover { background: var(--e-muted); }
+.place__dot--active {
+  background: var(--e-accent);
+  box-shadow: 0 0 0 3px var(--e-accent-soft);
+}
+
 /* ---------- Card preview (Display > Card) ---------- */
 .card-preview {
   position: fixed;

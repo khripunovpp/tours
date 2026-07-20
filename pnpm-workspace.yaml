@@ -5,3 +5,6 @@ onlyBuiltDependencies:
   - esbuild
 ignoredBuiltDependencies:
   - fs-ext-extra-prebuilt
+  - lmdb
+  - msgpackr-extract
+  - nice-napi

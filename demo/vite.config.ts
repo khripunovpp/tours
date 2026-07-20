@@ -2,12 +2,14 @@ import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import solid from 'vite-plugin-solid';
+import angular from '@analogjs/vite-plugin-angular';
 import { svelte, vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 export default defineConfig({
   // React and Solid both use .tsx — scope each plugin to its own file so they
-  // don't fight over the JSX transform.
+  // don't fight over the JSX transform. Angular is compiled by analog.
   plugins: [
+    angular(),
     react({ include: [/spa-react\.tsx$/] }),
     solid({ include: [/spa-solid\.tsx$/] }),
     svelte({ preprocess: vitePreprocess() }),
@@ -26,6 +28,7 @@ export default defineConfig({
         spaVue: resolve(import.meta.dirname, 'spa-vue.html'),
         spaSvelte: resolve(import.meta.dirname, 'spa-svelte.html'),
         spaSolid: resolve(import.meta.dirname, 'spa-solid.html'),
+        spaAngular: resolve(import.meta.dirname, 'spa-angular.html'),
       },
     },
   },

@@ -349,8 +349,14 @@ button { font: inherit; cursor: pointer; }
   background: var(--e-surface);
   border: 1px solid var(--e-border);
   color: var(--e-fg);
+  /* Re-enable clicks even though the preview container is click-through. */
+  pointer-events: auto;
+  cursor: pointer;
 }
+.card-preview__btn:hover { background: #eef0f3; }
 .card-preview__btn--primary { background: var(--e-accent); border-color: var(--e-accent); color: #fff; }
+.card-preview__btn--primary:hover { background: #1d4ed8; }
+.card-preview__btn--disabled { opacity: 0.45; pointer-events: none; cursor: default; }
 
 /* ---------- Display settings ---------- */
 .settings { padding: 4px 2px; }

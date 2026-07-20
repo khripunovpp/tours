@@ -399,11 +399,23 @@ export class TourBuilder {
     const body = h('div', { class: 'card-preview__content' }, [content || 'Step tooltip preview']);
     if (!content) body.classList.add('card-preview__content--placeholder');
 
+    // Footer nav: clickable back/next that move the active step to its
+    // neighbour (in list order), disabled at the ends.
+    const index = this.tour.steps.indexOf(step);
+    const steps = this.tour.steps;
+    const nav = (label: string, to: number, primary: boolean): HTMLElement => {
+      const b = h('button', {
+        class: `card-preview__btn ${primary ? 'card-preview__btn--primary' : ''}`.trim(),
+        type: 'button',
+      }, [label]);
+      const target = steps[to];
+      if (!target) b.classList.add('card-preview__btn--disabled');
+      else b.addEventListener('click', () => this.setActive(target.id));
+      return b;
+    };
+
     const footer = h('div', { class: 'card-preview__footer' });
-    footer.append(
-      h('span', { class: 'card-preview__btn' }, [step.backLabel]),
-      h('span', { class: 'card-preview__btn card-preview__btn--primary' }, [step.nextLabel]),
-    );
+    footer.append(nav(step.backLabel, index - 1, false), nav(step.nextLabel, index + 1, true));
     preview.append(body, footer);
 
     this.positionCard(preview, rect, step.placement, padding);

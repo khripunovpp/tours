@@ -122,15 +122,15 @@ const ot = `
   color: #111827;
 }
 `;
-let A = null;
+let P = null;
 function M() {
-  if (A !== null) return A;
+  if (P !== null) return P;
   try {
-    A = new URLSearchParams(window.location.search).has("use_logs");
+    P = new URLSearchParams(window.location.search).has("use_logs");
   } catch {
-    A = !1;
+    P = !1;
   }
-  return A;
+  return P;
 }
 function O(r) {
   const t = `[tours:${r}]`;
@@ -174,60 +174,60 @@ function at(r, t = {}) {
   let n = null, o = null, i = null, s = !1;
   function d(p) {
     if (p === n) return !0;
-    for (const h of t.ignore ?? [])
-      if (h && h.contains(p)) return !0;
+    for (const c of t.ignore ?? [])
+      if (c && c.contains(p)) return !0;
     return !1;
   }
-  function c() {
+  function u() {
     if (n) return;
     n = document.createElement("div"), n.setAttribute("data-tours-picker", ""), o = n.attachShadow({ mode: "open" });
     const p = document.createElement("style");
     p.textContent = ot, o.appendChild(p), i = document.createElement("div"), i.className = "tours-picker-overlay", i.style.display = "none", o.appendChild(i);
-    const h = document.createElement("div");
-    h.className = "tours-picker-hint", h.textContent = "Hover and click an element • Esc to cancel", o.appendChild(h), document.body.appendChild(n);
+    const c = document.createElement("div");
+    c.className = "tours-picker-hint", c.textContent = "Hover and click an element • Esc to cancel", o.appendChild(c), document.body.appendChild(n);
   }
-  function f(p, h) {
-    const v = document.elementFromPoint(p, h);
-    return !v || d(v) ? null : v;
+  function f(p, c) {
+    const b = document.elementFromPoint(p, c);
+    return !b || d(b) ? null : b;
   }
-  function b(p) {
+  function g(p) {
     if (!s || !i) return;
-    const h = f(p.clientX, p.clientY);
-    if (!h) {
+    const c = f(p.clientX, p.clientY);
+    if (!c) {
       i.style.display = "none";
       return;
     }
-    const v = h.getBoundingClientRect();
-    i.style.display = "block", i.style.left = `${v.left}px`, i.style.top = `${v.top}px`, i.style.width = `${v.width}px`, i.style.height = `${v.height}px`;
+    const b = c.getBoundingClientRect();
+    i.style.display = "block", i.style.left = `${b.left}px`, i.style.top = `${b.top}px`, i.style.width = `${b.width}px`, i.style.height = `${b.height}px`;
   }
-  function y(p) {
+  function v(p) {
     if (!s) return;
-    const h = f(p.clientX, p.clientY);
-    if (p.preventDefault(), p.stopPropagation(), !h) return;
-    const v = st(h);
-    e.log("picked", v), S(), r([v]);
+    const c = f(p.clientX, p.clientY);
+    if (p.preventDefault(), p.stopPropagation(), !c) return;
+    const b = st(c);
+    e.log("picked", b), C(), r([b]);
   }
-  function T(p) {
-    p.key === "Escape" && (p.preventDefault(), S());
+  function _(p) {
+    p.key === "Escape" && (p.preventDefault(), C());
   }
-  function I() {
-    s || (s = !0, e.log("start"), c(), document.addEventListener("mousemove", b, !0), document.addEventListener("click", y, !0), document.addEventListener("keydown", T, !0));
+  function $() {
+    s || (s = !0, e.log("start"), u(), document.addEventListener("mousemove", g, !0), document.addEventListener("click", v, !0), document.addEventListener("keydown", _, !0));
   }
-  function S() {
-    s && (s = !1, document.removeEventListener("mousemove", b, !0), document.removeEventListener("click", y, !0), document.removeEventListener("keydown", T, !0), n && n.parentNode && n.parentNode.removeChild(n), n = null, o = null, i = null);
+  function C() {
+    s && (s = !1, document.removeEventListener("mousemove", g, !0), document.removeEventListener("click", v, !0), document.removeEventListener("keydown", _, !0), n && n.parentNode && n.parentNode.removeChild(n), n = null, o = null, i = null);
   }
-  return { start: I, stop: S };
+  return { start: $, stop: C };
 }
 const U = 6, j = 6, V = 10, dt = 1;
-function C(r) {
+function S(r) {
   return typeof r == "object" && r !== null && !Array.isArray(r);
 }
 function Y(r) {
-  return C(r) && typeof r.default == "string";
+  return S(r) && typeof r.default == "string";
 }
 const q = ["top", "bottom", "left", "right"], X = ["mobile", "tablet", "desktop"], G = ["click", "input", "navigate", "none"];
 function Z(r, t, e) {
-  if (!C(r)) {
+  if (!S(r)) {
     e.push(`${t} must be an object`);
     return;
   }
@@ -240,14 +240,14 @@ function Z(r, t, e) {
     }
 }
 function K(r, t, e) {
-  if (!C(r)) {
+  if (!S(r)) {
     e.push(`${t} must be an object`);
     return;
   }
   r.url !== void 0 && Z(r.url, `${t}.url`, e), r.role !== void 0 && typeof r.role != "string" && e.push(`${t}.role must be a string`), r.firstVisitOnly !== void 0 && typeof r.firstVisitOnly != "boolean" && e.push(`${t}.firstVisitOnly must be a boolean`), r.device !== void 0 && !X.includes(r.device) && e.push(`${t}.device must be one of ${X.join("|")}`), r.unlessSeen !== void 0 && typeof r.unlessSeen != "boolean" && e.push(`${t}.unlessSeen must be a boolean`), r.maxShows !== void 0 && (typeof r.maxShows != "number" || r.maxShows < 0) && e.push(`${t}.maxShows must be a non-negative number`);
 }
 function lt(r, t, e) {
-  if (!C(r)) {
+  if (!S(r)) {
     e.push(`${t} must be an object`);
     return;
   }
@@ -255,16 +255,16 @@ function lt(r, t, e) {
 }
 function ct(r) {
   const t = [];
-  if (!C(r))
+  if (!S(r))
     return { ok: !1, errors: ["tour must be an object"] };
   if ((typeof r.id != "string" || r.id.length === 0) && t.push("tour.id must be a non-empty string"), typeof r.schemaVersion != "number" && t.push("tour.schemaVersion must be a number"), Y(r.title) || t.push('tour.title must be a localized text with a string "default"'), Array.isArray(r.steps) ? r.steps.length === 0 ? t.push("tour.steps must contain at least one step") : r.steps.forEach((e, n) => {
-    if (!C(e)) {
+    if (!S(e)) {
       t.push(`steps[${n}] must be an object`);
       return;
     }
     (typeof e.id != "string" || e.id.length === 0) && t.push(`steps[${n}].id must be a non-empty string`), (!Array.isArray(e.selectors) || e.selectors.length === 0 || !e.selectors.every((o) => typeof o == "string" && o.length > 0)) && t.push(`steps[${n}].selectors must be a non-empty array of non-empty strings`), Y(e.content) || t.push(`steps[${n}].content must be a localized text with a string "default"`), e.placement !== void 0 && !q.includes(e.placement) && t.push(`steps[${n}].placement must be one of ${q.join("|")}`), e.pageUrl !== void 0 && Z(e.pageUrl, `steps[${n}].pageUrl`, t), e.condition !== void 0 && K(e.condition, `steps[${n}].condition`, t), e.action !== void 0 && lt(e.action, `steps[${n}].action`, t);
   }) : t.push("tour.steps must be an array"), r.display !== void 0)
-    if (!C(r.display))
+    if (!S(r.display))
       t.push("tour.display must be an object");
     else
       for (const e of ["padding", "radius", "cardRadius"]) {
@@ -272,128 +272,128 @@ function ct(r) {
         n !== void 0 && (typeof n != "number" || n < 0) && t.push(`tour.display.${e} must be a non-negative number`);
       }
   return r.rules !== void 0 && (Array.isArray(r.rules) ? r.rules.forEach((e, n) => {
-    if (!C(e)) {
+    if (!S(e)) {
       t.push(`rules[${n}] must be an object`);
       return;
     }
     e.tourId !== void 0 && typeof e.tourId != "string" && t.push(`rules[${n}].tourId must be a string`), e.when === void 0 ? t.push(`rules[${n}].when is required`) : K(e.when, `rules[${n}].when`, t);
   }) : t.push("tour.rules must be an array")), t.length > 0 ? { ok: !1, errors: t } : { ok: !0, tour: r };
 }
-const P = 12;
+const I = 12;
 function pt(r) {
   var F, W, J;
   const t = O("player");
   let e = null, n = null, o = null, i = null, s = !1, d = 0;
-  const c = ((F = r.display) == null ? void 0 : F.padding) ?? U, f = ((W = r.display) == null ? void 0 : W.radius) ?? j, b = ((J = r.display) == null ? void 0 : J.cardRadius) ?? V;
-  function y(l) {
-    for (const g of l.selectors)
+  const u = ((F = r.display) == null ? void 0 : F.padding) ?? U, f = ((W = r.display) == null ? void 0 : W.radius) ?? j, g = ((J = r.display) == null ? void 0 : J.cardRadius) ?? V;
+  function v(l) {
+    for (const x of l.selectors)
       try {
-        const u = document.querySelector(g);
-        if (u) return u;
+        const h = document.querySelector(x);
+        if (h) return h;
       } catch {
       }
     return null;
   }
-  function T() {
+  function _() {
     if (e) return;
     e = document.createElement("div"), e.setAttribute("data-tours-player", ""), n = e.attachShadow({ mode: "open" });
     const l = document.createElement("style");
     l.textContent = it, n.appendChild(l);
-    const g = document.createElement("div");
-    g.className = "tours-backdrop", n.appendChild(g), o = document.createElement("div"), o.className = "tours-spotlight", o.style.borderRadius = `${f}px`, n.appendChild(o), i = document.createElement("div"), i.className = "tours-tooltip", i.style.borderRadius = `${b}px`, n.appendChild(i), document.body.appendChild(e);
+    const x = document.createElement("div");
+    x.className = "tours-backdrop", n.appendChild(x), o = document.createElement("div"), o.className = "tours-spotlight", o.style.borderRadius = `${f}px`, n.appendChild(o), i = document.createElement("div"), i.className = "tours-tooltip", i.style.borderRadius = `${g}px`, n.appendChild(i), document.body.appendChild(e);
   }
-  function I(l) {
-    o && (o.style.display = "block", o.style.left = `${l.left - c}px`, o.style.top = `${l.top - c}px`, o.style.width = `${l.width + c * 2}px`, o.style.height = `${l.height + c * 2}px`);
+  function $(l) {
+    o && (o.style.display = "block", o.style.left = `${l.left - u}px`, o.style.top = `${l.top - u}px`, o.style.width = `${l.width + u * 2}px`, o.style.height = `${l.height + u * 2}px`);
   }
-  function S(l, g) {
+  function C(l, x) {
     if (!i) return;
-    const u = i.offsetWidth, w = i.offsetHeight, $ = window.innerWidth, L = window.innerHeight;
-    let x, m;
-    const _ = g ?? "bottom";
-    switch (_) {
+    const h = i.offsetWidth, w = i.offsetHeight, T = window.innerWidth, A = window.innerHeight;
+    let m, y;
+    const E = x ?? "bottom";
+    switch (E) {
       case "top":
-        x = l.top - w - P, m = l.left + l.width / 2 - u / 2;
+        m = l.top - w - I, y = l.left + l.width / 2 - h / 2;
         break;
       case "left":
-        x = l.top + l.height / 2 - w / 2, m = l.left - u - P;
+        m = l.top + l.height / 2 - w / 2, y = l.left - h - I;
         break;
       case "right":
-        x = l.top + l.height / 2 - w / 2, m = l.right + P;
+        m = l.top + l.height / 2 - w / 2, y = l.right + I;
         break;
       case "bottom":
       default:
-        x = l.bottom + P, m = l.left + l.width / 2 - u / 2;
+        m = l.bottom + I, y = l.left + l.width / 2 - h / 2;
         break;
     }
-    _ === "bottom" && x + w > L && (x = l.top - w - P), m = Math.max(8, Math.min(m, $ - u - 8)), x = Math.max(8, Math.min(x, L - w - 8)), i.style.left = `${m}px`, i.style.top = `${x}px`;
+    E === "bottom" && m + w > A && (m = l.top - w - I), y = Math.max(8, Math.min(y, T - h - 8)), m = Math.max(8, Math.min(m, A - w - 8)), i.style.left = `${y}px`, i.style.top = `${m}px`;
   }
   function p(l) {
     if (!i) return;
-    const g = r.steps.length;
+    const x = r.steps.length;
     i.textContent = "";
-    const u = document.createElement("button");
-    u.className = "tours-close", u.type = "button", u.textContent = "×", u.setAttribute("aria-label", "Close"), u.addEventListener("click", E), i.appendChild(u);
+    const h = document.createElement("button");
+    h.className = "tours-close", h.type = "button", h.textContent = "×", h.setAttribute("aria-label", "Close"), h.addEventListener("click", L), i.appendChild(h);
     const w = document.createElement("p");
     w.className = "tours-tooltip__content", w.textContent = l.content.default, i.appendChild(w);
-    const $ = document.createElement("div");
-    $.className = "tours-tooltip__footer";
-    const L = document.createElement("span");
-    L.className = "tours-tooltip__progress", L.textContent = `Step ${d + 1} of ${g}`, $.appendChild(L);
-    const x = document.createElement("div");
-    x.className = "tours-tooltip__buttons";
-    const m = document.createElement("button");
-    m.className = "tours-btn", m.type = "button", m.textContent = "Back", m.disabled = d === 0, m.addEventListener("click", R), x.appendChild(m);
-    const _ = document.createElement("button");
-    _.className = "tours-btn tours-btn--primary", _.type = "button", _.textContent = d === g - 1 ? "Done" : "Next", _.addEventListener("click", z), x.appendChild(_), $.appendChild(x), i.appendChild($);
+    const T = document.createElement("div");
+    T.className = "tours-tooltip__footer";
+    const A = document.createElement("span");
+    A.className = "tours-tooltip__progress", A.textContent = `Step ${d + 1} of ${x}`, T.appendChild(A);
+    const m = document.createElement("div");
+    m.className = "tours-tooltip__buttons";
+    const y = document.createElement("button");
+    y.className = "tours-btn", y.type = "button", y.textContent = "Back", y.disabled = d === 0, y.addEventListener("click", R), m.appendChild(y);
+    const E = document.createElement("button");
+    E.className = "tours-btn tours-btn--primary", E.type = "button", E.textContent = d === x - 1 ? "Done" : "Next", E.addEventListener("click", z), m.appendChild(E), T.appendChild(m), i.appendChild(T);
   }
-  function h() {
+  function c() {
     if (!s) return;
     const l = r.steps[d];
     if (!l) {
-      E();
+      L();
       return;
     }
     t.log("render step", d, l.id);
-    const g = y(l);
-    if (!g) {
-      t.warn(`step "${l.id}" skipped: no element for selectors`, l.selectors), d < r.steps.length - 1 ? (d += 1, h()) : E();
+    const x = v(l);
+    if (!x) {
+      t.warn(`step "${l.id}" skipped: no element for selectors`, l.selectors), d < r.steps.length - 1 ? (d += 1, c()) : L();
       return;
     }
-    T(), g.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" }), p(l);
-    const u = g.getBoundingClientRect();
-    I(u), S(u, l.placement);
+    _(), x.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" }), p(l);
+    const h = x.getBoundingClientRect();
+    $(h), C(h, l.placement);
   }
-  function v(l) {
-    s && (l.key === "Escape" ? (l.preventDefault(), E()) : l.key === "ArrowRight" ? z() : l.key === "ArrowLeft" && R());
+  function b(l) {
+    s && (l.key === "Escape" ? (l.preventDefault(), L()) : l.key === "ArrowRight" ? z() : l.key === "ArrowLeft" && R());
   }
   function N() {
     if (!s) return;
     const l = r.steps[d];
     if (!l) return;
-    const g = y(l);
-    if (!g) return;
-    const u = g.getBoundingClientRect();
-    I(u), S(u, l.placement);
+    const x = v(l);
+    if (!x) return;
+    const h = x.getBoundingClientRect();
+    $(h), C(h, l.placement);
   }
   function rt() {
-    s || r.steps.length !== 0 && (s = !0, d = 0, t.log("start", r.id, `${r.steps.length} steps`), T(), window.addEventListener("keydown", v, !0), window.addEventListener("resize", N, !0), window.addEventListener("scroll", N, !0), h());
+    s || r.steps.length !== 0 && (s = !0, d = 0, t.log("start", r.id, `${r.steps.length} steps`), _(), window.addEventListener("keydown", b, !0), window.addEventListener("resize", N, !0), window.addEventListener("scroll", N, !0), c());
   }
-  function E() {
-    s && (s = !1, t.log("stop"), window.removeEventListener("keydown", v, !0), window.removeEventListener("resize", N, !0), window.removeEventListener("scroll", N, !0), e && e.parentNode && e.parentNode.removeChild(e), e = null, n = null, o = null, i = null);
+  function L() {
+    s && (s = !1, t.log("stop"), window.removeEventListener("keydown", b, !0), window.removeEventListener("resize", N, !0), window.removeEventListener("scroll", N, !0), e && e.parentNode && e.parentNode.removeChild(e), e = null, n = null, o = null, i = null);
   }
   function z() {
     if (s) {
       if (d >= r.steps.length - 1) {
-        E();
+        L();
         return;
       }
-      d += 1, h();
+      d += 1, c();
     }
   }
   function R() {
-    s && (d <= 0 || (d -= 1, h()));
+    s && (d <= 0 || (d -= 1, c()));
   }
-  return { start: rt, stop: E, next: z, prev: R };
+  return { start: rt, stop: L, next: z, prev: R };
 }
 const ut = `
 :host {
@@ -741,8 +741,14 @@ button { font: inherit; cursor: pointer; }
   background: var(--e-surface);
   border: 1px solid var(--e-border);
   color: var(--e-fg);
+  /* Re-enable clicks even though the preview container is click-through. */
+  pointer-events: auto;
+  cursor: pointer;
 }
+.card-preview__btn:hover { background: #eef0f3; }
 .card-preview__btn--primary { background: var(--e-accent); border-color: var(--e-accent); color: #fff; }
+.card-preview__btn--primary:hover { background: #1d4ed8; }
+.card-preview__btn--disabled { opacity: 0.45; pointer-events: none; cursor: default; }
 
 /* ---------- Display settings ---------- */
 .settings { padding: 4px 2px; }
@@ -1074,8 +1080,8 @@ ${t.errors.join(`
     if (this.view !== "edit" || this.mode !== "build" || this.picking) return n();
     const o = this.activeStep, i = o && o.selectors.length > 0 ? this.resolveTarget(o) : null;
     if (!o || !i) return n();
-    const s = i.getBoundingClientRect(), { padding: d, radius: c, cardRadius: f } = this.tour.display;
-    t.className = `highlight ${this.tab === "display" ? "highlight--settings" : ""}`.trim(), t.style.display = "block", t.style.left = `${s.left - d}px`, t.style.top = `${s.top - d}px`, t.style.width = `${s.width + d * 2}px`, t.style.height = `${s.height + d * 2}px`, t.style.borderRadius = `${c}px`, this.drawStepCard(e, o, s, d, f);
+    const s = i.getBoundingClientRect(), { padding: d, radius: u, cardRadius: f } = this.tour.display;
+    t.className = `highlight ${this.tab === "display" ? "highlight--settings" : ""}`.trim(), t.style.display = "block", t.style.left = `${s.left - d}px`, t.style.top = `${s.top - d}px`, t.style.width = `${s.width + d * 2}px`, t.style.height = `${s.height + d * 2}px`, t.style.borderRadius = `${u}px`, this.drawStepCard(e, o, s, d, f);
   }
   /**
    * Render the active step's card near its target, as the visitor will see it.
@@ -1089,32 +1095,35 @@ ${t.errors.join(`
       return;
     }
     t.textContent = "", t.style.display = "block", t.style.borderRadius = `${i}px`;
-    const c = a("div", { class: "card-preview__content" }, [s || "Step tooltip preview"]);
-    s || c.classList.add("card-preview__content--placeholder");
-    const f = a("div", { class: "card-preview__footer" });
-    f.append(
-      a("span", { class: "card-preview__btn" }, [e.backLabel]),
-      a("span", { class: "card-preview__btn card-preview__btn--primary" }, [e.nextLabel])
-    ), t.append(c, f), this.positionCard(t, n, e.placement, o);
+    const u = a("div", { class: "card-preview__content" }, [s || "Step tooltip preview"]);
+    s || u.classList.add("card-preview__content--placeholder");
+    const f = this.tour.steps.indexOf(e), g = this.tour.steps, v = ($, C, p) => {
+      const c = a("button", {
+        class: `card-preview__btn ${p ? "card-preview__btn--primary" : ""}`.trim(),
+        type: "button"
+      }, [$]), b = g[C];
+      return b ? c.addEventListener("click", () => this.setActive(b.id)) : c.classList.add("card-preview__btn--disabled"), c;
+    }, _ = a("div", { class: "card-preview__footer" });
+    _.append(v(e.backLabel, f - 1, !1), v(e.nextLabel, f + 1, !0)), t.append(u, _), this.positionCard(t, n, e.placement, o);
   }
   /** Place the card relative to the target per placement, clamped to the viewport. */
   positionCard(t, e, n, o) {
-    const i = o + 10, s = t.offsetWidth, d = t.offsetHeight, c = window.innerWidth, f = window.innerHeight;
-    let b, y;
+    const i = o + 10, s = t.offsetWidth, d = t.offsetHeight, u = window.innerWidth, f = window.innerHeight;
+    let g, v;
     switch (n) {
       case "top":
-        b = e.top - d - i, y = e.left + e.width / 2 - s / 2;
+        g = e.top - d - i, v = e.left + e.width / 2 - s / 2;
         break;
       case "left":
-        b = e.top + e.height / 2 - d / 2, y = e.left - s - i;
+        g = e.top + e.height / 2 - d / 2, v = e.left - s - i;
         break;
       case "right":
-        b = e.top + e.height / 2 - d / 2, y = e.right + i;
+        g = e.top + e.height / 2 - d / 2, v = e.right + i;
         break;
       default:
-        b = e.bottom + i, y = e.left + e.width / 2 - s / 2;
+        g = e.bottom + i, v = e.left + e.width / 2 - s / 2;
     }
-    y = Math.max(8, Math.min(y, c - s - 8)), b = Math.max(8, Math.min(b, f - d - 8)), t.style.left = `${y}px`, t.style.top = `${b}px`;
+    v = Math.max(8, Math.min(v, u - s - 8)), g = Math.max(8, Math.min(g, f - d - 8)), t.style.left = `${v}px`, t.style.top = `${g}px`;
   }
   renderNav() {
     const t = a("div", { class: `nav nav--${this.navPosition}` }), e = k("build", "Build", this.mode === "build" ? "iconbtn--active" : "");
@@ -1151,8 +1160,8 @@ ${t.errors.join(`
         ])
       );
       const s = a("span", { class: `status status--${n.status}` }, [n.status]), d = k("trash", "Delete tour");
-      d.addEventListener("click", (c) => {
-        c.stopPropagation(), this.deleteTour(n.id);
+      d.addEventListener("click", (u) => {
+        u.stopPropagation(), this.deleteTour(n.id);
       }), o.append(i, s, d), e.append(o);
     }), t.append(e), t;
   }
@@ -1245,13 +1254,13 @@ ${t.errors.join(`
       step: "1"
     });
     d.value = String(e), d.addEventListener("input", () => {
-      const b = Number(d.value);
-      i(b), s.textContent = `${b}px`, this.updateOverlays(), this.markDirty();
+      const g = Number(d.value);
+      i(g), s.textContent = `${g}px`, this.updateOverlays(), this.markDirty();
     });
-    const c = a("div", { class: "settings__row" });
-    c.append(d, s);
+    const u = a("div", { class: "settings__row" });
+    u.append(d, s);
     const f = a("div", { class: "settings__field" });
-    return f.append(a("label", { class: "settings__label" }, [t]), c), f;
+    return f.append(a("label", { class: "settings__label" }, [t]), u), f;
   }
   renderBody() {
     const t = a("div", { class: "panel__body" });
@@ -1281,10 +1290,10 @@ ${t.errors.join(`
     });
     const i = a("span", { class: "card__index" }, [String(e + 1)]), s = a("span", { class: "card__type" });
     s.innerHTML = Q[t.type === "action" ? "bolt" : "step"], s.append(document.createTextNode(t.type === "action" ? "Action" : "Step"));
-    const d = t.selectors[0], c = a("span", { class: `card__sel ${d ? "" : "card__sel--empty"}`.trim(), title: d ?? "" }, [
+    const d = t.selectors[0], u = a("span", { class: `card__sel ${d ? "" : "card__sel--empty"}`.trim(), title: d ?? "" }, [
       d ?? "no selector"
     ]), f = k("trash", "Delete step");
-    return f.addEventListener("click", () => this.removeStep(t.id)), n.append(o, i, s, a("div", { class: "spacer" }), c, f), n;
+    return f.addEventListener("click", () => this.removeStep(t.id)), n.append(o, i, s, a("div", { class: "spacer" }), u, f), n;
   }
   renderCardContent(t) {
     const e = a("div", {

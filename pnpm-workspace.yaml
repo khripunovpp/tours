@@ -3,4 +3,5 @@ packages:
   - 'demo'
 onlyBuiltDependencies:
   - esbuild
+ignoredBuiltDependencies:
   - fs-ext-extra-prebuilt

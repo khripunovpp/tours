@@ -21,6 +21,8 @@ import {
   type DraftStep,
   type DraftTour,
   type TourKind,
+  type Audience,
+  type Trigger,
 } from './state.js';
 import { createLocalStore, type DraftStore } from './storage.js';
 
@@ -69,6 +71,22 @@ function iconButton(icon: string, title: string, cls = ''): HTMLButtonElement {
   const btn = h('button', { class: `iconbtn ${cls}`.trim(), title, type: 'button' });
   btn.innerHTML = ICONS[icon] ?? '';
   return btn;
+}
+
+/** A fresh trigger of the given type with sensible defaults. */
+function defaultTrigger(type: Trigger['type']): Trigger {
+  switch (type) {
+    case 'load':
+      return { type: 'load' };
+    case 'selector':
+      return { type: 'selector', selector: '' };
+    case 'timer':
+      return { type: 'timer', delay: 3000 };
+    case 'request':
+      return { type: 'request' };
+    default:
+      return { type: 'manual' };
+  }
 }
 
 export class TourBuilder {
@@ -830,6 +848,9 @@ export class TourBuilder {
       body.append(this.renderDisplaySettings());
       return body;
     }
+    // Tour-level trigger + audience, above the step list.
+    body.append(this.section('trigger', 'Trigger & audience', () => this.renderTriggerBody()));
+
     const list = h('div', { class: 'steps' });
     // A connector (line + "+") before the first card, then each card followed
     // by another connector, so the author can insert anywhere.
@@ -840,6 +861,112 @@ export class TourBuilder {
     });
     body.append(list);
     return body;
+  }
+
+  /** Tour-level start trigger and audience. */
+  private renderTriggerBody(): HTMLElement {
+    const wrap = h('div', { class: 'settings' });
+    const t = this.tour;
+
+    wrap.append(
+      this.selectField(
+        'Audience',
+        t.audience,
+        [
+          ['all', 'Everyone'],
+          ['auth', 'Logged-in users only'],
+          ['guest', 'Logged-out visitors only'],
+        ],
+        (v) => {
+          t.audience = v as Audience;
+          this.markDirty();
+        },
+      ),
+      this.selectField(
+        'Start trigger',
+        t.trigger.type,
+        [
+          ['manual', 'Manual (shortcode / attribute)'],
+          ['load', 'On page load'],
+          ['selector', 'When an element appears'],
+          ['timer', 'After a delay'],
+          ['request', 'After a request completes'],
+        ],
+        (v) => {
+          t.trigger = defaultTrigger(v as Trigger['type']);
+          this.markDirty();
+          this.render();
+        },
+      ),
+    );
+
+    // Trigger-specific parameter.
+    if (t.trigger.type === 'selector') {
+      wrap.append(
+        this.textField('Element selector (CSS)', t.trigger.selector, '#start, .cta', (v) => {
+          if (t.trigger.type === 'selector') t.trigger.selector = v;
+        }),
+      );
+    } else if (t.trigger.type === 'timer') {
+      wrap.append(
+        this.textField('Delay (ms)', String(t.trigger.delay), '3000', (v) => {
+          if (t.trigger.type === 'timer') t.trigger.delay = Math.max(0, Number(v.replace(/[^0-9]/g, '')) || 0);
+        }),
+      );
+    } else if (t.trigger.type === 'request') {
+      wrap.append(
+        this.textField('Request URL contains (optional)', t.trigger.url ?? '', '/wp-json/', (v) => {
+          if (t.trigger.type === 'request') t.trigger.url = v || undefined;
+        }),
+      );
+    }
+
+    wrap.append(
+      h('div', { class: 'settings__hint' }, [
+        'Manual tours start from the [site_tour] shortcode or any element with a data-site-tour="<id>" attribute.',
+      ]),
+    );
+    return wrap;
+  }
+
+  /** A labelled <select>. */
+  private selectField(
+    label: string,
+    value: string,
+    options: Array<[string, string]>,
+    onChange: (value: string) => void,
+  ): HTMLElement {
+    const select = document.createElement('select');
+    select.className = 'tsel';
+    for (const [val, text] of options) {
+      const opt = document.createElement('option');
+      opt.value = val;
+      opt.textContent = text;
+      if (val === value) opt.selected = true;
+      select.append(opt);
+    }
+    select.addEventListener('change', () => onChange(select.value));
+    const field = h('div', { class: 'settings__field' });
+    field.append(h('label', { class: 'settings__label' }, [label]), select);
+    return field;
+  }
+
+  /** A labelled text input that writes through on change. */
+  private textField(
+    label: string,
+    value: string,
+    placeholder: string,
+    onChange: (value: string) => void,
+  ): HTMLElement {
+    const input = h('input', { class: 'pagecfg__input', placeholder }) as HTMLInputElement;
+    input.value = value;
+    input.addEventListener('change', () => {
+      onChange(input.value.trim());
+      this.markDirty();
+    });
+    const field = h('div', { class: 'settings__field' });
+    field.append(h('label', { class: 'settings__label' }, [label]), input);
+    return field;
   }
 
   private renderConnector(afterIndex: number): HTMLElement {

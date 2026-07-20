@@ -297,6 +297,19 @@ button { font: inherit; cursor: pointer; }
   margin-bottom: 8px;
 }
 .pagecfg__input:focus { outline: none; border-color: var(--e-accent); }
+.tsel {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 9px;
+  border: 1px solid var(--e-border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--e-fg);
+  cursor: pointer;
+}
+.tsel:focus { outline: none; border-color: var(--e-accent); }
 .pagecfg__use {
   font-size: 12px;
   font-weight: 600;

@@ -10,6 +10,6 @@ export type {
   PanelPosition,
 } from './builder.js';
 export { toTour, createDraftTour, createDraftStep, cloneDraft, normalizeTours } from './state.js';
-export type { DraftTour, DraftStep, DraftDisplay, CardType, TourStatus, TourKind, Placement, Align } from './state.js';
+export type { DraftTour, DraftStep, DraftDisplay, CardType, TourStatus, TourKind, Audience, Trigger, Placement, Align } from './state.js';
 export { createLocalStore, createWordPressStore } from './storage.js';
 export type { DraftStore, WordPressStoreConfig } from './storage.js';

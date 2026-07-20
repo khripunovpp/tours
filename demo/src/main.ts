@@ -4,7 +4,7 @@
  * and reports the captured selector. Add `?use_logs` to the URL to see the
  * core's stage logs in the console.
  */
-import { createPlayer, createPicker, createLogger, createLocalState, resumeTour } from '@tours/core';
+import { createPlayer, createPicker, createLogger, createLocalState, resumeTour, armTrigger } from '@tours/core';
 import { TourBuilder, createLocalStore, normalizeTours, toTour } from '@tours/editor';
 import type { Tour } from '@tours/schema';
 
@@ -82,10 +82,15 @@ const tour: Tour = {
   ],
 };
 
-// On every page load, continue a multi-page tour that is mid-flight — the
-// built-in sample first, then any tour built in the editor.
+// On every page load: continue a mid-flight tour (sample first, then built
+// tours); otherwise arm auto-start triggers for the built tours.
 void builtTours().then((built) => {
-  for (const t of [tour, ...built]) if (resumeTour(t, { state: playerState })) break;
+  const resumed = [tour, ...built].some((t) => resumeTour(t, { state: playerState }));
+  if (resumed) return;
+  for (const t of built) {
+    if (!t.trigger || t.trigger.type === 'manual') continue;
+    armTrigger(t, () => createPlayer(t, { state: playerState }).start());
+  }
 });
 
 const openBuilderBtn = document.querySelector<HTMLButtonElement>('#open-builder');

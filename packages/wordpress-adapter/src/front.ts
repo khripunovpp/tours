@@ -1,10 +1,11 @@
 /**
- * Front-end glue for the WordPress plugin, built to assets/tours-wp.js (global
- * `ToursWP`). The plugin localizes the site's published tour drafts into the
- * page; this compiles them to schema Tours (client-side, so no tour logic lives
- * in PHP) and runs the player. Templates and unpublished tours are excluded.
+ * Front-end glue for the WordPress plugin, built to assets/tours-front.js
+ * (global `SiteToursFront`). The plugin localizes the site's published tour
+ * drafts (and whether the visitor is logged in) into the page; this compiles
+ * them to schema Tours client-side (no tour logic in PHP), enforces the
+ * audience, runs auto-start triggers, and continues multi-page tours.
  */
-import { createPlayer, createLocalState, resumeTour } from '@tours/core';
+import { createPlayer, createLocalState, resumeTour, armTrigger } from '@tours/core';
 import { toTour, normalizeTours, type DraftTour } from '@tours/editor';
 import type { Tour } from '@tours/schema';
 
@@ -13,16 +14,25 @@ const state = createLocalState();
 
 interface WpData {
   drafts?: unknown;
+  authenticated?: boolean;
 }
 
 function data(): WpData {
   return (window as unknown as { SiteToursFront_data?: WpData }).SiteToursFront_data ?? {};
 }
 
-/** Published, shippable tours from the localized drafts. */
+/** Whether the current tour audience applies to this visitor. */
+function audienceOk(audience: DraftTour['audience']): boolean {
+  const authed = data().authenticated === true;
+  if (audience === 'auth') return authed;
+  if (audience === 'guest') return !authed;
+  return true;
+}
+
+/** Published, shippable tours visible to this visitor. */
 function published(): DraftTour[] {
   return normalizeTours(data().drafts).filter(
-    (d) => d.status === 'published' && d.kind === 'tour',
+    (d) => d.status === 'published' && d.kind === 'tour' && audienceOk(d.audience),
   );
 }
 
@@ -53,13 +63,32 @@ export function run(tourId?: string): void {
 }
 
 /** Continue a multi-page tour that is mid-flight on this page. */
-function resumeInFlight(): void {
+function resumeInFlight(): boolean {
   for (const tour of compiled()) {
-    if (resumeTour(tour, { state })) break;
+    if (resumeTour(tour, { state })) return true;
+  }
+  return false;
+}
+
+const SEEN_PREFIX = 'tours:seen:';
+
+/**
+ * Arm auto-start triggers. Auto tours fire once per visitor (a "seen" flag),
+ * so they don't replay on every load; manual tours are never armed here.
+ */
+function armTriggers(): void {
+  for (const tour of compiled()) {
+    if (!tour.trigger || tour.trigger.type === 'manual') continue;
+    const seenKey = SEEN_PREFIX + tour.id;
+    if (state.get(seenKey)) continue;
+    armTrigger(tour, () => {
+      state.set(seenKey, '1');
+      run(tour.id);
+    });
   }
 }
 
-/** Wire up any `[data-site-tour]` triggers the shortcode rendered. */
+/** Wire up any `[data-site-tour]` triggers (shortcode buttons or custom markup). */
 function bindTriggers(): void {
   for (const el of Array.from(document.querySelectorAll<HTMLElement>('[data-site-tour]'))) {
     if (el.dataset.siteToursBound) continue;
@@ -70,7 +99,8 @@ function bindTriggers(): void {
 
 function init(): void {
   bindTriggers();
-  resumeInFlight();
+  // Resume takes priority; otherwise arm fresh auto-start triggers.
+  if (!resumeInFlight()) armTriggers();
 }
 
 if (document.readyState === 'loading') {
@@ -78,4 +108,3 @@ if (document.readyState === 'loading') {
 } else {
   init();
 }
-

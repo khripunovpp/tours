@@ -37,7 +37,10 @@ class Site_Tours_Assets {
 		wp_localize_script(
 			self::FRONT_HANDLE,
 			'SiteToursFront_data',
-			array( 'drafts' => Site_Tours_CPT::get_published_drafts() )
+			array(
+				'drafts'        => self::visible_drafts(),
+				'authenticated' => is_user_logged_in(),
+			)
 		);
 
 		// Builder for editors, on their own site (authoring level 0).
@@ -51,6 +54,26 @@ class Site_Tours_Assets {
 			);
 			wp_add_inline_script( self::ADMIN_HANDLE, self::admin_boot(), 'after' );
 		}
+	}
+
+	/** Published tours visible to the current visitor (audience filtered). */
+	private static function visible_drafts() {
+		$authed = is_user_logged_in();
+		return array_values(
+			array_filter(
+				Site_Tours_CPT::get_published_drafts(),
+				static function ( $d ) use ( $authed ) {
+					$audience = isset( $d['audience'] ) ? $d['audience'] : 'all';
+					if ( 'auth' === $audience ) {
+						return $authed;
+					}
+					if ( 'guest' === $audience ) {
+						return ! $authed;
+					}
+					return true;
+				}
+			)
+		);
 	}
 
 	/** Mount the builder from the URL flag, backed by the REST store. */

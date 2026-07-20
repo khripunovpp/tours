@@ -4,7 +4,7 @@
  * and per-card authoring state. `toTour` compiles a draft into a validated
  * tour; only included steps make it into the output.
  */
-import type { Tour, Step } from '@tours/schema';
+import type { Tour, Step, Trigger } from '@tours/schema';
 import {
   SCHEMA_VERSION,
   DEFAULT_PADDING,
@@ -49,6 +49,11 @@ export type TourStatus = 'draft' | 'published';
 /** A draft is either a real tour or a reusable template. */
 export type TourKind = 'tour' | 'template';
 
+/** Who may see the tour. */
+export type Audience = 'all' | 'auth' | 'guest';
+
+export type { Trigger };
+
 export interface DraftDisplay {
   /** Gap in px between the target element and the outline (player + editor). */
   padding: number;
@@ -67,6 +72,10 @@ export interface DraftTour {
   kind: TourKind;
   name: string;
   status: TourStatus;
+  /** How the tour auto-starts. */
+  trigger: Trigger;
+  /** Who may see the tour. */
+  audience: Audience;
   steps: DraftStep[];
   display: DraftDisplay;
 }
@@ -105,6 +114,8 @@ export function createDraftTour(kind: TourKind = 'tour'): DraftTour {
     kind,
     name: kind === 'template' ? 'Untitled template' : 'Untitled tour',
     status: 'draft',
+    trigger: { type: 'manual' },
+    audience: 'all',
     steps: [createDraftStep()],
     display: {
       padding: DEFAULT_PADDING,
@@ -126,9 +137,23 @@ export function cloneDraft(src: DraftTour, kind: TourKind, name?: string): Draft
     kind,
     name: name ?? src.name,
     status: 'draft',
+    trigger: { ...src.trigger },
+    audience: src.audience,
     steps: src.steps.map((s) => ({ ...s, id: uid('step'), selectors: [...s.selectors] })),
     display: { ...src.display },
   };
+}
+
+/** Coerce an unknown value into a valid Trigger (defaults to manual). */
+function normalizeTrigger(value: unknown): Trigger {
+  if (value && typeof value === 'object') {
+    const t = value as { type?: unknown; selector?: unknown; delay?: unknown; url?: unknown };
+    if (t.type === 'load') return { type: 'load' };
+    if (t.type === 'selector' && typeof t.selector === 'string') return { type: 'selector', selector: t.selector };
+    if (t.type === 'timer' && typeof t.delay === 'number') return { type: 'timer', delay: t.delay };
+    if (t.type === 'request') return { type: 'request', url: typeof t.url === 'string' ? t.url : undefined };
+  }
+  return { type: 'manual' };
 }
 
 /**
@@ -148,6 +173,8 @@ export function normalizeTours(input: unknown): DraftTour[] {
       kind: t.kind === 'template' ? 'template' : 'tour',
       name: typeof t.name === 'string' ? t.name : 'Untitled tour',
       status: t.status === 'published' ? 'published' : 'draft',
+      trigger: normalizeTrigger(t.trigger),
+      audience: t.audience === 'auth' || t.audience === 'guest' ? t.audience : 'all',
       display: {
         padding: numOr(t.display?.padding, DEFAULT_PADDING),
         radius: numOr(t.display?.radius, DEFAULT_RADIUS),
@@ -196,6 +223,8 @@ export function toTour(
     schemaVersion: SCHEMA_VERSION,
     title: { default: draft.name },
     steps,
+    trigger: draft.trigger,
+    audience: draft.audience,
     display: {
       padding: draft.display.padding,
       radius: draft.display.radius,

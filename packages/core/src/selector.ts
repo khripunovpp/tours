@@ -146,7 +146,7 @@ export function resolveElement(selectors: string[], root: ParentNode = document)
 }
 
 export interface WaitOptions {
-  /** Give up after this many ms (default 4000). */
+  /** Give up after this many ms (default 4000). Use 0 to wait indefinitely. */
   timeout?: number;
   root?: ParentNode;
 }
@@ -162,11 +162,12 @@ export function waitForElement(selectors: string[], options: WaitOptions = {}): 
 
   return new Promise((resolve) => {
     let done = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const finish = (el: Element | null): void => {
       if (done) return;
       done = true;
       observer.disconnect();
-      clearTimeout(timer);
+      if (timer) clearTimeout(timer);
       resolve(el);
     };
     const observer = new MutationObserver(() => {
@@ -178,6 +179,10 @@ export function waitForElement(selectors: string[], options: WaitOptions = {}): 
       subtree: true,
       attributes: true,
     });
-    const timer = setTimeout(() => finish(null), options.timeout ?? 4000);
+    // timeout 0 (or non-finite) waits indefinitely — used for triggers.
+    const timeout = options.timeout ?? 4000;
+    if (timeout > 0 && Number.isFinite(timeout)) {
+      timer = setTimeout(() => finish(null), timeout);
+    }
   });
 }

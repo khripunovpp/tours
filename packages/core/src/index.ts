@@ -8,6 +8,7 @@ export type { PickerHandle, PickerOptions } from './picker.js';
 export { createPlayer, resumeTour } from './player.js';
 export type { PlayerHandle, PlayerOptions } from './player.js';
 export { matchUrl } from './url.js';
+export { armTrigger, onRequestComplete } from './trigger.js';
 export {
   createLocalState,
   readProgress,

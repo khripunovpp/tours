@@ -8,7 +8,7 @@
  * Enable in code:   new TourBuilder({ mode: 'edit' }).mount();
  * Enable via URL:   TourBuilder.fromUrl();   // when ?tours-edit=1 is present
  */
-import { createPicker, createPlayer, createLogger, placeCard } from '@tours/core';
+import { createPicker, createPlayer, createLogger, placeCard, renderCard, CARD_STYLES } from '@tours/core';
 import type { PickerHandle, PlayerHandle } from '@tours/core';
 import { EDITOR_STYLES } from './styles.js';
 import { ICONS } from './icons.js';
@@ -125,13 +125,13 @@ export class TourBuilder {
     this.host = h('div', { 'data-tours-editor': '' });
     this.root = this.host.attachShadow({ mode: 'open' });
     const style = document.createElement('style');
-    style.textContent = EDITOR_STYLES;
+    style.textContent = EDITOR_STYLES + CARD_STYLES;
     this.root.appendChild(style);
     // The highlight is created once and survives re-renders (render() only
-    // rebuilds .panel/.nav), so it can track the target smoothly.
+    // rebuilds .panel/.nav), so it can track the target smoothly. The card
+    // preview is rebuilt on demand via the shared renderCard.
     this.highlight = h('div', { class: 'highlight' });
-    this.cardPreview = h('div', { class: 'card-preview' }, ['Step tooltip preview']);
-    this.root.append(this.highlight, this.cardPreview);
+    this.root.append(this.highlight);
     document.body.appendChild(this.host);
     // Keep the outline glued to the target as the page scrolls or resizes.
     window.addEventListener('scroll', this.onViewportChange, true);
@@ -347,11 +347,10 @@ export class TourBuilder {
    */
   private updateOverlays(): void {
     const box = this.highlight;
-    const preview = this.cardPreview;
-    if (!box || !preview) return;
+    if (!box) return;
     const hideAll = (): void => {
       box.style.display = 'none';
-      preview.style.display = 'none';
+      this.removeCardPreview();
     };
     if (this.view !== 'edit' || this.mode !== 'build' || this.picking) return hideAll();
     const step = this.activeStep;
@@ -372,52 +371,50 @@ export class TourBuilder {
 
     // The step's own card (the visitor tooltip), drawn as soon as there is
     // something to show — at least some content.
-    this.drawStepCard(preview, step, rect, cardRadius);
+    this.drawStepCard(step, rect, cardRadius);
+  }
+
+  private removeCardPreview(): void {
+    if (this.cardPreview) {
+      this.cardPreview.remove();
+      this.cardPreview = null;
+    }
   }
 
   /**
-   * Render the active step's card near its target, as the visitor will see it.
-   * Shown when the step has any content; in the Card sub-tab a placeholder is
-   * used instead so the radius stays visible before any text is written.
+   * Render the active step's card near its target via the shared renderCard —
+   * the exact markup the player uses. Shown when the step has content; in the
+   * Card sub-tab a muted placeholder shows so the radius stays visible first.
    */
-  private drawStepCard(
-    preview: HTMLElement,
-    step: DraftStep,
-    rect: DOMRect,
-    cardRadius: number,
-  ): void {
+  private drawStepCard(step: DraftStep, rect: DOMRect, cardRadius: number): void {
     const content = step.content.trim();
     const tuningCard = this.tab === 'display' && this.displaySub === 'card';
     if (!content && !tuningCard) {
-      preview.style.display = 'none';
+      this.removeCardPreview();
       return;
     }
 
-    preview.textContent = '';
-    preview.style.display = 'block';
-    preview.style.borderRadius = `${cardRadius}px`;
-
-    const body = h('div', { class: 'card-preview__content' }, [content || 'Step tooltip preview']);
-    if (!content) body.classList.add('card-preview__content--placeholder');
-
-    // Footer nav: clickable back/next that move the active step to its
-    // neighbour (in list order), disabled at the ends.
-    const index = this.tour.steps.indexOf(step);
     const steps = this.tour.steps;
-    const nav = (label: string, to: number, primary: boolean): HTMLElement => {
-      const b = h('button', {
-        class: `card-preview__btn ${primary ? 'card-preview__btn--primary' : ''}`.trim(),
-        type: 'button',
-      }, [label]);
-      const target = steps[to];
-      if (!target) b.classList.add('card-preview__btn--disabled');
-      else b.addEventListener('click', () => this.setActive(target.id));
-      return b;
+    const index = steps.indexOf(step);
+    const goto = (to: number) => (): void => {
+      const neighbour = steps[to];
+      if (neighbour) this.setActive(neighbour.id);
     };
+    const card = renderCard({
+      ghost: true,
+      contentText: content || 'Step tooltip preview',
+      radius: cardRadius,
+      back: { label: step.backLabel, disabled: index <= 0, onClick: goto(index - 1) },
+      next: { label: step.nextLabel, primary: true, disabled: index >= steps.length - 1, onClick: goto(index + 1) },
+    });
+    if (!content) {
+      const body = card.querySelector<HTMLElement>('.tours-card__content');
+      if (body) body.style.opacity = '0.55';
+    }
 
-    const footer = h('div', { class: 'card-preview__footer' });
-    footer.append(nav(step.backLabel, index - 1, false), nav(step.nextLabel, index + 1, true));
-    preview.append(body, footer);
+    this.removeCardPreview();
+    this.cardPreview = card;
+    this.root?.appendChild(card);
 
     // Measure from the outline (target inflated by the padding), matching the
     // player, so alignment/offset are relative to the visible frame.
@@ -430,18 +427,17 @@ export class TourBuilder {
       width: rect.width + pad * 2,
       height: rect.height + pad * 2,
     };
-    // Same placement math the player uses (side + alignment + distance).
     const { top, left } = placeCard({
       target: framed,
-      card: { width: preview.offsetWidth, height: preview.offsetHeight },
+      card: { width: card.offsetWidth, height: card.offsetHeight },
       side: step.placement,
       align: step.align,
       offset: this.tour.display.offset,
       alignOffset: this.tour.display.alignOffset,
       viewport: { width: window.innerWidth, height: window.innerHeight },
     });
-    preview.style.left = `${left}px`;
-    preview.style.top = `${top}px`;
+    card.style.left = `${left}px`;
+    card.style.top = `${top}px`;
   }
 
   private renderNav(): HTMLElement {

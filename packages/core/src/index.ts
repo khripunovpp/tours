@@ -11,3 +11,5 @@ export { createLogger, isLoggingEnabled } from './logger.js';
 export type { Logger } from './logger.js';
 export { placeCard, autoSide } from './position.js';
 export type { Side, Align, PlaceInput } from './position.js';
+export { renderCard, CARD_STYLES } from './card.js';
+export type { CardOptions, CardButton } from './card.js';

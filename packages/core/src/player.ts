@@ -13,6 +13,7 @@ import {
 } from '@tours/schema';
 import { PLAYER_STYLES } from './styles.js';
 import { placeCard } from './position.js';
+import { renderCard, CARD_STYLES } from './card.js';
 import { createLogger } from './logger.js';
 
 export interface PlayerHandle {
@@ -61,7 +62,7 @@ export function createPlayer(tour: Tour): PlayerHandle {
     root = host.attachShadow({ mode: 'open' });
 
     const style = document.createElement('style');
-    style.textContent = PLAYER_STYLES;
+    style.textContent = PLAYER_STYLES + CARD_STYLES;
     root.appendChild(style);
 
     const backdrop = document.createElement('div');
@@ -72,11 +73,6 @@ export function createPlayer(tour: Tour): PlayerHandle {
     spotlight.className = 'tours-spotlight';
     spotlight.style.borderRadius = `${radius}px`;
     root.appendChild(spotlight);
-
-    tooltip = document.createElement('div');
-    tooltip.className = 'tours-tooltip';
-    tooltip.style.borderRadius = `${cardRadius}px`;
-    root.appendChild(tooltip);
 
     document.body.appendChild(host);
   }
@@ -117,55 +113,21 @@ export function createPlayer(tour: Tour): PlayerHandle {
     tooltip.style.top = `${top}px`;
   }
 
-  /** (Re)build the tooltip contents for the given step. */
+  /** (Re)build the tooltip card for the given step via the shared renderer. */
   function renderTooltip(step: Step): void {
-    if (!tooltip) return;
     const total = tour.steps.length;
-
-    tooltip.textContent = '';
-
-    const close = document.createElement('button');
-    close.className = 'tours-close';
-    close.type = 'button';
-    close.textContent = '×';
-    close.setAttribute('aria-label', 'Close');
-    close.addEventListener('click', stop);
-    tooltip.appendChild(close);
-
-    const content = document.createElement('p');
-    content.className = 'tours-tooltip__content';
+    if (tooltip) tooltip.remove();
     // i18n is deferred; for now show the default-language text.
-    content.textContent = step.content.default;
-    tooltip.appendChild(content);
-
-    const footer = document.createElement('div');
-    footer.className = 'tours-tooltip__footer';
-
-    const progress = document.createElement('span');
-    progress.className = 'tours-tooltip__progress';
-    progress.textContent = `Step ${index + 1} of ${total}`;
-    footer.appendChild(progress);
-
-    const buttons = document.createElement('div');
-    buttons.className = 'tours-tooltip__buttons';
-
-    const prevBtn = document.createElement('button');
-    prevBtn.className = 'tours-btn';
-    prevBtn.type = 'button';
-    prevBtn.textContent = 'Back';
-    prevBtn.disabled = index === 0;
-    prevBtn.addEventListener('click', prev);
-    buttons.appendChild(prevBtn);
-
-    const nextBtn = document.createElement('button');
-    nextBtn.className = 'tours-btn tours-btn--primary';
-    nextBtn.type = 'button';
-    nextBtn.textContent = index === total - 1 ? 'Done' : 'Next';
-    nextBtn.addEventListener('click', next);
-    buttons.appendChild(nextBtn);
-
-    footer.appendChild(buttons);
-    tooltip.appendChild(footer);
+    tooltip = renderCard({
+      contentText: step.content.default,
+      progress: `Step ${index + 1} of ${total}`,
+      showClose: true,
+      onClose: stop,
+      radius: cardRadius,
+      back: { label: 'Back', disabled: index === 0, onClick: prev },
+      next: { label: index === total - 1 ? 'Done' : 'Next', primary: true, onClick: next },
+    });
+    root?.appendChild(tooltip);
   }
 
   /**

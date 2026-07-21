@@ -5,14 +5,17 @@
  * resolve like everywhere else.
  */
 import { build } from 'vite';
-import { copyFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync } from 'node:fs';
+
+// Output into the repo-root dist so every distributable lives under dist/.
+const OUT = '../../dist/extension';
 
 function bundle({ entry, name, fileName, format, empty }) {
   return build({
     configFile: false,
     logLevel: 'warn',
     build: {
-      outDir: 'dist',
+      outDir: OUT,
       emptyOutDir: empty,
       sourcemap: false,
       minify: 'esbuild',
@@ -24,6 +27,7 @@ function bundle({ entry, name, fileName, format, empty }) {
 
 await bundle({ entry: 'src/content.ts', name: 'ToursAuthoring', fileName: 'content.js', format: 'iife', empty: true });
 await bundle({ entry: 'src/background.ts', name: 'ToursBg', fileName: 'background.js', format: 'es', empty: false });
-copyFileSync('manifest.json', 'dist/manifest.json');
+mkdirSync(OUT, { recursive: true });
+copyFileSync('manifest.json', `${OUT}/manifest.json`);
 
-console.log('✓ extension built to packages/authoring-extension/dist (load it unpacked)');
+console.log('✓ extension built to dist/extension (load it unpacked)');

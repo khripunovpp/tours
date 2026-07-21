@@ -10,6 +10,9 @@ demo/dist/
 packages/*/dist/
 demos/*/dist/
 demos/*/dist-angular/
+# Assembled (derived) artifacts — sources live in packages/*
+dist/wordpress-plugin/
+dist/extension/
 
 # Extension build artifacts
 *.zip

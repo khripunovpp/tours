@@ -7,11 +7,15 @@
  *   tours-admin.js  (window.SiteToursAdmin) — the builder + WordPress store
  */
 import { build } from 'vite';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, cpSync, rmSync } from 'node:fs';
+import { execSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
 const OUT = 'packages/wordpress-adapter/assets';
+const PLUGIN = 'packages/wordpress-adapter';
+const DIST = 'dist/wordpress-plugin';
+const SLUG = 'site-tours';
 
 // front.ts lives in a package with no node_modules of its own, so map the
 // workspace imports straight to source.
@@ -50,7 +54,22 @@ await bundle({
   empty: false,
 });
 
-console.log('✓ WordPress assets written to', OUT, '\n');
+// Assemble the installable plugin into dist/wordpress-plugin/site-tours (a
+// slug-named folder, as WordPress expects), then zip it for upload.
+rmSync(DIST, { recursive: true, force: true });
+for (const item of ['site-tours.php', 'uninstall.php', 'readme.txt', 'includes', 'assets']) {
+  cpSync(`${PLUGIN}/${item}`, `${DIST}/${SLUG}/${item}`, { recursive: true });
+}
+let zipped = false;
+try {
+  execSync(`zip -qr ${SLUG}.zip ${SLUG}`, { cwd: DIST });
+  zipped = true;
+} catch (err) {
+  console.warn('  (zip not created — is the `zip` command available?)', err.message);
+}
+
+console.log('✓ WordPress assets written to', OUT);
+console.log(`✓ plugin folder: ${DIST}/${SLUG}` + (zipped ? `\n✓ upload zip:    ${DIST}/${SLUG}.zip` : ''), '\n');
 const kb = (n) => `${(n / 1024).toFixed(1)} KB`;
 for (const file of readdirSync(OUT).filter((f) => f.endsWith('.js')).sort()) {
   const raw = readFileSync(`${OUT}/${file}`);

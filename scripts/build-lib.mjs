@@ -70,19 +70,30 @@ for (const file of readdirSync('dist').filter((f) => f.endsWith('.js')).sort()) 
 }
 
 function readme() {
-  return `# Prebuilt library bundles
+  return `# dist — built artifacts
 
-Static, self-contained bundles you can drop onto any page — no build step, no
-dependencies. Regenerate with \`pnpm build:lib\` from the repo root.
+Run \`pnpm build:all\` to produce everything here:
 
-| File | Format | What |
-|---|---|---|
-| \`tours-editor.js\` | ESM | Tour builder (bundles core + schema) |
-| \`tours-editor.umd.js\` | UMD | Same builder, exposed as \`window.Tours\` |
-| \`tours-player.js\` | ESM | Visitor-facing player + element picker |
+| Path | What |
+|---|---|
+| \`tours-editor.js\` / \`.umd.js\` | Library — tour builder (ESM / \`window.Tours\`) |
+| \`tours-player.js\` | Library — visitor-facing player + picker (ESM) |
+| \`wordpress-plugin/site-tours/\` | Installable WordPress plugin (folder) |
+| \`wordpress-plugin/site-tours.zip\` | Same plugin, zipped for WP upload |
+| \`extension/\` | MV3 browser extension — load unpacked |
 
-Each file is fully inlined (no shared chunks) and minified. Approx. gzip sizes:
-\`tours-player.js\` ~3.8 KB, \`tours-editor.js\` ~15 KB.
+The library bundles are committed; \`wordpress-plugin/\` and \`extension/\` are
+derived (sources in \`packages/*\`) and git-ignored — build them locally.
+
+## WordPress plugin
+
+Upload \`wordpress-plugin/site-tours.zip\` via **Plugins → Add New → Upload**,
+or copy \`wordpress-plugin/site-tours/\` into \`wp-content/plugins/\`.
+
+## Library bundles
+
+Static, self-contained (no shared chunks), minified. Approx. gzip:
+\`tours-player.js\` ~6 KB, \`tours-editor.js\` ~20 KB.
 
 ## Use the builder
 

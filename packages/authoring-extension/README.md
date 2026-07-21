@@ -12,6 +12,6 @@ pnpm --filter @tours/authoring-extension build
 ```
 
 Then in Chrome: `chrome://extensions` → enable **Developer mode** → **Load
-unpacked** → select `packages/authoring-extension/dist`.
+unpacked** → select `dist/extension` (at the repo root).
 
 Click the toolbar icon on any page to toggle the builder. Click again to close.

@@ -18,6 +18,7 @@
     "build:lib": "node scripts/build-lib.mjs",
     "build:wp": "node scripts/build-wp.mjs",
     "build:ext": "pnpm --filter @tours/authoring-extension build",
+    "build:all": "pnpm build:lib && pnpm build:wp && pnpm build:ext",
     "wp:start": "wp-env start",
     "wp:stop": "wp-env stop",
     "wp:clean": "wp-env clean all",

@@ -1,0 +1,19 @@
+{
+  "name": "@tours/demo-solid",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "vite", "build": "vite build" },
+  "dependencies": {
+    "@tours/core": "workspace:*",
+    "@tours/schema": "workspace:*",
+    "@tours/demo-shared": "workspace:*",
+    "solid-js": "^1.9.3",
+    "@solidjs/router": "^0.15.2"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0",
+    "typescript": "~5.6.0",
+    "vite-plugin-solid": "^2.11.0"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "@tours/demo-svelte",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "vite", "build": "vite build" },
+  "dependencies": {
+    "@tours/core": "workspace:*",
+    "@tours/schema": "workspace:*",
+    "@tours/demo-shared": "workspace:*",
+    "svelte": "^5.16.0",
+    "svelte-spa-router": "^4.0.1"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0",
+    "typescript": "~5.6.0",
+    "@sveltejs/vite-plugin-svelte": "^5.0.3"
+  }
+}

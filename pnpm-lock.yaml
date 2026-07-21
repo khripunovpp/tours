@@ -20,6 +20,28 @@ importers:
 
   demo:
     dependencies:
+      '@tours/core':
+        specifier: workspace:*
+        version: link:../packages/core
+      '@tours/demo-shared':
+        specifier: workspace:*
+        version: link:../demos/shared
+      '@tours/editor':
+        specifier: workspace:*
+        version: link:../packages/editor
+      '@tours/schema':
+        specifier: workspace:*
+        version: link:../packages/schema
+    devDependencies:
+      typescript:
+        specifier: ~5.6.0
+        version: 5.6.3
+      vite:
+        specifier: ^6.0.0
+        version: 6.4.3(@types/node@26.1.1)(sass@1.85.0)(yaml@2.9.0)
+
+  demos/angular:
+    dependencies:
       '@angular/common':
         specifier: ^19.0.0
         version: 19.2.25(@angular/core@19.2.25(rxjs@7.8.2)(zone.js@0.14.10))(rxjs@7.8.2)
@@ -37,40 +59,19 @@ importers:
         version: 19.2.25(@angular/common@19.2.25(@angular/core@19.2.25(rxjs@7.8.2)(zone.js@0.14.10))(rxjs@7.8.2))(@angular/core@19.2.25(rxjs@7.8.2)(zone.js@0.14.10))(@angular/platform-browser@19.2.25(@angular/common@19.2.25(@angular/core@19.2.25(rxjs@7.8.2)(zone.js@0.14.10))(rxjs@7.8.2))(@angular/core@19.2.25(rxjs@7.8.2)(zone.js@0.14.10)))(rxjs@7.8.2)
       '@tours/core':
         specifier: workspace:*
-        version: link:../packages/core
-      '@tours/editor':
+        version: link:../../packages/core
+      '@tours/demo-shared':
         specifier: workspace:*
-        version: link:../packages/editor
+        version: link:../shared
       '@tours/schema':
         specifier: workspace:*
-        version: link:../packages/schema
-      react:
-        specifier: ^18.3.1
-        version: 18.3.1
-      react-dom:
-        specifier: ^18.3.1
-        version: 18.3.1(react@18.3.1)
-      react-router-dom:
-        specifier: ^6.28.0
-        version: 6.30.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: link:../../packages/schema
       rxjs:
         specifier: ^7.8.1
         version: 7.8.2
-      solid-js:
-        specifier: ^1.9.3
-        version: 1.9.14
-      svelte:
-        specifier: ^5.16.0
-        version: 5.56.6
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
-      vue:
-        specifier: ^3.5.13
-        version: 3.5.40(typescript@5.6.3)
-      vue-router:
-        specifier: ^4.5.0
-        version: 4.6.4(vue@3.5.40(typescript@5.6.3))
     devDependencies:
       '@analogjs/vite-plugin-angular':
         specifier: ^1.10.0
@@ -81,12 +82,34 @@ importers:
       '@angular/compiler-cli':
         specifier: ^19.0.0
         version: 19.2.25(@angular/compiler@19.2.25)(typescript@5.6.3)
-      '@solidjs/router':
-        specifier: ^0.15.2
-        version: 0.15.4(solid-js@1.9.14)
-      '@sveltejs/vite-plugin-svelte':
-        specifier: ^5.0.3
-        version: 5.1.1(svelte@5.56.6)(vite@6.4.3(@types/node@26.1.1)(sass@1.85.0)(yaml@2.9.0))
+      typescript:
+        specifier: ~5.6.0
+        version: 5.6.3
+      vite:
+        specifier: ^6.0.0
+        version: 6.4.3(@types/node@26.1.1)(sass@1.85.0)(yaml@2.9.0)
+
+  demos/react:
+    dependencies:
+      '@tours/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@tours/demo-shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@tours/schema':
+        specifier: workspace:*
+        version: link:../../packages/schema
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.1(react@18.3.1)
+      react-router-dom:
+        specifier: ^6.28.0
+        version: 6.30.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+    devDependencies:
       '@types/react':
         specifier: ^18.3.12
         version: 18.3.31
@@ -96,12 +119,43 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^4.3.4
         version: 4.7.0(vite@6.4.3(@types/node@26.1.1)(sass@1.85.0)(yaml@2.9.0))
-      '@vitejs/plugin-vue':
-        specifier: ^5.2.1
-        version: 5.2.4(vite@6.4.3(@types/node@26.1.1)(sass@1.85.0)(yaml@2.9.0))(vue@3.5.40(typescript@5.6.3))
-      svelte-spa-router:
-        specifier: ^4.0.1
-        version: 4.0.2
+      typescript:
+        specifier: ~5.6.0
+        version: 5.6.3
+      vite:
+        specifier: ^6.0.0
+        version: 6.4.3(@types/node@26.1.1)(sass@1.85.0)(yaml@2.9.0)
+
+  demos/shared:
+    dependencies:
+      '@tours/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@tours/editor':
+        specifier: workspace:*
+        version: link:../../packages/editor
+      '@tours/schema':
+        specifier: workspace:*
+        version: link:../../packages/schema
+
+  demos/solid:
+    dependencies:
+      '@solidjs/router':
+        specifier: ^0.15.2
+        version: 0.15.4(solid-js@1.9.14)
+      '@tours/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@tours/demo-shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@tours/schema':
+        specifier: workspace:*
+        version: link:../../packages/schema
+      solid-js:
+        specifier: ^1.9.3
+        version: 1.9.14
+    devDependencies:
       typescript:
         specifier: ~5.6.0
         version: 5.6.3
@@ -111,6 +165,62 @@ importers:
       vite-plugin-solid:
         specifier: ^2.11.0
         version: 2.11.13(solid-js@1.9.14)(vite@6.4.3(@types/node@26.1.1)(sass@1.85.0)(yaml@2.9.0))
+
+  demos/svelte:
+    dependencies:
+      '@tours/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@tours/demo-shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@tours/schema':
+        specifier: workspace:*
+        version: link:../../packages/schema
+      svelte:
+        specifier: ^5.16.0
+        version: 5.56.6
+      svelte-spa-router:
+        specifier: ^4.0.1
+        version: 4.0.2
+    devDependencies:
+      '@sveltejs/vite-plugin-svelte':
+        specifier: ^5.0.3
+        version: 5.1.1(svelte@5.56.6)(vite@6.4.3(@types/node@26.1.1)(sass@1.85.0)(yaml@2.9.0))
+      typescript:
+        specifier: ~5.6.0
+        version: 5.6.3
+      vite:
+        specifier: ^6.0.0
+        version: 6.4.3(@types/node@26.1.1)(sass@1.85.0)(yaml@2.9.0)
+
+  demos/vue:
+    dependencies:
+      '@tours/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@tours/demo-shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@tours/schema':
+        specifier: workspace:*
+        version: link:../../packages/schema
+      vue:
+        specifier: ^3.5.13
+        version: 3.5.40(typescript@5.6.3)
+      vue-router:
+        specifier: ^4.5.0
+        version: 4.6.4(vue@3.5.40(typescript@5.6.3))
+    devDependencies:
+      '@vitejs/plugin-vue':
+        specifier: ^5.2.1
+        version: 5.2.4(vite@6.4.3(@types/node@26.1.1)(sass@1.85.0)(yaml@2.9.0))(vue@3.5.40(typescript@5.6.3))
+      typescript:
+        specifier: ~5.6.0
+        version: 5.6.3
+      vite:
+        specifier: ^6.0.0
+        version: 6.4.3(@types/node@26.1.1)(sass@1.85.0)(yaml@2.9.0)
 
   packages/core:
     dependencies:

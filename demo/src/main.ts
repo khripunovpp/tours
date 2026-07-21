@@ -5,7 +5,7 @@
  */
 import { createPlayer, resumeTour, armTrigger, matchRules, detectDevice, seenCount, markSeen } from '@tours/core';
 import type { Tour } from '@tours/schema';
-import { playerState, builtTours, wireDemoPanel } from './common.js';
+import { playerState, builtTours, wireDemoPanel } from '@tours/demo-shared';
 
 wireDemoPanel();
 

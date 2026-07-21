@@ -8,6 +8,8 @@ build/
 *.tsbuildinfo
 demo/dist/
 packages/*/dist/
+demos/*/dist/
+demos/*/dist-angular/
 
 # Extension build artifacts
 *.zip

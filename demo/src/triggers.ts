@@ -4,7 +4,7 @@
  */
 import { createPlayer, armTrigger } from '@tours/core';
 import type { Tour } from '@tours/schema';
-import { wireDemoPanel } from './common.js';
+import { wireDemoPanel } from '@tours/demo-shared';
 
 wireDemoPanel();
 

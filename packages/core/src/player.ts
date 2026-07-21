@@ -92,6 +92,21 @@ export function createPlayer(tour: Tour, options: PlayerOptions = {}): PlayerHan
 
     const backdrop = document.createElement('div');
     backdrop.className = 'tours-backdrop';
+    // Clicking the dimmed area (outside the spotlight) dismisses the tour.
+    backdrop.addEventListener('click', (e) => {
+      const step = tour.steps[index];
+      const target = step ? findTarget(step) : null;
+      if (target) {
+        const r = target.getBoundingClientRect();
+        const inside =
+          e.clientX >= r.left - pad &&
+          e.clientX <= r.right + pad &&
+          e.clientY >= r.top - pad &&
+          e.clientY <= r.bottom + pad;
+        if (inside) return; // let clicks on the highlighted element be
+      }
+      stop();
+    });
     root.appendChild(backdrop);
 
     spotlight = document.createElement('div');

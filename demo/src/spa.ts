@@ -6,7 +6,7 @@
  */
 import { createPlayer, resumeTour } from '@tours/core';
 import type { Tour } from '@tours/schema';
-import { playerState, wireDemoPanel } from './common.js';
+import { playerState, wireDemoPanel } from '@tours/demo-shared';
 
 wireDemoPanel();
 

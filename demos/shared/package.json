@@ -1,0 +1,16 @@
+{
+  "name": "@tours/demo-shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./demo.css": "./src/demo.css"
+  },
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@tours/core": "workspace:*",
+    "@tours/editor": "workspace:*",
+    "@tours/schema": "workspace:*"
+  }
+}

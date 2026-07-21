@@ -1,0 +1,19 @@
+{
+  "name": "@tours/demo-vue",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "vite", "build": "vite build" },
+  "dependencies": {
+    "@tours/core": "workspace:*",
+    "@tours/schema": "workspace:*",
+    "@tours/demo-shared": "workspace:*",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0",
+    "typescript": "~5.6.0",
+    "@vitejs/plugin-vue": "^5.2.1"
+  }
+}

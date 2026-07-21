@@ -1716,8 +1716,7 @@ ${e.errors.join(`
     for (const [t, n] of [
       ["steps", "Steps"],
       ["styles", "Styles"],
-      ["rules", "Rules"],
-      ["assets", "Assets"]
+      ["rules", "Rules"]
     ]) {
       const i = a("button", { class: `tab ${this.tab === t ? "tab--active" : ""}`, type: "button" }, [n]);
       i.addEventListener("click", () => {
@@ -1805,8 +1804,6 @@ ${e.errors.join(`
   }
   renderBody() {
     const e = a("div", { class: "panel__body" });
-    if (this.tab === "assets")
-      return e.append(a("div", { class: "assets-empty" }, ["Assets — coming soon"])), e;
     if (this.tab === "styles")
       return e.append(this.renderDisplaySettings()), e;
     if (this.tab === "rules")

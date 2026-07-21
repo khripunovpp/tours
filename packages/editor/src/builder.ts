@@ -29,7 +29,7 @@ import { createLocalStore, type DraftStore } from './storage.js';
 export type NavPosition = 'top' | 'bottom';
 export type PanelPosition = 'left' | 'right';
 type Mode = 'build' | 'preview';
-type Tab = 'steps' | 'styles' | 'rules' | 'assets';
+type Tab = 'steps' | 'styles' | 'rules';
 type DisplaySub = 'tour' | 'card';
 type PanelView = 'list' | 'edit';
 
@@ -717,7 +717,6 @@ export class TourBuilder {
       ['steps', 'Steps'],
       ['styles', 'Styles'],
       ['rules', 'Rules'],
-      ['assets', 'Assets'],
     ] as const) {
       const tab = h('button', { class: `tab ${this.tab === key ? 'tab--active' : ''}`, type: 'button' }, [label]);
       tab.addEventListener('click', () => {
@@ -861,10 +860,6 @@ export class TourBuilder {
 
   private renderBody(): HTMLElement {
     const body = h('div', { class: 'panel__body' });
-    if (this.tab === 'assets') {
-      body.append(h('div', { class: 'assets-empty' }, ['Assets — coming soon']));
-      return body;
-    }
     if (this.tab === 'styles') {
       body.append(this.renderDisplaySettings());
       return body;

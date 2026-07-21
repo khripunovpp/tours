@@ -7,7 +7,7 @@ export { createPicker } from './picker.js';
 export type { PickerHandle, PickerOptions } from './picker.js';
 export { createPlayer, resumeTour } from './player.js';
 export type { PlayerHandle, PlayerOptions } from './player.js';
-export { matchUrl } from './url.js';
+export { matchUrl, deriveUrl } from './url.js';
 export { armTrigger } from './trigger.js';
 export {
   createLocalState,

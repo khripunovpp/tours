@@ -8,7 +8,7 @@
  * Enable in code:   new TourBuilder({ mode: 'edit' }).mount();
  * Enable via URL:   TourBuilder.fromUrl();   // when ?tours-edit=1 is present
  */
-import { createPicker, createPlayer, createLogger, placeCard, renderCard, resolveElement, matchUrl, CARD_STYLES } from '@tours/core';
+import { createPicker, createPlayer, createLogger, placeCard, renderCard, resolveElement, matchUrl, deriveUrl, CARD_STYLES } from '@tours/core';
 import type { PickerHandle, PlayerHandle } from '@tours/core';
 import { EDITOR_STYLES } from './styles.js';
 import { ICONS } from './icons.js';
@@ -17,6 +17,8 @@ import {
   createDraftTour,
   cloneDraft,
   toTour,
+  compileTour,
+  importDrafts,
   type CardType,
   type DraftStep,
   type DraftTour,
@@ -25,6 +27,13 @@ import {
   type Trigger,
 } from './state.js';
 import { createLocalStore, type DraftStore } from './storage.js';
+
+/**
+ * URL query param that carries builder resume state across a cross-page
+ * navigation: `<mode>~<tourId>~<stepId>`. The builder reads and strips it on
+ * mount to reopen the tour on the right step (and, in preview, resume playback).
+ */
+const RESUME_PARAM = 'tours-resume';
 
 export type NavPosition = 'top' | 'bottom';
 export type PanelPosition = 'left' | 'right';
@@ -200,12 +209,14 @@ export class TourBuilder {
   /** Load stored drafts (localStorage by default) and show them. */
   private async hydrate(): Promise<void> {
     const stored = await this.local.load();
-    if (!stored || stored.length === 0) return;
-    this.tours = stored;
-    this.openTourId = stored[0].id;
-    this.activeStepId = stored[0].steps[0]?.id ?? null;
-    this.log.log('hydrated', `${stored.length} tour(s)`);
-    this.render();
+    if (stored && stored.length > 0) {
+      this.tours = stored;
+      this.openTourId = stored[0].id;
+      this.activeStepId = stored[0].steps[0]?.id ?? null;
+      this.log.log('hydrated', `${stored.length} tour(s)`);
+    }
+    // Continue a cross-page navigation if one is pending; else just re-render.
+    if (!this.applyResume()) this.render();
   }
 
   /** Debounce a save so rapid edits (typing, dragging a slider) coalesce. */
@@ -384,16 +395,78 @@ export class TourBuilder {
       this.render();
       return;
     }
+    this.startPreview();
+  }
+
+  /**
+   * Enter preview mode, optionally starting at a given step id (used when
+   * resuming after a cross-page navigation). The id is resolved against the
+   * compiled tour, whose step set can differ from the draft. Returns false if
+   * the draft is invalid.
+   */
+  private startPreview(startStepId?: string): boolean {
     const result = this.export();
     if (!result.ok) {
       this.log.warn('cannot preview — draft is invalid', result.errors);
-      window.alert(`Add a selector and text to at least one step first:\n\n${result.errors.join('\n')}`);
-      return;
+      if (!startStepId) {
+        window.alert(`Add a selector and text to at least one step first:\n\n${result.errors.join('\n')}`);
+      }
+      return false;
     }
     this.mode = 'preview';
     this.render();
-    this.player = createPlayer(result.tour);
-    this.player.start();
+    // In preview, a cross-page Next reloads the page. Tag the destination URL
+    // so the builder re-mounts and resumes preview at the right step.
+    this.player = createPlayer(result.tour, {
+      onNavigate: (url, stepId) => this.navigateForResume(url, stepId, 'preview'),
+    });
+    const start = startStepId ? result.tour.steps.findIndex((s) => s.id === startStepId) : 0;
+    this.player.start(Math.max(0, start));
+    return true;
+  }
+
+  /**
+   * Flush the draft, then navigate to `url` with a resume token so the builder
+   * re-opens on `stepId` (and resumes preview when `mode` is 'preview') after
+   * the page reloads. Used for cross-page Next in both build and preview.
+   */
+  private async navigateForResume(url: string, stepId: string, mode: Mode): Promise<void> {
+    if (this.saveTimer !== null) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+    await this.persist(); // ensure the reloaded page reads the latest edits
+    const target = new URL(url, window.location.href);
+    target.searchParams.set(RESUME_PARAM, `${mode}~${this.openTourId}~${stepId}`);
+    this.log.log('navigating for resume', target.toString());
+    window.location.assign(target.toString());
+  }
+
+  /**
+   * Consume a resume token from the URL (see RESUME_PARAM): reopen the tour on
+   * the referenced step and, for preview, restart playback there. Strips the
+   * param so a manual refresh will not re-trigger it. Returns true when it
+   * handled a resume (and rendered), false to let the caller render normally.
+   */
+  private applyResume(): boolean {
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get(RESUME_PARAM);
+    if (!raw) return false;
+    params.delete(RESUME_PARAM);
+    const query = params.toString();
+    const clean = window.location.pathname + (query ? `?${query}` : '') + window.location.hash;
+    window.history.replaceState(window.history.state, '', clean);
+
+    const [mode, tourId, stepId] = raw.split('~');
+    const tour = this.tours.find((t) => t.id === tourId);
+    if (!tour) return false;
+    this.openTourId = tour.id;
+    this.view = 'edit';
+    this.activeStepId = stepId;
+    if (mode === 'preview' && this.startPreview(stepId)) return true;
+    this.tab = 'steps';
+    this.render();
+    return true;
   }
 
   // ---------- rendering ----------
@@ -478,7 +551,17 @@ export class TourBuilder {
     const index = steps.indexOf(step);
     const goto = (to: number) => (): void => {
       const neighbour = steps[to];
-      if (neighbour) this.setActive(neighbour.id);
+      if (!neighbour) return;
+      // If the neighbour lives on another page, redirect there (and resume the
+      // builder on that step) — mirroring how the tour behaves for a visitor.
+      if (neighbour.page && !matchUrl({ glob: neighbour.page }, window.location.href)) {
+        const url = deriveUrl({ glob: neighbour.page });
+        if (url) {
+          void this.navigateForResume(url, neighbour.id, 'build');
+          return;
+        }
+      }
+      this.setActive(neighbour.id);
     };
     const card = renderCard({
       ghost: true,
@@ -576,10 +659,16 @@ export class TourBuilder {
       tabs.append(t);
     }
 
+    const download = iconButton('download', `Download all ${this.listFilter === 'template' ? 'templates' : 'tours'} as JSON`);
+    download.addEventListener('click', () => this.downloadAll());
+
+    const upload = iconButton('upload', 'Import tours from JSON');
+    upload.addEventListener('click', () => this.importJson());
+
     const add = h('button', { class: 'newtour', type: 'button', title: 'New' }, ['+ New']);
     add.addEventListener('click', () => this.createEntity());
 
-    header.append(tabs, add);
+    header.append(tabs, download, upload, add);
     return header;
   }
 
@@ -663,7 +752,7 @@ export class TourBuilder {
     return header;
   }
 
-  /** The ⋯ dropdown: save-as-template (tours only) and JSON export. */
+  /** The ⋯ dropdown: save-as-template (tours only), JSON download and import. */
   private renderMenu(): HTMLElement {
     const menu = h('div', { class: 'menu' });
     const item = (label: string, onClick: () => void): HTMLElement => {
@@ -677,15 +766,88 @@ export class TourBuilder {
     if (this.tour.kind === 'tour') {
       menu.append(item('Save as template', () => this.saveAsTemplate()));
     }
-    menu.append(item('Export JSON', () => this.exportJson()));
+    menu.append(item('Download JSON', () => this.downloadOpenTour()));
+    menu.append(item('Import JSON…', () => this.importJson()));
     return menu;
   }
 
-  private exportJson(): void {
-    const result = this.export();
-    this.log.log('tour JSON', result);
-    window.prompt('Tour JSON (copy):', result.ok ? JSON.stringify(result.tour) : result.errors.join('; '));
+  /** Download the given drafts as a schema Tour[] JSON file. */
+  private downloadJson(drafts: DraftTour[], filename: string): void {
+    const tours = drafts.map((d) => compileTour(d));
+    const blob = new Blob([JSON.stringify(tours, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    this.log.log('downloaded', filename, `${tours.length} tour(s)`);
+  }
+
+  /** Slugify a name into a safe file base (fallback to a generic name). */
+  private fileBase(name: string): string {
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    return slug || 'tours';
+  }
+
+  /** Download just the currently open tour (as an array of one). */
+  private downloadOpenTour(): void {
+    this.downloadJson([this.tour], `${this.fileBase(this.tour.name)}.json`);
+  }
+
+  /** Download every tour of the kind currently listed (Tours or Templates). */
+  private downloadAll(): void {
+    const drafts = this.tours.filter((t) => t.kind === this.listFilter);
+    if (drafts.length === 0) return;
+    this.downloadJson(drafts, `${this.listFilter === 'template' ? 'templates' : 'tours'}.json`);
+  }
+
+  /**
+   * Prompt for a JSON file and merge its tours into the builder. A tour with an
+   * id that already exists is replaced; new ids are appended. When an open tour
+   * is being edited it stays open (if it survived the import).
+   */
+  private importJson(): void {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json,.json';
+    input.addEventListener('change', () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      void file.text().then((text) => {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(text);
+        } catch {
+          window.alert('Could not read that file — it is not valid JSON.');
+          return;
+        }
+        const drafts = importDrafts(parsed);
+        if (drafts.length === 0) {
+          window.alert('No tours found in that file.');
+          return;
+        }
+        this.mergeDrafts(drafts);
+      });
+    });
+    input.click();
+  }
+
+  /** Merge imported drafts by id (replace existing, append new) and re-render. */
+  private mergeDrafts(drafts: DraftTour[]): void {
+    for (const d of drafts) {
+      const i = this.tours.findIndex((t) => t.id === d.id);
+      if (i === -1) this.tours.push(d);
+      else this.tours[i] = d;
+    }
+    // Keep the open tour open if it still exists; otherwise fall back.
+    if (!this.tours.some((t) => t.id === this.openTourId)) {
+      this.openTourId = this.tours[0].id;
+      this.activeStepId = this.tour.steps[0]?.id ?? null;
+    }
+    this.log.log('imported', `${drafts.length} tour(s)`);
     this.render();
+    void this.persist();
   }
 
   private renderToolbar(): HTMLElement {

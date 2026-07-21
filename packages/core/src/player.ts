@@ -15,7 +15,7 @@ import { PLAYER_STYLES } from './styles.js';
 import { placeCard } from './position.js';
 import { renderCard, CARD_STYLES } from './card.js';
 import { resolveElement, waitForElement } from './selector.js';
-import { matchUrl } from './url.js';
+import { matchUrl, deriveUrl } from './url.js';
 import { onLocationChange } from './history.js';
 import {
   type StateBackend,
@@ -39,6 +39,14 @@ export interface PlayerOptions {
    * visitor navigates. Omit for single-page tours.
    */
   state?: StateBackend;
+  /**
+   * Override full-page navigation between steps. Receives the destination URL
+   * and the id of the step being navigated to. When provided, the player calls
+   * this instead of `window.location.assign` for cross-page (non-hash) steps —
+   * letting a host (e.g. the builder's preview) tag the URL so it can resume
+   * after the reload. Hash (SPA) navigation is unaffected.
+   */
+  onNavigate?: (url: string, stepId: string) => void;
 }
 
 /**
@@ -340,6 +348,12 @@ export function createPlayer(tour: Tour, options: PlayerOptions = {}): PlayerHan
     // The next step lives on another page. Remember where to resume.
     index = nextIndex;
     persist();
+    // Perform a full-page navigation to `url`, letting a host override it.
+    const navigate = (url: string): void => {
+      teardownUi();
+      if (options.onNavigate) options.onNavigate(url, nextStep.id);
+      else window.location.assign(url);
+    };
     const action = tour.steps[index - 1]?.action;
     if (action && action.type === 'navigate' && action.url) {
       if (action.url.startsWith('#')) {
@@ -351,12 +365,27 @@ export function createPlayer(tour: Tour, options: PlayerOptions = {}): PlayerHan
       } else {
         // Full navigation → reload; resumeTour() continues on arrival.
         log.log('page transition (navigate) → resume at', index);
-        teardownUi();
-        window.location.assign(action.url);
+        navigate(action.url);
       }
       return;
     }
-    // Visitor/SPA-driven: stay alive and continue when the URL matches.
+    // No explicit action: try to derive a concrete URL from the next step's
+    // page matcher and navigate there ourselves, so an authored multi-page
+    // tour advances on Next without the visitor having to navigate manually.
+    const derived = deriveUrl(nextStep.pageUrl);
+    if (derived) {
+      if (derived.startsWith('#')) {
+        log.log('page transition (derived hash) → resume at', index);
+        waitForPageChange();
+        window.location.hash = derived;
+      } else {
+        log.log('page transition (derived navigate) → resume at', index, derived);
+        navigate(derived);
+      }
+      return;
+    }
+    // Nothing to navigate to: stay alive and continue when the URL matches
+    // (visitor/SPA-driven).
     log.log('page transition (wait) → resume at', index);
     waitForPageChange();
   }

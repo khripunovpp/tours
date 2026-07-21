@@ -236,13 +236,12 @@ function numOr(value: unknown, fallback: number): number {
 }
 
 /**
- * Compile a draft into a validated Tour. Only included steps with at least one
- * selector are shipped. Returns validation errors instead of throwing so the
- * builder can surface them.
+ * Build the shipped Tour object from a draft, WITHOUT validating. Only included
+ * steps with at least one selector are shipped. Used both by `toTour` (which
+ * then validates) and by JSON export (which must never be blocked by a
+ * work-in-progress draft).
  */
-export function toTour(
-  draft: DraftTour,
-): { ok: true; tour: Tour } | { ok: false; errors: string[] } {
+export function compileTour(draft: DraftTour): Tour {
   const steps: Step[] = draft.steps
     .filter((s) => s.included && s.selectors.length > 0)
     .map((s) => ({
@@ -264,7 +263,7 @@ export function toTour(
   if (draft.conditions.device !== 'any') when.device = draft.conditions.device;
   const rules = Object.keys(when).length > 0 ? [{ when }] : undefined;
 
-  const candidate: Tour = {
+  return {
     id: draft.id,
     schemaVersion: SCHEMA_VERSION,
     title: { default: draft.name },
@@ -280,6 +279,78 @@ export function toTour(
       alignOffset: draft.display.alignOffset,
     },
   };
+}
 
-  return validate(candidate);
+/**
+ * Compile a draft into a validated Tour. Returns validation errors instead of
+ * throwing so the builder can surface them.
+ */
+export function toTour(
+  draft: DraftTour,
+): { ok: true; tour: Tour } | { ok: false; errors: string[] } {
+  return validate(compileTour(draft));
+}
+
+/** True if a value looks like a shipped schema Tour (vs. a builder draft). */
+function looksLikeSchemaTour(value: unknown): boolean {
+  if (!value || typeof value !== 'object') return false;
+  const o = value as Record<string, unknown>;
+  return 'schemaVersion' in o || (typeof o.title === 'object' && o.title !== null);
+}
+
+/** Reverse of `compileTour`: hydrate a shipped Tour into an editable draft. */
+export function fromTour(tour: Tour): DraftTour {
+  const rule = (tour.rules && tour.rules[0]?.when) || {};
+  const device = rule.device;
+  return {
+    id: typeof tour.id === 'string' && tour.id ? tour.id : uid('tour'),
+    kind: 'tour',
+    name: tour.title?.default ?? 'Imported tour',
+    status: 'draft',
+    trigger: normalizeTrigger(tour.trigger),
+    audience: tour.audience === 'auth' || tour.audience === 'guest' ? tour.audience : 'all',
+    conditions: {
+      firstVisitOnly: rule.firstVisitOnly === true,
+      maxShows: numOr(rule.maxShows, 0),
+      device: device === 'mobile' || device === 'tablet' || device === 'desktop' ? device : 'any',
+    },
+    display: {
+      padding: numOr(tour.display?.padding, DEFAULT_PADDING),
+      radius: numOr(tour.display?.radius, DEFAULT_RADIUS),
+      cardRadius: numOr(tour.display?.cardRadius, DEFAULT_CARD_RADIUS),
+      offset: numOr(tour.display?.offset, DEFAULT_OFFSET),
+      alignOffset: numOr(tour.display?.alignOffset, 0),
+    },
+    steps: (Array.isArray(tour.steps) ? tour.steps : []).map((s) => ({
+      ...createDraftStep('step'),
+      id: typeof s.id === 'string' && s.id ? s.id : uid('step'),
+      selectors: Array.isArray(s.selectors) ? s.selectors.filter((x): x is string => typeof x === 'string') : [],
+      content: typeof s.content?.default === 'string' ? s.content.default : '',
+      page: s.pageUrl?.glob ?? '',
+      placement: s.placement ?? 'auto',
+      align: s.align ?? 'center',
+      backLabel: s.backLabel ?? 'Back',
+      nextLabel: s.nextLabel ?? 'Next',
+      ...(s.action ? { action: s.action } : {}),
+    })),
+  };
+}
+
+/**
+ * Parse imported JSON (a single object or an array) into drafts. Accepts both
+ * shipped schema Tours (converted via `fromTour`) and builder drafts (via
+ * `normalizeTours`), so a file exported here or a hand-written tour both load.
+ */
+export function importDrafts(input: unknown): DraftTour[] {
+  const arr = Array.isArray(input) ? input : [input];
+  const out: DraftTour[] = [];
+  for (const raw of arr) {
+    if (looksLikeSchemaTour(raw)) {
+      out.push(fromTour(raw as Tour));
+    } else {
+      const [draft] = normalizeTours([raw]);
+      if (draft) out.push(draft);
+    }
+  }
+  return out;
 }

@@ -5,6 +5,7 @@
   "packageManager": "pnpm@11.7.0",
   "scripts": {
     "dev": "pnpm --filter @tours/demo dev",
+    "dev:all": "pnpm -r --parallel dev",
     "build": "pnpm --filter @tours/demo build",
     "preview": "pnpm --filter @tours/demo preview",
     "dev:react": "pnpm --filter @tours/demo-react dev",

@@ -177,27 +177,27 @@ function V(t) {
 function Et(t, e = {}) {
   const n = V("picker");
   let r = null, i = null, a = null, l = !1;
-  function c(f) {
-    if (f === r) return !0;
+  function c(p) {
+    if (p === r) return !0;
     for (const g of e.ignore ?? [])
-      if (g && g.contains(f)) return !0;
+      if (g && g.contains(p)) return !0;
     return !1;
   }
   function u() {
     if (r) return;
     r = document.createElement("div"), r.setAttribute("data-tours-picker", ""), i = r.attachShadow({ mode: "open" });
-    const f = document.createElement("style");
-    f.textContent = Z, i.appendChild(f), a = document.createElement("div"), a.className = "tours-picker-overlay", a.style.display = "none", i.appendChild(a);
+    const p = document.createElement("style");
+    p.textContent = Z, i.appendChild(p), a = document.createElement("div"), a.className = "tours-picker-overlay", a.style.display = "none", i.appendChild(a);
     const g = document.createElement("div");
     g.className = "tours-picker-hint", g.textContent = "Hover and click an element • Esc to cancel", i.appendChild(g), document.body.appendChild(r);
   }
-  function s(f, g) {
-    const b = document.elementFromPoint(f, g);
+  function s(p, g) {
+    const b = document.elementFromPoint(p, g);
     return !b || c(b) ? null : b;
   }
-  function d(f) {
+  function d(p) {
     if (!l || !a) return;
-    const g = s(f.clientX, f.clientY);
+    const g = s(p.clientX, p.clientY);
     if (!g) {
       a.style.display = "none";
       return;
@@ -205,21 +205,21 @@ function Et(t, e = {}) {
     const b = g.getBoundingClientRect();
     a.style.display = "block", a.style.left = `${b.left}px`, a.style.top = `${b.top}px`, a.style.width = `${b.width}px`, a.style.height = `${b.height}px`;
   }
-  function p(f) {
+  function h(p) {
     if (!l) return;
-    const g = s(f.clientX, f.clientY);
-    if (f.preventDefault(), f.stopPropagation(), !g) return;
+    const g = s(p.clientX, p.clientY);
+    if (p.preventDefault(), p.stopPropagation(), !g) return;
     const b = rt(g);
     n.log("picked", b), v(), t(b);
   }
-  function w(f) {
-    f.key === "Escape" && (f.preventDefault(), v());
+  function w(p) {
+    p.key === "Escape" && (p.preventDefault(), v());
   }
   function _() {
-    l || (l = !0, n.log("start"), u(), document.addEventListener("mousemove", d, !0), document.addEventListener("click", p, !0), document.addEventListener("keydown", w, !0));
+    l || (l = !0, n.log("start"), u(), document.addEventListener("mousemove", d, !0), document.addEventListener("click", h, !0), document.addEventListener("keydown", w, !0));
   }
   function v() {
-    l && (l = !1, document.removeEventListener("mousemove", d, !0), document.removeEventListener("click", p, !0), document.removeEventListener("keydown", w, !0), r && r.parentNode && r.parentNode.removeChild(r), r = null, i = null, a = null);
+    l && (l = !1, document.removeEventListener("mousemove", d, !0), document.removeEventListener("click", h, !0), document.removeEventListener("keydown", w, !0), r && r.parentNode && r.parentNode.removeChild(r), r = null, i = null, a = null);
   }
   return { start: _, stop: v };
 }
@@ -240,8 +240,8 @@ function ut(t, e, n) {
 }
 function dt(t) {
   const { target: e, card: n, offset: r, viewport: i } = t, a = t.side === "auto", l = a ? ut(e, n, i) : t.side, c = a ? "center" : t.align, u = t.alignOffset ?? 0, s = c === "start" ? u : c === "end" ? -u : 0;
-  let d = 0, p = 0;
-  return l === "top" || l === "bottom" ? (d = l === "top" ? e.top - n.height - r : e.bottom + r, p = c === "start" ? e.left : c === "end" ? e.right - n.width : e.left + e.width / 2 - n.width / 2, p += s) : (p = l === "left" ? e.left - n.width - r : e.right + r, d = c === "start" ? e.top : c === "end" ? e.bottom - n.height : e.top + e.height / 2 - n.height / 2, d += s), p = Math.max(8, Math.min(p, i.width - n.width - 8)), d = Math.max(8, Math.min(d, i.height - n.height - 8)), { top: d, left: p };
+  let d = 0, h = 0;
+  return l === "top" || l === "bottom" ? (d = l === "top" ? e.top - n.height - r : e.bottom + r, h = c === "start" ? e.left : c === "end" ? e.right - n.width : e.left + e.width / 2 - n.width / 2, h += s) : (h = l === "left" ? e.left - n.width - r : e.right + r, d = c === "start" ? e.top : c === "end" ? e.bottom - n.height : e.top + e.height / 2 - n.height / 2, d += s), h = Math.max(8, Math.min(h, i.width - n.width - 8)), d = Math.max(8, Math.min(d, i.height - n.height - 8)), { top: d, left: h };
 }
 function Y(t) {
   const e = document.createElement("button");
@@ -421,8 +421,8 @@ function kt(t, e) {
 }
 function yt(t, e = {}) {
   const n = V("player"), r = e.state;
-  let i = null, a = null, l = null, c = null, u = !1, s = 0, d = 0, p = null;
-  const w = t.display?.padding ?? st, _ = t.display?.radius ?? at, v = t.display?.cardRadius ?? lt, f = t.display?.offset ?? ct;
+  let i = null, a = null, l = null, c = null, u = !1, s = 0, d = 0, h = null;
+  const w = t.display?.padding ?? st, _ = t.display?.radius ?? at, v = t.display?.cardRadius ?? lt, p = t.display?.offset ?? ct;
   function g(o) {
     return R(o.selectors);
   }
@@ -437,13 +437,13 @@ function yt(t, e = {}) {
     i = document.createElement("div"), i.setAttribute("data-tours-player", ""), a = i.attachShadow({ mode: "open" });
     const o = document.createElement("style");
     o.textContent = Q + pt, a.appendChild(o);
-    const h = document.createElement("div");
-    h.className = "tours-backdrop", a.appendChild(h), l = document.createElement("div"), l.className = "tours-spotlight", l.style.borderRadius = `${_}px`, a.appendChild(l), document.body.appendChild(i);
+    const f = document.createElement("div");
+    f.className = "tours-backdrop", a.appendChild(f), l = document.createElement("div"), l.className = "tours-spotlight", l.style.borderRadius = `${_}px`, a.appendChild(l), document.body.appendChild(i);
   }
-  function M(o) {
-    l && (l.style.display = "block", l.style.left = `${o.left - w}px`, l.style.top = `${o.top - w}px`, l.style.width = `${o.width + w * 2}px`, l.style.height = `${o.height + w * 2}px`);
+  function M(o, f = !1) {
+    l && (l.style.transitionDuration = f ? "0ms" : "", l.style.display = "block", l.style.left = `${o.left - w}px`, l.style.top = `${o.top - w}px`, l.style.width = `${o.width + w * 2}px`, l.style.height = `${o.height + w * 2}px`);
   }
-  function O(o, h) {
+  function O(o, f) {
     if (!c) return;
     const m = {
       top: o.top - w,
@@ -455,25 +455,25 @@ function yt(t, e = {}) {
     }, { top: N, left: J } = dt({
       target: m,
       card: { width: c.offsetWidth, height: c.offsetHeight },
-      side: h.placement ?? "bottom",
-      align: h.align ?? "center",
-      offset: f,
+      side: f.placement ?? "bottom",
+      align: f.align ?? "center",
+      offset: p,
       alignOffset: t.display?.alignOffset ?? 0,
       viewport: { width: window.innerWidth, height: window.innerHeight }
     });
     c.style.left = `${J}px`, c.style.top = `${N}px`;
   }
   function q(o) {
-    const h = Math.max(1, t.steps.length - d), m = Math.max(1, Math.min(s + 1 - d, h));
+    const f = Math.max(1, t.steps.length - d), m = Math.max(1, Math.min(s + 1 - d, f));
     c && c.remove(), c = ft({
       contentText: o.content.default,
-      progress: `Step ${m} of ${h}`,
+      progress: `Step ${m} of ${f}`,
       showClose: !0,
       onClose: y,
       radius: v,
       back: { label: o.backLabel ?? "Back", disabled: s === 0, onClick: L },
       next: {
-        label: o.nextLabel ?? (s === h - 1 ? "Done" : "Next"),
+        label: o.nextLabel ?? (s === f - 1 ? "Done" : "Next"),
         primary: !0,
         onClick: $
       }
@@ -487,15 +487,15 @@ function yt(t, e = {}) {
       return;
     }
     n.log("render step", s, o.id);
-    const h = g(o);
-    if (!h) {
+    const f = g(o);
+    if (!f) {
       n.log(`step "${o.id}" target not found yet — waiting`, o.selectors), B(o.selectors, { timeout: 4e3 }).then((N) => {
         !u || t.steps[s] !== o || (N ? x() : (n.warn(`step "${o.id}" skipped: no element for selectors`, o.selectors), d += 1, s < t.steps.length - 1 ? (s += 1, x()) : y()));
       });
       return;
     }
-    I(), h.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" }), q(o);
-    const m = h.getBoundingClientRect();
+    I(), f.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" }), q(o);
+    const m = f.getBoundingClientRect();
     M(m), O(m, o);
   }
   function U(o) {
@@ -505,10 +505,10 @@ function yt(t, e = {}) {
     if (!u) return;
     const o = t.steps[s];
     if (!o) return;
-    const h = g(o);
-    if (!h) return;
-    const m = h.getBoundingClientRect();
-    M(m), O(m, o);
+    const f = g(o);
+    if (!f) return;
+    const m = f.getBoundingClientRect();
+    M(m, !0), O(m, o);
   }
   function K(o = 0) {
     u || t.steps.length !== 0 && (u = !0, s = Math.max(0, Math.min(o, t.steps.length - 1)), d = 0, n.log("start", t.id, `at ${s}/${t.steps.length}`), I(), window.addEventListener("keydown", U, !0), window.addEventListener("resize", k, !0), window.addEventListener("scroll", k, !0), E(), x());
@@ -517,29 +517,29 @@ function yt(t, e = {}) {
     l && (l.style.display = "none"), c && (c.remove(), c = null);
   }
   function S() {
-    G(), !p && (p = mt(() => {
+    G(), !h && (h = mt(() => {
       if (!u) {
-        p?.(), p = null;
+        h?.(), h = null;
         return;
       }
       const o = t.steps[s];
-      o && b(o) && (p?.(), p = null, x());
+      o && b(o) && (h?.(), h = null, x());
     }));
   }
   function F() {
-    p && (p(), p = null), u && (u = !1, window.removeEventListener("keydown", U, !0), window.removeEventListener("resize", k, !0), window.removeEventListener("scroll", k, !0), i && i.parentNode && i.parentNode.removeChild(i), i = null, a = null, l = null, c = null);
+    h && (h(), h = null), u && (u = !1, window.removeEventListener("keydown", U, !0), window.removeEventListener("resize", k, !0), window.removeEventListener("scroll", k, !0), i && i.parentNode && i.parentNode.removeChild(i), i = null, a = null, l = null, c = null);
   }
   function y() {
     n.log("stop"), F(), r && W(r);
   }
   function $() {
     if (!u) return;
-    const o = s + 1, h = t.steps[o];
-    if (!h) {
+    const o = s + 1, f = t.steps[o];
+    if (!f) {
       y();
       return;
     }
-    if (b(h)) {
+    if (b(f)) {
       s = o, E(), x();
       return;
     }

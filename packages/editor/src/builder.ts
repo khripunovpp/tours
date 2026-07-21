@@ -132,7 +132,7 @@ export class TourBuilder {
   private cardPreview: HTMLElement | null = null;
   /** Step whose content should regain focus after the next render. */
   private focusStepId: string | null = null;
-  private readonly onViewportChange = (): void => this.updateOverlays();
+  private readonly onViewportChange = (): void => this.updateOverlays(true);
 
   /** Default store (always written) and the optional secondary strategy. */
   private readonly local: DraftStore;
@@ -414,7 +414,7 @@ export class TourBuilder {
    * tour-level values the player reads. Shown only in build mode when the
    * active step resolves; hidden while picking or in preview. No backdrop.
    */
-  private updateOverlays(): void {
+  private updateOverlays(fast = false): void {
     const box = this.highlight;
     if (!box) return;
     const hideAll = (): void => {
@@ -431,6 +431,8 @@ export class TourBuilder {
 
     // Outline. In the Display tab it turns amber to signal "tuning" mode.
     box.className = `highlight ${this.tab === 'styles' ? 'highlight--settings' : ''}`.trim();
+    // Animate only when moving between steps; track the target instantly on scroll.
+    box.style.transitionDuration = fast ? '0ms' : '';
     box.style.display = 'block';
     box.style.left = `${rect.left - padding}px`;
     box.style.top = `${rect.top - padding}px`;

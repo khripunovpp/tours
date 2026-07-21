@@ -463,8 +463,8 @@ function Fe(r, e = {}) {
     const f = document.createElement("div");
     f.className = "tours-backdrop", o.appendChild(f), s = document.createElement("div"), s.className = "tours-spotlight", s.style.borderRadius = `${C}px`, o.appendChild(s), document.body.appendChild(i);
   }
-  function G(c) {
-    s && (s.style.display = "block", s.style.left = `${c.left - b}px`, s.style.top = `${c.top - b}px`, s.style.width = `${c.width + b * 2}px`, s.style.height = `${c.height + b * 2}px`);
+  function G(c, f = !1) {
+    s && (s.style.transitionDuration = f ? "0ms" : "", s.style.display = "block", s.style.left = `${c.left - b}px`, s.style.top = `${c.top - b}px`, s.style.width = `${c.width + b * 2}px`, s.style.height = `${c.height + b * 2}px`);
   }
   function K(c, f) {
     if (!l) return;
@@ -531,7 +531,7 @@ function Fe(r, e = {}) {
     const f = m(c);
     if (!f) return;
     const v = f.getBoundingClientRect();
-    G(v), K(v, c);
+    G(v, !0), K(v, c);
   }
   function me(c = 0) {
     p || r.steps.length !== 0 && (p = !0, d = Math.max(0, Math.min(c, r.steps.length - 1)), u = 0, t.log("start", r.id, `at ${d}/${r.steps.length}`), q(), window.addEventListener("keydown", X, !0), window.addEventListener("resize", T, !0), window.addEventListener("scroll", T, !0), $(), k());
@@ -1391,7 +1391,7 @@ function Je(r) {
 }
 class fe {
   constructor(e = {}) {
-    this.options = e, this.log = V("editor"), this.host = null, this.root = null, this.tours = [D()], this.openTourId = this.tours[0].id, this.view = "edit", this.listFilter = "tour", this.menuOpen = !1, this.activeStepId = this.tours[0].steps[0]?.id ?? null, this.tab = "steps", this.displaySub = "tour", this.openSections = /* @__PURE__ */ new Set(), this.mode = "build", this.picker = null, this.picking = !1, this.player = null, this.highlight = null, this.cardPreview = null, this.focusStepId = null, this.onViewportChange = () => this.updateOverlays(), this.saveTimer = null, this.navPosition = e.navPosition ?? "bottom", this.panelPosition = e.panelPosition ?? "right", this.topOffset = Math.max(0, e.topOffset ?? 0), this.local = He(e.storageKey), this.secondary = e.storage ?? null;
+    this.options = e, this.log = V("editor"), this.host = null, this.root = null, this.tours = [D()], this.openTourId = this.tours[0].id, this.view = "edit", this.listFilter = "tour", this.menuOpen = !1, this.activeStepId = this.tours[0].steps[0]?.id ?? null, this.tab = "steps", this.displaySub = "tour", this.openSections = /* @__PURE__ */ new Set(), this.mode = "build", this.picker = null, this.picking = !1, this.player = null, this.highlight = null, this.cardPreview = null, this.focusStepId = null, this.onViewportChange = () => this.updateOverlays(!0), this.saveTimer = null, this.navPosition = e.navPosition ?? "bottom", this.panelPosition = e.panelPosition ?? "right", this.topOffset = Math.max(0, e.topOffset ?? 0), this.local = He(e.storageKey), this.secondary = e.storage ?? null;
   }
   /**
    * Auto-mount when the page URL carries the flag (default `?tours-edit=1`), so
@@ -1535,17 +1535,17 @@ ${e.errors.join(`
    * tour-level values the player reads. Shown only in build mode when the
    * active step resolves; hidden while picking or in preview. No backdrop.
    */
-  updateOverlays() {
-    const e = this.highlight;
-    if (!e) return;
-    const t = () => {
-      e.style.display = "none", this.removeCardPreview();
+  updateOverlays(e = !1) {
+    const t = this.highlight;
+    if (!t) return;
+    const n = () => {
+      t.style.display = "none", this.removeCardPreview();
     };
-    if (this.view !== "edit" || this.mode !== "build" || this.picking) return t();
-    const n = this.activeStep, i = n && n.selectors.length > 0 ? this.resolveTarget(n) : null;
-    if (!n || !i) return t();
-    const o = i.getBoundingClientRect(), { padding: s, radius: l, cardRadius: p } = this.tour.display;
-    e.className = `highlight ${this.tab === "styles" ? "highlight--settings" : ""}`.trim(), e.style.display = "block", e.style.left = `${o.left - s}px`, e.style.top = `${o.top - s}px`, e.style.width = `${o.width + s * 2}px`, e.style.height = `${o.height + s * 2}px`, e.style.borderRadius = `${l}px`, this.drawStepCard(n, o, p);
+    if (this.view !== "edit" || this.mode !== "build" || this.picking) return n();
+    const i = this.activeStep, o = i && i.selectors.length > 0 ? this.resolveTarget(i) : null;
+    if (!i || !o) return n();
+    const s = o.getBoundingClientRect(), { padding: l, radius: p, cardRadius: d } = this.tour.display;
+    t.className = `highlight ${this.tab === "styles" ? "highlight--settings" : ""}`.trim(), t.style.transitionDuration = e ? "0ms" : "", t.style.display = "block", t.style.left = `${s.left - l}px`, t.style.top = `${s.top - l}px`, t.style.width = `${s.width + l * 2}px`, t.style.height = `${s.height + l * 2}px`, t.style.borderRadius = `${p}px`, this.drawStepCard(i, s, d);
   }
   removeCardPreview() {
     this.cardPreview && (this.cardPreview.remove(), this.cardPreview = null);

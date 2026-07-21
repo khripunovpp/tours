@@ -103,8 +103,10 @@ export function createPlayer(tour: Tour, options: PlayerOptions = {}): PlayerHan
   }
 
   /** Size and place the spotlight cut-out around the target (with padding). */
-  function positionSpotlight(rect: DOMRect): void {
+  function positionSpotlight(rect: DOMRect, fast = false): void {
     if (!spotlight) return;
+    // Animate between steps; track the target instantly on scroll/resize.
+    spotlight.style.transitionDuration = fast ? '0ms' : '';
     spotlight.style.display = 'block';
     spotlight.style.left = `${rect.left - pad}px`;
     spotlight.style.top = `${rect.top - pad}px`;
@@ -228,7 +230,7 @@ export function createPlayer(tour: Tour, options: PlayerOptions = {}): PlayerHan
     const target = findTarget(step);
     if (!target) return;
     const rect = target.getBoundingClientRect();
-    positionSpotlight(rect);
+    positionSpotlight(rect, true); // instant while scrolling/resizing
     positionTooltip(rect, step);
   }
 

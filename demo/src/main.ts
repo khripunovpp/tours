@@ -3,7 +3,7 @@
  * a multi-page sample tour that spans the home and profile pages, runnable from
  * the panel and resumed automatically after navigation.
  */
-import { createPlayer, resumeTour, armTrigger } from '@tours/core';
+import { createPlayer, resumeTour, armTrigger, matchRules, detectDevice, seenCount, markSeen } from '@tours/core';
 import type { Tour } from '@tours/schema';
 import { playerState, builtTours, wireDemoPanel } from './common.js';
 
@@ -31,9 +31,16 @@ const tour: Tour = {
 void builtTours().then((built) => {
   const resumed = [tour, ...built].some((t) => resumeTour(t, { state: playerState }));
   if (resumed) return;
+  const device = detectDevice();
   for (const t of built) {
     if (!t.trigger || t.trigger.type === 'manual') continue;
-    armTrigger(t, () => createPlayer(t, { state: playerState }).start());
+    const count = seenCount(playerState, t.id);
+    const ctx = { url: window.location.href, device, firstVisit: count === 0, seenCount: count };
+    if (!matchRules(t.rules, ctx)) continue;
+    armTrigger(t, () => {
+      markSeen(playerState, t.id);
+      createPlayer(t, { state: playerState }).start();
+    });
   }
 });
 

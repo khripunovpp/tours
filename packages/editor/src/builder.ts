@@ -29,7 +29,7 @@ import { createLocalStore, type DraftStore } from './storage.js';
 export type NavPosition = 'top' | 'bottom';
 export type PanelPosition = 'left' | 'right';
 type Mode = 'build' | 'preview';
-type Tab = 'steps' | 'display' | 'assets';
+type Tab = 'steps' | 'styles' | 'rules' | 'assets';
 type DisplaySub = 'tour' | 'card';
 type PanelView = 'list' | 'edit';
 
@@ -430,7 +430,7 @@ export class TourBuilder {
     const { padding, radius, cardRadius } = this.tour.display;
 
     // Outline. In the Display tab it turns amber to signal "tuning" mode.
-    box.className = `highlight ${this.tab === 'display' ? 'highlight--settings' : ''}`.trim();
+    box.className = `highlight ${this.tab === 'styles' ? 'highlight--settings' : ''}`.trim();
     box.style.display = 'block';
     box.style.left = `${rect.left - padding}px`;
     box.style.top = `${rect.top - padding}px`;
@@ -457,7 +457,7 @@ export class TourBuilder {
    */
   private drawStepCard(step: DraftStep, rect: DOMRect, cardRadius: number): void {
     const content = step.content.trim();
-    const tuningCard = this.tab === 'display' && this.displaySub === 'card';
+    const tuningCard = this.tab === 'styles' && this.displaySub === 'card';
     if (!content && !tuningCard) {
       this.removeCardPreview();
       return;
@@ -708,15 +708,16 @@ export class TourBuilder {
     const tabs = h('div', { class: 'tabs' });
     for (const [key, label] of [
       ['steps', 'Steps'],
-      ['display', 'Display'],
+      ['styles', 'Styles'],
+      ['rules', 'Rules'],
       ['assets', 'Assets'],
     ] as const) {
       const tab = h('button', { class: `tab ${this.tab === key ? 'tab--active' : ''}`, type: 'button' }, [label]);
       tab.addEventListener('click', () => {
         this.tab = key;
-        // Entering Display: focus a step whose target is actually on the page,
-        // so there is something to frame while tuning the spacing.
-        if (key === 'display') this.selectFirstResolvableStep();
+        // Entering Styles: focus a step whose target is actually on the page,
+        // so there is something to frame while tuning the look.
+        if (key === 'styles') this.selectFirstResolvableStep();
         this.render();
       });
       tabs.append(tab);
@@ -857,12 +858,14 @@ export class TourBuilder {
       body.append(h('div', { class: 'assets-empty' }, ['Assets — coming soon']));
       return body;
     }
-    if (this.tab === 'display') {
+    if (this.tab === 'styles') {
       body.append(this.renderDisplaySettings());
       return body;
     }
-    // Tour-level trigger + audience, above the step list.
-    body.append(this.section('trigger', 'Trigger & audience', () => this.renderTriggerBody()));
+    if (this.tab === 'rules') {
+      body.append(this.renderRulesBody());
+      return body;
+    }
 
     const list = h('div', { class: 'steps' });
     // A connector (line + "+") before the first card, then each card followed
@@ -876,8 +879,8 @@ export class TourBuilder {
     return body;
   }
 
-  /** Tour-level start trigger and audience. */
-  private renderTriggerBody(): HTMLElement {
+  /** Rules tab: start trigger, audience, and auto-start conditions. */
+  private renderRulesBody(): HTMLElement {
     const wrap = h('div', { class: 'settings' });
     const t = this.tour;
 
@@ -928,7 +931,49 @@ export class TourBuilder {
     }
 
     wrap.append(h('div', { class: 'settings__hint' }, [triggerHint(t.trigger.type)]));
+
+    // Auto-start conditions (ignored for manual tours; they start on demand).
+    if (t.trigger.type !== 'manual') {
+      const c = t.conditions;
+      wrap.append(
+        h('div', { class: 'settings__divider' }),
+        this.checkboxField('Show only on the first visit', c.firstVisitOnly, (on) => {
+          c.firstVisitOnly = on;
+        }),
+        this.textField('Show at most N times (0 = no limit)', String(c.maxShows), '0', (v) => {
+          c.maxShows = Math.max(0, Number(v.replace(/[^0-9]/g, '')) || 0);
+        }),
+        this.selectField(
+          'Device',
+          c.device,
+          [
+            ['any', 'Any device'],
+            ['desktop', 'Desktop only'],
+            ['tablet', 'Tablet only'],
+            ['mobile', 'Mobile only'],
+          ],
+          (v) => {
+            c.device = v as DraftTour['conditions']['device'];
+            this.markDirty();
+          },
+        ),
+      );
+    }
     return wrap;
+  }
+
+  /** A labelled checkbox row. */
+  private checkboxField(label: string, checked: boolean, onChange: (on: boolean) => void): HTMLElement {
+    const input = h('input', { type: 'checkbox', class: 'settings__check' }) as HTMLInputElement;
+    input.checked = checked;
+    input.addEventListener('change', () => {
+      onChange(input.checked);
+      this.markDirty();
+      this.render();
+    });
+    const row = h('label', { class: 'settings__checkrow' });
+    row.append(input, document.createTextNode(label));
+    return row;
   }
 
   /** A labelled <select>. */
@@ -1044,7 +1089,7 @@ export class TourBuilder {
       this.render();
     });
     sec.append(head);
-    if (open) sec.append(body());
+    if (open) sec.append(h('div', { class: 'acc__body' }, [body()]));
     return sec;
   }
 

@@ -66,3 +66,17 @@ export function writeProgress(state: StateBackend, progress: TourProgress): void
 export function clearProgress(state: StateBackend): void {
   state.remove(PROGRESS_KEY);
 }
+
+const SEEN_PREFIX = 'tours:seen:';
+
+/** How many times a tour has been shown to this visitor. */
+export function seenCount(state: StateBackend, tourId: string): number {
+  const raw = state.get(SEEN_PREFIX + tourId);
+  const n = raw ? parseInt(raw, 10) : 0;
+  return Number.isNaN(n) ? 0 : n;
+}
+
+/** Record one more showing of a tour. */
+export function markSeen(state: StateBackend, tourId: string): void {
+  state.set(SEEN_PREFIX + tourId, String(seenCount(state, tourId) + 1));
+}

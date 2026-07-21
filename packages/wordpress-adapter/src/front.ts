@@ -5,7 +5,16 @@
  * them to schema Tours client-side (no tour logic in PHP), enforces the
  * audience, runs auto-start triggers, and continues multi-page tours.
  */
-import { createPlayer, createLocalState, resumeTour, armTrigger } from '@tours/core';
+import {
+  createPlayer,
+  createLocalState,
+  resumeTour,
+  armTrigger,
+  matchRules,
+  detectDevice,
+  seenCount,
+  markSeen,
+} from '@tours/core';
 import { toTour, normalizeTours, type DraftTour } from '@tours/editor';
 import type { Tour } from '@tours/schema';
 
@@ -70,19 +79,20 @@ function resumeInFlight(): boolean {
   return false;
 }
 
-const SEEN_PREFIX = 'tours:seen:';
-
 /**
- * Arm auto-start triggers. Auto tours fire once per visitor (a "seen" flag),
- * so they don't replay on every load; manual tours are never armed here.
+ * Arm auto-start triggers, gated by each tour's rules (first visit, frequency,
+ * device, URL). Manual tours are never armed here. Each showing is counted so
+ * frequency rules work.
  */
 function armTriggers(): void {
+  const device = detectDevice();
   for (const tour of compiled()) {
     if (!tour.trigger || tour.trigger.type === 'manual') continue;
-    const seenKey = SEEN_PREFIX + tour.id;
-    if (state.get(seenKey)) continue;
+    const count = seenCount(state, tour.id);
+    const ctx = { url: window.location.href, device, firstVisit: count === 0, seenCount: count };
+    if (!matchRules(tour.rules, ctx)) continue;
     armTrigger(tour, () => {
-      state.set(seenKey, '1');
+      markSeen(state, tour.id);
       run(tour.id);
     });
   }

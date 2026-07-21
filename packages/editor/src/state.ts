@@ -4,7 +4,7 @@
  * and per-card authoring state. `toTour` compiles a draft into a validated
  * tour; only included steps make it into the output.
  */
-import type { Tour, Step, Trigger } from '@tours/schema';
+import type { Tour, Step, Trigger, Condition } from '@tours/schema';
 import {
   SCHEMA_VERSION,
   DEFAULT_PADDING,
@@ -52,6 +52,14 @@ export type TourKind = 'tour' | 'template';
 /** Who may see the tour. */
 export type Audience = 'all' | 'auth' | 'guest';
 
+/** Auto-start conditions (map to schema Rule/Condition). */
+export interface DraftConditions {
+  firstVisitOnly: boolean;
+  /** 0 = no limit. */
+  maxShows: number;
+  device: 'any' | 'mobile' | 'tablet' | 'desktop';
+}
+
 export type { Trigger };
 
 export interface DraftDisplay {
@@ -76,6 +84,8 @@ export interface DraftTour {
   trigger: Trigger;
   /** Who may see the tour. */
   audience: Audience;
+  /** Auto-start conditions. */
+  conditions: DraftConditions;
   steps: DraftStep[];
   display: DraftDisplay;
 }
@@ -116,6 +126,7 @@ export function createDraftTour(kind: TourKind = 'tour'): DraftTour {
     status: 'draft',
     trigger: { type: 'manual' },
     audience: 'all',
+    conditions: { firstVisitOnly: true, maxShows: 0, device: 'any' },
     steps: [createDraftStep()],
     display: {
       padding: DEFAULT_PADDING,
@@ -139,6 +150,7 @@ export function cloneDraft(src: DraftTour, kind: TourKind, name?: string): Draft
     status: 'draft',
     trigger: { ...src.trigger },
     audience: src.audience,
+    conditions: { ...src.conditions },
     steps: src.steps.map((s) => ({ ...s, id: uid('step'), selectors: [...s.selectors] })),
     display: { ...src.display },
   };
@@ -174,6 +186,13 @@ export function normalizeTours(input: unknown): DraftTour[] {
       status: t.status === 'published' ? 'published' : 'draft',
       trigger: normalizeTrigger(t.trigger),
       audience: t.audience === 'auth' || t.audience === 'guest' ? t.audience : 'all',
+      conditions: {
+        firstVisitOnly: (t.conditions?.firstVisitOnly ?? true) === true,
+        maxShows: numOr(t.conditions?.maxShows, 0),
+        device: ['mobile', 'tablet', 'desktop'].includes(t.conditions?.device as string)
+          ? (t.conditions!.device as DraftConditions['device'])
+          : 'any',
+      },
       display: {
         padding: numOr(t.display?.padding, DEFAULT_PADDING),
         radius: numOr(t.display?.radius, DEFAULT_RADIUS),
@@ -217,6 +236,13 @@ export function toTour(
       ...(s.page ? { pageUrl: { glob: s.page } } : {}),
     }));
 
+  // Auto-start conditions → a single rule (omit when all are defaults).
+  const when: Condition = {};
+  if (draft.conditions.firstVisitOnly) when.firstVisitOnly = true;
+  if (draft.conditions.maxShows > 0) when.maxShows = draft.conditions.maxShows;
+  if (draft.conditions.device !== 'any') when.device = draft.conditions.device;
+  const rules = Object.keys(when).length > 0 ? [{ when }] : undefined;
+
   const candidate: Tour = {
     id: draft.id,
     schemaVersion: SCHEMA_VERSION,
@@ -224,6 +250,7 @@ export function toTour(
     steps,
     trigger: draft.trigger,
     audience: draft.audience,
+    ...(rules ? { rules } : {}),
     display: {
       padding: draft.display.padding,
       radius: draft.display.radius,

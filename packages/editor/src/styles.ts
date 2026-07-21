@@ -466,10 +466,11 @@ button { font: inherit; cursor: pointer; }
 }
 .acc__caret svg { width: 16px; height: 16px; }
 .acc--open .acc__caret { transform: rotate(90deg); }
+.acc__body { padding: 4px 14px 14px; }
 
 /* ---------- Per-step placement picker ---------- */
 .place {
-  padding: 2px 12px 12px;
+  padding: 0;
 }
 .place__auto {
   display: block;
@@ -520,8 +521,19 @@ button { font: inherit; cursor: pointer; }
   box-shadow: 0 0 0 3px var(--e-accent-soft);
 }
 
-/* ---------- Display settings ---------- */
-.settings { padding: 4px 2px; }
+/* ---------- Settings blocks (Styles / Rules / Page) ---------- */
+.settings { padding: 0; }
+.settings__divider { height: 1px; background: var(--e-border); margin: 14px 0; }
+.settings__checkrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--e-fg);
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+.settings__check { width: 16px; height: 16px; accent-color: var(--e-accent); cursor: pointer; }
 .subtabs {
   display: inline-flex;
   gap: 2px;

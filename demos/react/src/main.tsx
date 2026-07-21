@@ -3,10 +3,11 @@ import '@tours/demo-shared/demo.css';
 import { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HashRouter, Routes, Route, Link, NavLink } from 'react-router-dom';
-import { createPlayer, resumeTour } from '@tours/core';
-import { playerState, wireDemoPanel, makeSpaTour } from '@tours/demo-shared';
+import { wireDemoPanel, spaDraft, seedDemoTour, playDemoTour, resumeDemoTour } from '@tours/demo-shared';
 
-const tour = makeSpaTour('demo-spa-react', 'React');
+const ID = 'demo-spa-react';
+// Seed an editable starter tour — open the builder (?tours-edit=1) to tweak it.
+void seedDemoTour(spaDraft(ID, 'React'));
 
 function Home(): JSX.Element {
   return (
@@ -16,7 +17,7 @@ function Home(): JSX.Element {
       <div className="card">
         <h2>Getting started</h2>
         <p>
-          <button id="spa-home-cta" className="btn-primary" onClick={() => createPlayer(tour, { state: playerState }).start()}>
+          <button id="spa-home-cta" className="btn-primary" onClick={() => void playDemoTour(ID)}>
             Start SPA tour
           </button>
         </p>
@@ -43,7 +44,7 @@ function Profile(): JSX.Element {
 function App(): JSX.Element {
   useEffect(() => {
     wireDemoPanel();
-    resumeTour(tour, { state: playerState });
+    void resumeDemoTour(ID);
   }, []);
   return (
     <>

@@ -4,7 +4,7 @@
  * and per-card authoring state. `toTour` compiles a draft into a validated
  * tour; only included steps make it into the output.
  */
-import type { Tour, Step, Trigger, Condition } from '@tours/schema';
+import type { Tour, Step, Trigger, Condition, Action } from '@tours/schema';
 import {
   SCHEMA_VERSION,
   DEFAULT_PADDING,
@@ -42,6 +42,8 @@ export interface DraftStep {
   /** Editable footer button labels. */
   backLabel: string;
   nextLabel: string;
+  /** Optional interaction to advance (e.g. navigate to another page). */
+  action?: Action;
 }
 
 export type TourStatus = 'draft' | 'published';
@@ -234,6 +236,7 @@ export function toTour(
       backLabel: s.backLabel,
       nextLabel: s.nextLabel,
       ...(s.page ? { pageUrl: { glob: s.page } } : {}),
+      ...(s.action ? { action: s.action } : {}),
     }));
 
   // Auto-start conditions → a single rule (omit when all are defaults).

@@ -1,53 +1,29 @@
 /**
- * Entry for spa.html — a single-page app with hash routing. The tour spans two
- * views and continues without a reload (core hooks pushState/popstate/
- * hashchange). No framework: the point is that the mechanism is framework-
- * agnostic.
+ * Entry for spa.html — a single-page app with hash routing, no framework. Seeds
+ * an editable SPA tour; Start plays the stored (editable) tour, which crosses
+ * the two views without a reload. Open the builder with ?tours-edit=1 to tweak.
  */
-import { createPlayer, resumeTour } from '@tours/core';
-import type { Tour } from '@tours/schema';
-import { playerState, wireDemoPanel } from '@tours/demo-shared';
+import { wireDemoPanel, spaDraft, seedDemoTour, playDemoTour, resumeDemoTour } from '@tours/demo-shared';
 
+const ID = 'demo-spa-vanilla';
 wireDemoPanel();
+void seedDemoTour(spaDraft(ID, 'Vanilla'));
 
 const home = document.getElementById('view-home');
 const profile = document.getElementById('view-profile');
 
 function route(): void {
-  const hash = window.location.hash || '#/home';
-  if (home) home.hidden = hash !== '#/home';
-  if (profile) profile.hidden = hash !== '#/profile';
-  document.getElementById('spa-nav-home')?.classList.toggle('active', hash === '#/home');
-  document.getElementById('spa-nav-profile')?.classList.toggle('active', hash === '#/profile');
+  const onProfile = (window.location.hash || '#/').startsWith('#/profile');
+  if (home) home.hidden = onProfile;
+  if (profile) profile.hidden = !onProfile;
+  document.getElementById('spa-nav-home')?.classList.toggle('active', !onProfile);
+  document.getElementById('spa-nav-profile')?.classList.toggle('active', onProfile);
 }
 
-if (!window.location.hash) window.location.hash = '#/home';
+if (!window.location.hash) window.location.hash = '#/';
 window.addEventListener('hashchange', route);
 route();
 
-const spaTour: Tour = {
-  id: 'demo-spa',
-  schemaVersion: 1,
-  title: { default: 'SPA tour' },
-  steps: [
-    {
-      id: 'spa-1',
-      pageUrl: { regex: '#/home' },
-      selectors: ['#spa-home-cta'],
-      content: { default: 'Welcome! Click Next — the tour jumps to your profile without a page reload.' },
-      placement: 'bottom',
-      action: { type: 'navigate', url: '#/profile' },
-    },
-    {
-      id: 'spa-2',
-      pageUrl: { regex: '#/profile' },
-      selectors: ['#spa-profile-field'],
-      content: { default: 'The tour continued here in the same SPA, after the hash changed.' },
-      placement: 'right',
-    },
-  ],
-};
-
-document.querySelector('#spa-home-cta')?.addEventListener('click', () => createPlayer(spaTour, { state: playerState }).start());
+document.querySelector('#spa-home-cta')?.addEventListener('click', () => void playDemoTour(ID));
 // Continue if the page was reloaded mid-tour.
-resumeTour(spaTour, { state: playerState });
+void resumeDemoTour(ID);

@@ -3,18 +3,18 @@ import '@tours/demo-shared/demo.css';
 import { render } from 'solid-js/web';
 import { onMount } from 'solid-js';
 import { HashRouter, Route, A, type RouteSectionProps } from '@solidjs/router';
-import { createPlayer, resumeTour } from '@tours/core';
-import { playerState, wireDemoPanel, makeSpaTour } from '@tours/demo-shared';
+import { wireDemoPanel, spaDraft, seedDemoTour, playDemoTour, resumeDemoTour } from '@tours/demo-shared';
 
-const tour = makeSpaTour('demo-spa-solid', 'Solid');
+const ID = 'demo-spa-solid';
+void seedDemoTour(spaDraft(ID, 'Solid'));
 const start = (): void => {
-  createPlayer(tour, { state: playerState }).start();
+  void playDemoTour(ID);
 };
 
 function Layout(props: RouteSectionProps) {
   onMount(() => {
     wireDemoPanel();
-    resumeTour(tour, { state: playerState });
+    void resumeDemoTour(ID);
   });
   return (
     <>

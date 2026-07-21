@@ -1,9 +1,7 @@
 <script lang="ts">
-  import { createPlayer } from '@tours/core';
-  import { playerState, makeSpaTour } from '@tours/demo-shared';
+  import { playDemoTour } from '@tours/demo-shared';
 
-  const tour = makeSpaTour('demo-spa-svelte', 'Svelte');
-  const start = () => createPlayer(tour, { state: playerState }).start();
+  const start = () => void playDemoTour('demo-spa-svelte');
 </script>
 
 <section>

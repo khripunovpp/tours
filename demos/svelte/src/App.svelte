@@ -1,8 +1,7 @@
 <script lang="ts">
   import Router, { link } from 'svelte-spa-router';
   import { onMount } from 'svelte';
-  import { resumeTour } from '@tours/core';
-  import { playerState, wireDemoPanel, makeSpaTour } from '@tours/demo-shared';
+  import { wireDemoPanel, resumeDemoTour } from '@tours/demo-shared';
   import Home from './components/Home.svelte';
   import Profile from './components/Profile.svelte';
 
@@ -10,7 +9,7 @@
 
   onMount(() => {
     wireDemoPanel();
-    resumeTour(makeSpaTour('demo-spa-svelte', 'Svelte'), { state: playerState });
+    void resumeDemoTour('demo-spa-svelte');
   });
 </script>
 

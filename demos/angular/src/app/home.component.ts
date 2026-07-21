@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
-import { createPlayer } from '@tours/core';
-import { playerState, makeSpaTour } from '@tours/demo-shared';
+import { playDemoTour } from '@tours/demo-shared';
 
 @Component({
   selector: 'app-home',
@@ -17,8 +16,7 @@ import { playerState, makeSpaTour } from '@tours/demo-shared';
   `,
 })
 export class HomeComponent {
-  private readonly tour = makeSpaTour('demo-spa-angular', 'Angular');
   start(): void {
-    createPlayer(this.tour, { state: playerState }).start();
+    void playDemoTour('demo-spa-angular');
   }
 }

@@ -1,7 +1,6 @@
 import { Component, type OnInit } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { resumeTour } from '@tours/core';
-import { playerState, wireDemoPanel, makeSpaTour } from '@tours/demo-shared';
+import { wireDemoPanel, resumeDemoTour } from '@tours/demo-shared';
 
 @Component({
   selector: 'app-root',
@@ -21,6 +20,6 @@ import { playerState, wireDemoPanel, makeSpaTour } from '@tours/demo-shared';
 export class AppComponent implements OnInit {
   ngOnInit(): void {
     wireDemoPanel();
-    resumeTour(makeSpaTour('demo-spa-angular', 'Angular'), { state: playerState });
+    void resumeDemoTour('demo-spa-angular');
   }
 }

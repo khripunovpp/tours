@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { RouterLink, RouterView } from 'vue-router';
-import { resumeTour } from '@tours/core';
-import { playerState, wireDemoPanel, makeSpaTour } from '@tours/demo-shared';
+import { wireDemoPanel, resumeDemoTour } from '@tours/demo-shared';
 
 onMounted(() => {
   wireDemoPanel();
-  resumeTour(makeSpaTour('demo-spa-vue', 'Vue'), { state: playerState });
+  void resumeDemoTour('demo-spa-vue');
 });
 </script>
 

@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import vue from '@vitejs/plugin-vue';
 import solid from 'vite-plugin-solid';
 import angular from '@analogjs/vite-plugin-angular';
 import { svelte, vitePreprocess } from '@sveltejs/vite-plugin-svelte';
@@ -13,6 +14,7 @@ export default defineConfig({
     react({ include: [/spa-react\.tsx$/] }),
     solid({ include: [/spa-solid\.tsx$/] }),
     svelte({ preprocess: vitePreprocess() }),
+    vue(),
   ],
   server: {
     open: true,

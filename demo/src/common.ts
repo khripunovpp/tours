@@ -27,6 +27,36 @@ export async function builtTours(): Promise<Tour[]> {
   return out;
 }
 
+/**
+ * The shared SPA demo tour: one step on the home route, then it navigates to
+ * the profile route (hash) and continues there — no reload. Routers below use
+ * hash history, so home is `#/` and profile is `#/profile`.
+ */
+export function makeSpaTour(id: string, framework: string): Tour {
+  return {
+    id,
+    schemaVersion: 1,
+    title: { default: `SPA tour (${framework})` },
+    steps: [
+      {
+        id: 'spa-1',
+        pageUrl: { regex: '#/$' },
+        selectors: ['#spa-home-cta'],
+        content: { default: 'Welcome! Click Next — the tour jumps to your profile with no page reload.' },
+        placement: 'bottom',
+        action: { type: 'navigate', url: '#/profile' },
+      },
+      {
+        id: 'spa-2',
+        pageUrl: { regex: '#/profile' },
+        selectors: ['#spa-profile-field'],
+        content: { default: `The tour continued here — ${framework}'s router changed the view, the tour followed.` },
+        placement: 'right',
+      },
+    ],
+  };
+}
+
 /** Wire the shared demo-panel buttons (open builder, pick element). */
 export function wireDemoPanel(): void {
   document.querySelector<HTMLButtonElement>('#open-builder')?.addEventListener('click', () => {

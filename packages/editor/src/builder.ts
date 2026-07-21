@@ -87,6 +87,8 @@ function triggerHint(type: Trigger['type']): string {
       return 'Starts when an element matching the selector appears in the page (waits for it).';
     case 'timer':
       return 'Starts after the delay elapses on a matching page.';
+    case 'cta':
+      return 'Shows a small invitation in a corner; its button starts the tour.';
     case 'manual':
     default:
       return 'Starts from the [site_tour] shortcode or any element with a data-site-tour="<id>" attribute.';
@@ -102,6 +104,8 @@ function defaultTrigger(type: Trigger['type']): Trigger {
       return { type: 'selector', selector: '' };
     case 'timer':
       return { type: 'timer', delay: 3000 };
+    case 'cta':
+      return { type: 'cta', text: 'Need a hand getting started?', button: 'Start tour', corner: 'bottom-right', offset: 24 };
     default:
       return { type: 'manual' };
   }
@@ -908,6 +912,7 @@ export class TourBuilder {
           ['load', 'On page load'],
           ['selector', 'When an element appears'],
           ['timer', 'After a delay'],
+          ['cta', 'Corner invitation (popover)'],
         ],
         (v) => {
           t.trigger = defaultTrigger(v as Trigger['type']);
@@ -928,6 +933,33 @@ export class TourBuilder {
       wrap.append(
         this.textField('Delay (ms)', String(t.trigger.delay), '3000', (v) => {
           if (t.trigger.type === 'timer') t.trigger.delay = Math.max(0, Number(v.replace(/[^0-9]/g, '')) || 0);
+        }),
+      );
+    } else if (t.trigger.type === 'cta') {
+      const cta = t.trigger;
+      wrap.append(
+        this.textField('Invitation text', cta.text, 'Need a hand getting started?', (v) => {
+          if (t.trigger.type === 'cta') t.trigger.text = v;
+        }),
+        this.textField('Button label', cta.button, 'Start tour', (v) => {
+          if (t.trigger.type === 'cta') t.trigger.button = v;
+        }),
+        this.selectField(
+          'Corner',
+          cta.corner,
+          [
+            ['bottom-right', 'Bottom right'],
+            ['bottom-left', 'Bottom left'],
+            ['top-right', 'Top right'],
+            ['top-left', 'Top left'],
+          ],
+          (v) => {
+            if (t.trigger.type === 'cta') t.trigger.corner = v as typeof cta.corner;
+            this.markDirty();
+          },
+        ),
+        this.textField('Edge offset (px)', String(cta.offset ?? 24), '24', (v) => {
+          if (t.trigger.type === 'cta') t.trigger.offset = Math.max(0, Number(v.replace(/[^0-9]/g, '')) || 0);
         }),
       );
     }

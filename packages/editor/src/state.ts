@@ -161,10 +161,28 @@ export function cloneDraft(src: DraftTour, kind: TourKind, name?: string): Draft
 /** Coerce an unknown value into a valid Trigger (defaults to manual). */
 function normalizeTrigger(value: unknown): Trigger {
   if (value && typeof value === 'object') {
-    const t = value as { type?: unknown; selector?: unknown; delay?: unknown; url?: unknown };
+    const t = value as {
+      type?: unknown;
+      selector?: unknown;
+      delay?: unknown;
+      text?: unknown;
+      button?: unknown;
+      corner?: unknown;
+      offset?: unknown;
+    };
     if (t.type === 'load') return { type: 'load' };
     if (t.type === 'selector' && typeof t.selector === 'string') return { type: 'selector', selector: t.selector };
     if (t.type === 'timer' && typeof t.delay === 'number') return { type: 'timer', delay: t.delay };
+    if (t.type === 'cta' && typeof t.text === 'string' && typeof t.button === 'string') {
+      const corners = ['bottom-right', 'bottom-left', 'top-right', 'top-left'];
+      return {
+        type: 'cta',
+        text: t.text,
+        button: t.button,
+        corner: corners.includes(t.corner as string) ? (t.corner as 'bottom-right') : 'bottom-right',
+        offset: typeof t.offset === 'number' ? t.offset : undefined,
+      };
+    }
   }
   return { type: 'manual' };
 }

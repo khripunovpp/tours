@@ -6,6 +6,7 @@
  */
 import type { Tour } from '@tours/schema';
 import { waitForElement } from './selector.js';
+import { showCta } from './cta.js';
 
 export function armTrigger(tour: Tour, fire: () => void): () => void {
   const trigger = tour.trigger ?? { type: 'manual' };
@@ -33,6 +34,18 @@ export function armTrigger(tour: Tour, fire: () => void): () => void {
       return () => {
         cancelled = true;
       };
+    }
+    case 'cta': {
+      // Show a corner invitation; its button starts the tour.
+      let dismiss = (): void => {};
+      dismiss = showCta({
+        text: trigger.text,
+        button: trigger.button,
+        corner: trigger.corner,
+        offset: trigger.offset,
+        onStart: once,
+      });
+      return dismiss;
     }
     case 'manual':
     default:

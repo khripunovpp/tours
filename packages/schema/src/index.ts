@@ -81,11 +81,22 @@ export interface Rule {
  * How a tour auto-starts. `manual` (default) only starts via a shortcode/API
  * call; the others fire once when their condition is met.
  */
+export type CtaCorner = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
+
 export type Trigger =
   | { type: 'manual' }
   | { type: 'load' }
   | { type: 'selector'; selector: string }
-  | { type: 'timer'; delay: number };
+  | { type: 'timer'; delay: number }
+  | {
+      /** A small greeting popover in a corner; its button starts the tour. */
+      type: 'cta';
+      text: string;
+      button: string;
+      corner: CtaCorner;
+      /** Distance from the corner edges in px (default 24). */
+      offset?: number;
+    };
 
 /** Tour-level visual settings, read by both the player and the editor. */
 export interface DisplaySettings {
@@ -291,13 +302,21 @@ export function validate(
 
   if (json.trigger !== undefined) {
     const tr = json.trigger;
-    const types = ['manual', 'load', 'selector', 'timer'];
+    const types = ['manual', 'load', 'selector', 'timer', 'cta'];
+    const corners = ['bottom-right', 'bottom-left', 'top-right', 'top-left'];
     if (!isRecord(tr) || typeof tr.type !== 'string' || !types.includes(tr.type)) {
       errors.push(`tour.trigger.type must be one of ${types.join('|')}`);
     } else if (tr.type === 'selector' && (typeof tr.selector !== 'string' || tr.selector.length === 0)) {
       errors.push('tour.trigger.selector must be a non-empty string');
     } else if (tr.type === 'timer' && (typeof tr.delay !== 'number' || tr.delay < 0)) {
       errors.push('tour.trigger.delay must be a non-negative number');
+    } else if (tr.type === 'cta') {
+      if (typeof tr.text !== 'string') errors.push('tour.trigger.text must be a string');
+      if (typeof tr.button !== 'string') errors.push('tour.trigger.button must be a string');
+      if (!corners.includes(tr.corner as string)) errors.push(`tour.trigger.corner must be one of ${corners.join('|')}`);
+      if (tr.offset !== undefined && (typeof tr.offset !== 'number' || tr.offset < 0)) {
+        errors.push('tour.trigger.offset must be a non-negative number');
+      }
     }
   }
 

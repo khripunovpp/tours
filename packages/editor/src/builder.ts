@@ -46,7 +46,12 @@ export interface TourBuilderOptions {
    */
   topOffset?: number;
   /**
-   * Secondary persistence strategy, always tried in addition to localStorage
+   * Primary draft store. Defaults to localStorage; pass a different backend
+   * (e.g. a chrome.storage store in an extension) to persist across origins.
+   */
+  store?: DraftStore;
+  /**
+   * Secondary persistence strategy, always tried in addition to the primary
    * (e.g. `createWordPressStore(...)`). Failures are logged, not fatal.
    */
   storage?: DraftStore;
@@ -145,7 +150,7 @@ export class TourBuilder {
     this.navPosition = options.navPosition ?? 'bottom';
     this.panelPosition = options.panelPosition ?? 'right';
     this.topOffset = Math.max(0, options.topOffset ?? 0);
-    this.local = createLocalStore(options.storageKey);
+    this.local = options.store ?? createLocalStore(options.storageKey);
     this.secondary = options.storage ?? null;
   }
 

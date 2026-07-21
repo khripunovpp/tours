@@ -1,0 +1,19 @@
+{
+  "name": "@tours/authoring-extension",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@tours/core": "workspace:*",
+    "@tours/editor": "workspace:*",
+    "@tours/schema": "workspace:*"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0",
+    "@types/chrome": "^0.0.287",
+    "typescript": "~5.6.0"
+  }
+}

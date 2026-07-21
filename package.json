@@ -17,6 +17,7 @@
     "test": "echo \"(no tests yet — added at the end of M0)\"",
     "build:lib": "node scripts/build-lib.mjs",
     "build:wp": "node scripts/build-wp.mjs",
+    "build:ext": "pnpm --filter @tours/authoring-extension build",
     "wp:start": "wp-env start",
     "wp:stop": "wp-env stop",
     "wp:clean": "wp-env clean all",

@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Site Tours — Builder",
+  "version": "0.1.0",
+  "description": "Mount the tour builder on any page and author guided tours. Drafts are stored in the browser and survive navigation across domains.",
+  "permissions": ["storage", "scripting", "activeTab"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Toggle tour builder"
+  }
+}

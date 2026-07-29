@@ -103,6 +103,9 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
   let root: ShadowRoot | null = null;
   let spotlight: HTMLElement | null = null;
   let tooltip: HTMLElement | null = null;
+  let backdrop: HTMLElement | null = null;
+  // Set while waiting for the visitor to complete an interactive step.
+  let awaitNext: (() => void) | null = null;
   let active = false;
   let index = 0;
   // Steps skipped because their target never appeared — excluded from progress.
@@ -118,6 +121,17 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
   /** Resolve a step's target via the re-finder (tries every candidate). */
   function findTarget(step: RuntimeStep): Element | null {
     return resolveElement(step.selectors);
+  }
+
+  /**
+   * True when the visitor is meant to operate the target themselves, rather
+   * than press Next: the step declares `action: { type: 'click' }`.
+   *
+   * Such a step must let the click reach the page, and must advance on the
+   * visitor's own navigation instead of on a Next press.
+   */
+  function isInteractive(step: RuntimeStep): boolean {
+    return step.action?.type === 'click';
   }
 
   /** True if a step belongs to the current page (no pageUrl ⇒ any page). */
@@ -141,9 +155,14 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
     style.textContent = PLAYER_STYLES + CARD_STYLES;
     root.appendChild(style);
 
-    const backdrop = document.createElement('div');
+    backdrop = document.createElement('div');
     backdrop.className = 'tours-backdrop';
     // Clicking the dimmed area (outside the spotlight) dismisses the tour.
+    //
+    // On an interactive step the target area is clipped out of this element
+    // entirely (see cutHole), so a click there never reaches this handler and
+    // lands on the page instead. The rect test below still guards the
+    // non-interactive case, where the backdrop covers the target too.
     backdrop.addEventListener('click', (e) => {
       const step = tour.steps[index];
       const target = step ? findTarget(step) : null;
@@ -154,7 +173,7 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
           e.clientX <= r.right + pad &&
           e.clientY >= r.top - pad &&
           e.clientY <= r.bottom + pad;
-        if (inside) return; // let clicks on the highlighted element be
+        if (inside) return; // swallow, rather than dismissing by accident
       }
       stop();
     });
@@ -166,6 +185,32 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
     root.appendChild(spotlight);
 
     document.body.appendChild(host);
+  }
+
+  /**
+   * Clip the target's rectangle out of the backdrop, so clicks there land on
+   * the page instead of on the overlay. `clip-path` removes the region from
+   * hit-testing, which `pointer-events` on the spotlight cannot do — the
+   * spotlight is only the outline; the dimming is its huge box-shadow, and the
+   * backdrop is what actually covers the page.
+   *
+   * Traced as a single "frame with a slit" polygon rather than
+   * `polygon(evenodd, …)`: the fill-rule argument is not supported everywhere,
+   * and this shape needs no fill rule at all.
+   */
+  function cutHole(rect: DOMRect | null): void {
+    if (!backdrop) return;
+    if (!rect) {
+      backdrop.style.clipPath = '';
+      return;
+    }
+    const l = rect.left - pad;
+    const t = rect.top - pad;
+    const r = rect.right + pad;
+    const b = rect.bottom + pad;
+    backdrop.style.clipPath =
+      `polygon(0 0, 0 100%, ${l}px 100%, ${l}px ${t}px, ${r}px ${t}px,` +
+      ` ${r}px ${b}px, ${l}px ${b}px, ${l}px 100%, 100% 100%, 100% 0)`;
   }
 
   /** Size and place the spotlight cut-out around the target (with padding). */
@@ -273,6 +318,46 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
     const rect = target.getBoundingClientRect();
     positionSpotlight(rect);
     positionTooltip(rect, step);
+    // Only interactive steps let the click through; elsewhere the backdrop
+    // still covers the target, so a stray click cannot fire it by accident.
+    cutHole(isInteractive(step) ? rect : null);
+    watchForVisitorAdvance(step);
+  }
+
+  /**
+   * On an interactive step, advance when the visitor's own navigation lands on
+   * the page the next step wants.
+   *
+   * The host app owns its routing — the URL may change by rules we know nothing
+   * about — so rather than driving navigation we watch for the one signal that
+   * says the step is done: the next step's `pageUrl` starts matching.
+   * `onLocationChange` covers pushState/replaceState too, so this works for a
+   * client-side router as well as a hash change.
+   *
+   * A full page load ends this watcher with the document; `resumeTour` picks
+   * the tour back up on arrival.
+   */
+  function watchForVisitorAdvance(step: RuntimeStep): void {
+    awaitNext?.();
+    awaitNext = null;
+    if (!isInteractive(step)) return;
+
+    const nextIndex = index + 1;
+    const nextStep = tour.steps[nextIndex];
+    // Nothing to advance to, or the next step lives on this same page — in
+    // which case a URL change is not the completion signal and Next still is.
+    if (!nextStep || onThisPage(nextStep)) return;
+
+    awaitNext = onLocationChange(() => {
+      if (!active || tour.steps[index] !== step) return;
+      if (!matchUrl(nextStep.pageUrl, window.location.href)) return;
+      awaitNext?.();
+      awaitNext = null;
+      log.log('visitor navigated → advancing to', nextStep.id);
+      index = nextIndex;
+      persist();
+      render();
+    });
   }
 
   /** Keyboard navigation: Esc closes, arrows move between steps. */
@@ -357,6 +442,12 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
       unwatch();
       unwatch = null;
     }
+    // The interactive-step watcher outlives the UI otherwise, and would keep
+    // reacting to the host's navigations after the tour is gone.
+    if (awaitNext) {
+      awaitNext();
+      awaitNext = null;
+    }
     if (!active) return;
     active = false;
     window.removeEventListener('keydown', onKey, true);
@@ -369,6 +460,7 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
     root = null;
     spotlight = null;
     tooltip = null;
+    backdrop = null;
   }
 
   /** End the tour (finished or dismissed): tear down and forget progress. */
@@ -469,13 +561,34 @@ export function resumeTour(tour: RuntimeTour, options: PlayerOptions = {}): Play
   if (!state) return null;
   const progress = readProgress(state);
   if (!progress || progress.tourId !== tour.id) return null;
-  const step = tour.steps[progress.index];
-  if (!step) {
+  if (!tour.steps[progress.index]) {
     clearProgress(state);
     return null;
   }
-  if (!matchUrl(step.pageUrl, window.location.href)) return null; // not our page yet
-  const player = createPlayer(tour, { state });
-  player.start(progress.index);
+
+  // Scan forward for the first step this page satisfies, rather than only
+  // checking the stored one.
+  //
+  // The stored index is the last step the player *rendered*. When the player
+  // drives the navigation it bumps the index first, so the stored step is the
+  // right one. But on an interactive step the visitor navigates themselves —
+  // `next()` never runs, the index still points at the previous page, and
+  // checking only that step would return null and silently kill the tour.
+  //
+  // Forward only: a visitor who navigates backwards should not have the tour
+  // replay steps they already completed.
+  let resumeAt = -1;
+  for (let i = progress.index; i < tour.steps.length; i++) {
+    if (matchUrl(tour.steps[i].pageUrl, window.location.href)) {
+      resumeAt = i;
+      break;
+    }
+  }
+  if (resumeAt === -1) return null; // not a page this tour continues on
+
+  // Forward the caller's options rather than only `state`, so onNavigate and
+  // allowWhileEditing survive a resume.
+  const player = createPlayer(tour, options);
+  player.start(resumeAt);
   return player;
 }

@@ -74,6 +74,34 @@ still carries plain strings, and `validate()` rejects anything else. The widened
 shape is `RuntimeTour` / `RuntimeStep`; the stored one is `Tour` / `Step` from
 [`@tours/schema`](../schema), and `Tour` is assignable to `RuntimeTour`.
 
+### Steps the visitor completes themselves
+
+A step with `action: { type: 'click' }` is *interactive*: the visitor is meant to
+operate the target, not press Next.
+
+```ts
+{
+  id: 'open-form',
+  selectors: ['#open-form'],
+  content: { default: 'Open the form to continue.' },
+  action: { type: 'click' },
+}
+```
+
+Two things change for such a step:
+
+- **Clicks reach the page.** The target's rectangle is clipped out of the
+  backdrop, so the real button receives the click. (On a normal step the
+  backdrop still covers the target, so a stray click cannot fire it.)
+- **It advances on navigation, not on Next.** The player watches for the next
+  step's `pageUrl` to start matching and moves on then. The host app keeps
+  full control of its own routing — the player never navigates for it.
+
+This is what makes tours work in an app whose URLs follow rules the tour knows
+nothing about: the only signal used is "the page the next step wants is now
+open". `pushState`/`replaceState` are covered, so a client-side router works the
+same as a full page load.
+
 ### Multi-page tours
 
 Pass a state backend so progress survives navigation, and call `resumeTour` on
@@ -93,6 +121,16 @@ resumeTour(tour, { state });
 
 `createLocalState()` uses `localStorage`. Implement `StateBackend` yourself
 (`get`/`set`/`remove`) to persist somewhere else.
+
+Resume needs no marker in the URL. `resumeTour` scans **forward** from the saved
+step for the first one whose `pageUrl` matches the current page, so it does not
+matter who performed the navigation — the player on Next, or the visitor
+clicking a real button on an interactive step. It never scans backwards, so
+going back in history does not replay completed steps.
+
+That covers a static multi-page site, a client-side router, and the mixed case
+of a non-SPA whose form steps are tied to the URL, with the same call on every
+page load.
 
 ### Auto-start
 

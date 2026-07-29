@@ -715,6 +715,8 @@ function createPlayer(tour, options = {}) {
   let root = null;
   let spotlight = null;
   let tooltip = null;
+  let backdrop = null;
+  let awaitNext = null;
   let active = false;
   let index = 0;
   let skipped = 0;
@@ -725,6 +727,9 @@ function createPlayer(tour, options = {}) {
   const offset = tour.display?.offset ?? DEFAULT_OFFSET;
   function findTarget(step) {
     return resolveElement(step.selectors);
+  }
+  function isInteractive(step) {
+    return step.action?.type === "click";
   }
   function onThisPage(step) {
     return matchUrl(step.pageUrl, window.location.href);
@@ -740,7 +745,7 @@ function createPlayer(tour, options = {}) {
     const style = document.createElement("style");
     style.textContent = PLAYER_STYLES + CARD_STYLES;
     root.appendChild(style);
-    const backdrop = document.createElement("div");
+    backdrop = document.createElement("div");
     backdrop.className = "tours-backdrop";
     backdrop.addEventListener("click", (e) => {
       const step = tour.steps[index];
@@ -758,6 +763,18 @@ function createPlayer(tour, options = {}) {
     spotlight.style.borderRadius = `${radius}px`;
     root.appendChild(spotlight);
     document.body.appendChild(host);
+  }
+  function cutHole(rect) {
+    if (!backdrop) return;
+    if (!rect) {
+      backdrop.style.clipPath = "";
+      return;
+    }
+    const l = rect.left - pad;
+    const t = rect.top - pad;
+    const r = rect.right + pad;
+    const b = rect.bottom + pad;
+    backdrop.style.clipPath = `polygon(0 0, 0 100%, ${l}px 100%, ${l}px ${t}px, ${r}px ${t}px, ${r}px ${b}px, ${l}px ${b}px, ${l}px 100%, 100% 100%, 100% 0)`;
   }
   function positionSpotlight(rect, fast = false) {
     if (!spotlight) return;
@@ -843,6 +860,26 @@ function createPlayer(tour, options = {}) {
     const rect = target.getBoundingClientRect();
     positionSpotlight(rect);
     positionTooltip(rect, step);
+    cutHole(isInteractive(step) ? rect : null);
+    watchForVisitorAdvance(step);
+  }
+  function watchForVisitorAdvance(step) {
+    awaitNext?.();
+    awaitNext = null;
+    if (!isInteractive(step)) return;
+    const nextIndex = index + 1;
+    const nextStep = tour.steps[nextIndex];
+    if (!nextStep || onThisPage(nextStep)) return;
+    awaitNext = onLocationChange(() => {
+      if (!active || tour.steps[index] !== step) return;
+      if (!matchUrl(nextStep.pageUrl, window.location.href)) return;
+      awaitNext?.();
+      awaitNext = null;
+      log.log("visitor navigated → advancing to", nextStep.id);
+      index = nextIndex;
+      persist();
+      render();
+    });
   }
   function onKey(e) {
     if (!active) return;
@@ -912,6 +949,10 @@ function createPlayer(tour, options = {}) {
       unwatch();
       unwatch = null;
     }
+    if (awaitNext) {
+      awaitNext();
+      awaitNext = null;
+    }
     if (!active) return;
     active = false;
     window.removeEventListener("keydown", onKey, true);
@@ -924,6 +965,7 @@ function createPlayer(tour, options = {}) {
     root = null;
     spotlight = null;
     tooltip = null;
+    backdrop = null;
   }
   function stop() {
     log.log("stop");

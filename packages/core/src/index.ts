@@ -55,3 +55,4 @@ export { renderCard, CARD_STYLES } from './card.js';
 export type { CardOptions, CardButton } from './card.js';
 export { buildSelectors, resolveElement, waitForElement } from './selector.js';
 export type { WaitOptions, SelectorLike } from './selector.js';
+export type { TourEventMap, TourEventName, TourEventHandlers, SkipReason, StopReason } from './events.js';

@@ -25,6 +25,7 @@ import {
 } from './state.js';
 import { createLogger } from './logger.js';
 import { showResumeInvite, type ResumeInvite } from './cta.js';
+import { emit, type TourEventHandlers, type StopReason } from './events.js';
 
 /**
  * A step as the player accepts it: identical to the stored `Step`, except that
@@ -92,6 +93,12 @@ export interface PlayerOptions {
    * default popover reads from the host page.
    */
   renderResume?: (invite: ResumeInvite) => () => void;
+  /**
+   * Lifecycle handlers. `tourStarting` and `stepChanging` are cancellable —
+   * return `false` to block them. Every event is also dispatched on `document`
+   * as `tours:<name>`, for pages with no build step.
+   */
+  on?: TourEventHandlers;
 }
 
 /** Attribute the builder puts on its shadow host — see @tours/editor. */
@@ -333,6 +340,7 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
           render();
         } else {
           log.warn(`step "${step.id}" skipped: no element for selectors`, step.selectors);
+          emit(options.on, 'stepSkipped', { tour, index, step, reason: 'no-element' });
           skipped += 1; // drop it from the progress total
           if (index < tour.steps.length - 1) {
             index += 1;
@@ -357,6 +365,7 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
     // still covers the target, so a stray click cannot fire it by accident.
     cutHole(isInteractive(step) ? rect : null);
     watchForVisitorAdvance(step);
+    emit(options.on, 'stepActivated', { tour, index, step, target });
   }
 
   /**
@@ -386,6 +395,7 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
     awaitNext = onLocationChange(() => {
       if (!active || tour.steps[index] !== step) return;
       if (!matchUrl(nextStep.pageUrl, window.location.href)) return;
+      if (!mayChangeTo(nextIndex)) return;
       awaitNext?.();
       awaitNext = null;
       log.log('visitor navigated → advancing to', nextStep.id);
@@ -427,9 +437,14 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
       log.log(`start suppressed for "${tour.id}" — the builder is mounted`);
       return;
     }
+    const at = Math.max(0, Math.min(startIndex, tour.steps.length - 1));
+    if (!emit(options.on, 'tourStarting', { tour, index: at })) {
+      log.log('start vetoed by handler');
+      return;
+    }
     dropInvite();
     active = true;
-    index = Math.max(0, Math.min(startIndex, tour.steps.length - 1));
+    index = at;
     skipped = 0;
     log.log('start', tour.id, `at ${index}/${tour.steps.length}`);
     ensureUi();
@@ -438,6 +453,7 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
     window.addEventListener('resize', reposition, true);
     window.addEventListener('scroll', reposition, true);
     persist();
+    emit(options.on, 'tourStarted', { tour, index });
     render();
   }
 
@@ -500,11 +516,18 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
   }
 
   /** End the tour (finished or dismissed): tear down and forget progress. */
-  function stop(): void {
-    log.log('stop');
+  function stop(reason: StopReason = 'dismissed'): void {
+    log.log('stop', reason);
+    const wasActive = active;
+    const at = index;
     dropInvite();
     teardownUi();
     if (state) clearProgress(state);
+    // Only report an ending for a tour that was actually running — stop() is
+    // also called defensively from paths that may already have torn down.
+    if (!wasActive) return;
+    if (reason === 'completed') emit(options.on, 'tourCompleted', { tour });
+    else emit(options.on, 'tourDismissed', { tour, index: at });
   }
 
   function dropInvite(): void {
@@ -530,6 +553,7 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
     // back up has to stay the visitor's decision, or minimizing would just be
     // a slow way of doing nothing.
     if (state) writeProgress(state, { tourId: tour.id, index, minimized: true });
+    emit(options.on, 'tourMinimized', { tour, index });
     offerResume();
   }
 
@@ -547,6 +571,7 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
         onResume: () => {
           closeInvite = null;
           if (state) writeProgress(state, { tourId: tour.id, index });
+          emit(options.on, 'tourResumed', { tour, index });
           start(index);
         },
       },
@@ -554,12 +579,27 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
     );
   }
 
+  /**
+   * Announce a step transition and let a handler veto it. Every move between
+   * steps goes through here, so a host that blocks `stepChanging` cannot be
+   * bypassed by a different code path.
+   */
+  function mayChangeTo(to: number): boolean {
+    const step = tour.steps[to];
+    if (!step) return true;
+    return emit(options.on, 'stepChanging', { tour, from: index, to, step });
+  }
+
   function next(): void {
     if (!active) return;
     const nextIndex = index + 1;
     const nextStep = tour.steps[nextIndex];
     if (!nextStep) {
-      stop(); // reached the end
+      stop('completed'); // reached the end
+      return;
+    }
+    if (!mayChangeTo(nextIndex)) {
+      log.log('step change vetoed by handler');
       return;
     }
     if (onThisPage(nextStep)) {
@@ -617,6 +657,10 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
     if (!active) return;
     const prevStep = tour.steps[index - 1];
     if (!prevStep) return;
+    if (!mayChangeTo(index - 1)) {
+      log.log('step change vetoed by handler');
+      return;
+    }
     if (onThisPage(prevStep)) {
       index -= 1;
       persist();

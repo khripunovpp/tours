@@ -268,6 +268,60 @@ wherever the visitor came from — not necessarily the tour's previous page.
 
 Override the labels per step with `backLabel` / `nextLabel`.
 
+### Lifecycle events
+
+Every stage is reported, and two stages can be blocked.
+
+```ts
+createPlayer(tour, {
+  on: {
+    tourStarting: ({ tour }) => featureEnabled(tour.id),   // false ⇒ do not start
+    stepChanging: ({ from, to }) => formIsValid(),          // false ⇒ stay put
+    stepActivated: ({ step, target }) => analytics.track('step', step.id),
+    stepSkipped:   ({ step, reason }) => console.warn(step.id, reason),
+    tourCompleted: ({ tour }) => analytics.track('tour_done', tour.id),
+  },
+});
+```
+
+| Event | Payload | Cancellable |
+|---|---|---|
+| `tourStarting` | `{ tour, index }` | ✅ |
+| `tourStarted` | `{ tour, index }` | |
+| `stepChanging` | `{ tour, from, to, step }` | ✅ |
+| `stepActivated` | `{ tour, index, step, target }` | |
+| `stepSkipped` | `{ tour, index, step, reason }` | |
+| `tourMinimized` | `{ tour, index }` | |
+| `tourResumed` | `{ tour, index }` | |
+| `tourCompleted` | `{ tour }` | |
+| `tourDismissed` | `{ tour, index }` | |
+
+`stepActivated` fires once the target has actually resolved and the card is
+placed — not when the step is merely selected, so `target` is always a live
+element. `tourCompleted` means the tour ran to the end; `tourDismissed` means it
+was closed before that.
+
+Every transition between steps passes through `stepChanging`, including the
+automatic advance on an interactive step, so a veto cannot be sidestepped by a
+different code path.
+
+The same events are dispatched on `document` as `tours:<name>`, with the payload
+in `detail` — for a page that loaded the UMD bundle and has no build step:
+
+```html
+<script>
+  document.addEventListener('tours:stepActivated', (e) => {
+    console.log(e.detail.step.id);
+  });
+  document.addEventListener('tours:stepChanging', (e) => {
+    if (!formIsValid()) e.preventDefault();   // same veto as returning false
+  });
+</script>
+```
+
+A handler that throws is logged and ignored — it never takes the tour down, and
+never counts as a veto.
+
 ### Picking elements
 
 The picker underpins the builder in `@tours/editor`, and is exported for hosts

@@ -259,6 +259,66 @@ interface ResumeInvite {
 	offset?: number;
 	onResume: () => void;
 }
+/** Why a step was passed over. */
+export type SkipReason = "no-element" | "condition";
+/** Why a tour stopped. */
+export type StopReason = "completed" | "dismissed";
+export interface TourEventMap {
+	/** About to start. Cancel to prevent it. */
+	tourStarting: {
+		tour: RuntimeTour;
+		index: number;
+	};
+	tourStarted: {
+		tour: RuntimeTour;
+		index: number;
+	};
+	/** About to move between steps. Cancel to stay put. */
+	stepChanging: {
+		tour: RuntimeTour;
+		from: number;
+		to: number;
+		step: RuntimeStep;
+	};
+	/** A step is on screen — its target resolved and the card is placed. */
+	stepActivated: {
+		tour: RuntimeTour;
+		index: number;
+		step: RuntimeStep;
+		target: Element;
+	};
+	stepSkipped: {
+		tour: RuntimeTour;
+		index: number;
+		step: RuntimeStep;
+		reason: SkipReason;
+	};
+	tourMinimized: {
+		tour: RuntimeTour;
+		index: number;
+	};
+	tourResumed: {
+		tour: RuntimeTour;
+		index: number;
+	};
+	/** Ran to the end. */
+	tourCompleted: {
+		tour: RuntimeTour;
+	};
+	/** Closed before the end — the ×, the backdrop, or `stop()`. */
+	tourDismissed: {
+		tour: RuntimeTour;
+		index: number;
+	};
+}
+export type TourEventName = keyof TourEventMap;
+/**
+ * Handlers. Returning `false` from a cancellable event blocks it; any other
+ * return value is ignored.
+ */
+export type TourEventHandlers = {
+	[K in TourEventName]?: (payload: TourEventMap[K]) => void | boolean;
+};
 /**
  * A step as the player accepts it: identical to the stored `Step`, except that
  * `selectors` may also carry live DOM nodes or ref getters.
@@ -326,6 +386,12 @@ export interface PlayerOptions {
 	 * default popover reads from the host page.
 	 */
 	renderResume?: (invite: ResumeInvite) => () => void;
+	/**
+	 * Lifecycle handlers. `tourStarting` and `stepChanging` are cancellable —
+	 * return `false` to block them. Every event is also dispatched on `document`
+	 * as `tours:<name>`, for pages with no build step.
+	 */
+	on?: TourEventHandlers;
 }
 /**
  * True while the tour builder is mounted.

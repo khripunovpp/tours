@@ -659,6 +659,32 @@ function showCta(options) {
   document.body.appendChild(host);
   return remove;
 }
+const CANCELLABLE = /* @__PURE__ */ new Set([
+  "tourStarting",
+  "stepChanging"
+]);
+function emit(handlers, name, payload) {
+  const cancellable = CANCELLABLE.has(name);
+  let allowed = true;
+  const handler = handlers?.[name];
+  if (handler) {
+    try {
+      if (handler(payload) === false && cancellable) allowed = false;
+    } catch (error) {
+      console.error(`[tours] handler for "${name}" threw`, error);
+    }
+  }
+  if (typeof document !== "undefined" && typeof CustomEvent === "function") {
+    try {
+      const event = new CustomEvent(`tours:${name}`, { detail: payload, cancelable: cancellable });
+      document.dispatchEvent(event);
+      if (cancellable && event.defaultPrevented) allowed = false;
+    } catch (error) {
+      console.error(`[tours] could not dispatch "tours:${name}"`, error);
+    }
+  }
+  return allowed;
+}
 const EDITOR_HOST = "[data-tours-editor]";
 function isBuilderMounted() {
   return typeof document !== "undefined" && document.querySelector(EDITOR_HOST) !== null;
@@ -803,6 +829,7 @@ function createPlayer(tour, options = {}) {
           render();
         } else {
           log.warn(`step "${step.id}" skipped: no element for selectors`, step.selectors);
+          emit(options.on, "stepSkipped", { tour, index, step, reason: "no-element" });
           skipped += 1;
           if (index < tour.steps.length - 1) {
             index += 1;
@@ -822,6 +849,7 @@ function createPlayer(tour, options = {}) {
     positionTooltip(rect, step);
     cutHole(isInteractive(step) ? rect : null);
     watchForVisitorAdvance(step);
+    emit(options.on, "stepActivated", { tour, index, step, target });
   }
   function watchForVisitorAdvance(step) {
     awaitNext?.();
@@ -833,6 +861,7 @@ function createPlayer(tour, options = {}) {
     awaitNext = onLocationChange(() => {
       if (!active || tour.steps[index] !== step) return;
       if (!matchUrl(nextStep.pageUrl, window.location.href)) return;
+      if (!mayChangeTo(nextIndex)) return;
       awaitNext?.();
       awaitNext = null;
       log.log("visitor navigated → advancing to", nextStep.id);
@@ -869,9 +898,14 @@ function createPlayer(tour, options = {}) {
       log.log(`start suppressed for "${tour.id}" — the builder is mounted`);
       return;
     }
+    const at = Math.max(0, Math.min(startIndex, tour.steps.length - 1));
+    if (!emit(options.on, "tourStarting", { tour, index: at })) {
+      log.log("start vetoed by handler");
+      return;
+    }
     dropInvite();
     active = true;
-    index = Math.max(0, Math.min(startIndex, tour.steps.length - 1));
+    index = at;
     skipped = 0;
     log.log("start", tour.id, `at ${index}/${tour.steps.length}`);
     ensureUi();
@@ -879,6 +913,7 @@ function createPlayer(tour, options = {}) {
     window.addEventListener("resize", reposition, true);
     window.addEventListener("scroll", reposition, true);
     persist();
+    emit(options.on, "tourStarted", { tour, index });
     render();
   }
   function hideVisuals() {
@@ -928,11 +963,16 @@ function createPlayer(tour, options = {}) {
     tooltip = null;
     backdrop = null;
   }
-  function stop() {
-    log.log("stop");
+  function stop(reason = "dismissed") {
+    log.log("stop", reason);
+    const wasActive = active;
+    const at = index;
     dropInvite();
     teardownUi();
     if (state) clearProgress(state);
+    if (!wasActive) return;
+    if (reason === "completed") emit(options.on, "tourCompleted", { tour });
+    else emit(options.on, "tourDismissed", { tour, index: at });
   }
   function dropInvite() {
     closeInvite?.();
@@ -947,6 +987,7 @@ function createPlayer(tour, options = {}) {
     log.log("minimized", tour.id, `at ${index}`);
     teardownUi();
     if (state) writeProgress(state, { tourId: tour.id, index, minimized: true });
+    emit(options.on, "tourMinimized", { tour, index });
     offerResume();
   }
   function offerResume() {
@@ -962,18 +1003,28 @@ function createPlayer(tour, options = {}) {
         onResume: () => {
           closeInvite = null;
           if (state) writeProgress(state, { tourId: tour.id, index });
+          emit(options.on, "tourResumed", { tour, index });
           start(index);
         }
       },
       options.renderResume
     );
   }
+  function mayChangeTo(to) {
+    const step = tour.steps[to];
+    if (!step) return true;
+    return emit(options.on, "stepChanging", { tour, from: index, to, step });
+  }
   function next() {
     if (!active) return;
     const nextIndex = index + 1;
     const nextStep = tour.steps[nextIndex];
     if (!nextStep) {
-      stop();
+      stop("completed");
+      return;
+    }
+    if (!mayChangeTo(nextIndex)) {
+      log.log("step change vetoed by handler");
       return;
     }
     if (onThisPage(nextStep)) {
@@ -1020,6 +1071,10 @@ function createPlayer(tour, options = {}) {
     if (!active) return;
     const prevStep = tour.steps[index - 1];
     if (!prevStep) return;
+    if (!mayChangeTo(index - 1)) {
+      log.log("step change vetoed by handler");
+      return;
+    }
     if (onThisPage(prevStep)) {
       index -= 1;
       persist();

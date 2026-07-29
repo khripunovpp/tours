@@ -12,13 +12,24 @@
  */
 import { build } from 'vite';
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { gzipSync } from 'node:zlib';
+
+// Resolve cross-package imports to source. The packages now also publish a
+// `dist`, and without this a production build would pick that up and make this
+// script depend on `pnpm build:packages` having run first.
+const alias = {
+  '@tours/core': resolve('packages/core/src/index.ts'),
+  '@tours/editor': resolve('packages/editor/src/index.ts'),
+  '@tours/schema': resolve('packages/schema/src/index.ts'),
+};
 
 /** One self-contained lib build. */
 function lib({ entry, fileName, format, name, empty }) {
   return build({
     configFile: false,
     logLevel: 'warn',
+    resolve: { alias },
     build: {
       outDir: 'dist',
       emptyOutDir: empty,

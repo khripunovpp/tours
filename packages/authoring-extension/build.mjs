@@ -6,14 +6,24 @@
  */
 import { build } from 'vite';
 import { copyFileSync, mkdirSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 // Output into the repo-root dist so every distributable lives under dist/.
 const OUT = '../../dist/extension';
+
+// Build against package *source*, not the sibling packages' published `dist`,
+// so this build does not depend on `pnpm build:packages` having run first.
+const alias = {
+  '@tours/core': resolve('../core/src/index.ts'),
+  '@tours/editor': resolve('../editor/src/index.ts'),
+  '@tours/schema': resolve('../schema/src/index.ts'),
+};
 
 function bundle({ entry, name, fileName, format, empty }) {
   return build({
     configFile: false,
     logLevel: 'warn',
+    resolve: { alias },
     build: {
       outDir: OUT,
       emptyOutDir: empty,

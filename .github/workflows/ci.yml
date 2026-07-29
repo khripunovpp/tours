@@ -39,3 +39,18 @@ jobs:
 
       - name: Build demo
         run: pnpm build
+
+      # packages/*/dist is committed, because git install ships the tree as-is.
+      # A stale dist would silently hand consumers old code, so rebuild and fail
+      # if the result differs from what is checked in. The build is byte-
+      # reproducible, so any diff is a genuinely missing rebuild.
+      - name: Build installable packages
+        run: pnpm build:packages
+
+      - name: Verify committed package builds are up to date
+        run: |
+          if ! git diff --quiet -- packages/*/dist; then
+            echo "::error::packages/*/dist is stale — run 'pnpm build:packages' and commit the result"
+            git diff --stat -- packages/*/dist
+            exit 1
+          fi

@@ -1,13 +1,39 @@
 {
   "name": "@tours/core",
-  "version": "0.0.0",
-  "private": true,
-  "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
+  "version": "0.1.0",
+  "description": "Framework-agnostic product tour player, picker and triggers. Renders in shadow DOM, no runtime dependencies.",
+  "license": "MIT",
+  "author": "Pavel Khripunov",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/khripunovpp/tours.git",
+    "directory": "packages/core"
   },
-  "types": "./src/index.ts",
-  "dependencies": {
+  "homepage": "https://github.com/khripunovpp/tours/tree/main/packages/core#readme",
+  "bugs": "https://github.com/khripunovpp/tours/issues",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "development": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "tours",
+    "onboarding",
+    "product-tour",
+    "walkthrough",
+    "guided-tour"
+  ],
+  "devDependencies": {
     "@tours/schema": "workspace:*"
   }
 }

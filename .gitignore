@@ -7,12 +7,15 @@ node_modules/
 build/
 *.tsbuildinfo
 demo/dist/
-packages/*/dist/
 demos/*/dist/
 demos/*/dist-angular/
 # Assembled (derived) artifacts — sources live in packages/*
 dist/wordpress-plugin/
 dist/extension/
+# packages/{schema,core,editor}/dist IS committed — git install ships the tree
+# as-is, so the built output has to be in the repo. The extension is not an
+# installable package, so its build output stays out.
+packages/authoring-extension/dist/
 
 # Extension build artifacts
 *.zip

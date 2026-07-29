@@ -11,6 +11,9 @@ importers:
       '@wordpress/env':
         specifier: ^10.0.0
         version: 10.39.0(@types/node@26.1.1)
+      dts-bundle-generator:
+        specifier: ^9.5.1
+        version: 9.5.1
       typescript:
         specifier: ~5.6.0
         version: 5.6.3
@@ -245,13 +248,13 @@ importers:
         version: 6.4.3(@types/node@26.1.1)(sass@1.85.0)(yaml@2.9.0)
 
   packages/core:
-    dependencies:
+    devDependencies:
       '@tours/schema':
         specifier: workspace:*
         version: link:../schema
 
   packages/editor:
-    dependencies:
+    devDependencies:
       '@tours/core':
         specifier: workspace:*
         version: link:../core
@@ -2317,6 +2320,11 @@ packages:
 
   domutils@3.2.2:
     resolution: {integrity: sha512-6kZKyUajlDuqlHKVX1w7gyslj9MPIXzIFiz/rGu35uC1wMi+kMhQwGhl4lt9unC9Vb9INnY9Z3/ZA3+FhASLaw==}
+
+  dts-bundle-generator@9.5.1:
+    resolution: {integrity: sha512-DxpJOb2FNnEyOzMkG11sxO2dmxPjthoVWxfKqWYJ/bI/rT1rvTMktF5EKjAYrRZu6Z6t3NhOUZ0sZ5ZXevOfbA==}
+    engines: {node: '>=14.0.0'}
+    hasBin: true
 
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
@@ -5612,6 +5620,11 @@ snapshots:
       dom-serializer: 2.0.0
       domelementtype: 2.3.0
       domhandler: 5.0.3
+
+  dts-bundle-generator@9.5.1:
+    dependencies:
+      typescript: 5.6.3
+      yargs: 17.7.3
 
   dunder-proto@1.0.1:
     dependencies:

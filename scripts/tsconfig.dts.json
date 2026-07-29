@@ -1,0 +1,22 @@
+{
+  // Used only by scripts/build-packages.mjs to roll up .d.ts files.
+  //
+  // The `paths` entries point the cross-package imports at *source*, not at the
+  // sibling package's `dist`. That does two things: it removes the build-order
+  // chicken-and-egg on a clean checkout (no dist exists yet), and it makes
+  // dts-bundle-generator treat those types as local files, so it inlines them
+  // instead of emitting `import ... from '@tours/schema'`. Published packages
+  // have no runtime deps, so their types must not reference one either.
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "baseUrl": "..",
+    "paths": {
+      "@tours/schema": ["packages/schema/src/index.ts"],
+      "@tours/core": ["packages/core/src/index.ts"],
+      "@tours/editor": ["packages/editor/src/index.ts"]
+    }
+  }
+}

@@ -98,6 +98,15 @@ for (const { name, global } of PACKAGES) {
   });
 
   // Roll every .d.ts up into one file, inlining the cross-package types.
+  //
+  // `--export-referenced-types false` keeps internal helper types out of the
+  // public surface, but it also means a type is only exported if the entry
+  // point exports it *by name*. A type merely mentioned in a signature gets
+  // inlined as a non-exported declaration, and consumers then cannot name it —
+  // `Tour` was invisible this way despite `createPlayer(tour: Tour)`.
+  //
+  // So anything that appears in a public signature must be re-exported
+  // explicitly from packages/<name>/src/index.ts.
   execFileSync(
     'pnpm',
     [

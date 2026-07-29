@@ -3,6 +3,30 @@
  * used by adapters and apps: the element picker, the tour player, and the
  * opt-in debug logger.
  */
+
+/**
+ * The tour data model, re-exported from @tours/schema.
+ *
+ * These are part of this package's public API — `createPlayer` takes a `Tour`,
+ * `armTrigger` takes a `Tour`, `matchRules` takes `Rule[]`. The schema is
+ * bundled into this package rather than declared as a dependency, so without
+ * this re-export a consumer could call those functions but could not name their
+ * argument types, and would have to install @tours/schema just for that.
+ */
+export type {
+  Tour,
+  Step,
+  Rule,
+  Condition,
+  Action,
+  Trigger,
+  UrlMatch,
+  DisplaySettings,
+  LocalizedText,
+  DeviceClass,
+  CtaCorner,
+} from '@tours/schema';
+
 export { createPicker } from './picker.js';
 export type { PickerHandle, PickerOptions } from './picker.js';
 export { createPlayer, resumeTour } from './player.js';

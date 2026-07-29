@@ -1,31 +1,31 @@
-export interface PickerHandle {
-	start(): void;
-	stop(): void;
-}
-export interface PickerOptions {
-	/**
-	 * Elements the picker must never highlight or capture (e.g. the editor's own
-	 * UI). Anything at or inside one of these is treated as empty space, so the
-	 * selector search does not react to the tool's own chrome.
-	 */
-	ignore?: Array<Element | null | undefined>;
-}
 /**
- * Create a picker. Call start() to enter selection mode and stop() to leave it.
- * onPick fires once with the captured selector(s), after which the picker stops
- * itself automatically.
+ * Tour data model and validation for @tours/schema. This is the single source
+ * of truth for the shape of a tour; every other component depends on it. The
+ * schema is versioned (SCHEMA_VERSION) so stored tours can be migrated across
+ * releases and stay portable between platforms (WordPress, extensions, JSON).
  */
-export declare function createPicker(onPick: (selectors: string[]) => void, options?: PickerOptions): PickerHandle;
-type LocalizedText = {
+/** Text with a required default and optional per-language variants (i18n). */
+export type LocalizedText = {
 	default: string;
 	[lang: string]: string;
 };
-interface UrlMatch {
+/**
+ * Matches a page URL for multi-page and cross-domain tours. At least one of
+ * `glob`/`regex` must be set; `regex` (matched against the full URL) wins when
+ * both are present. Globs use `*` within a path segment and `**` across them.
+ */
+export interface UrlMatch {
 	glob?: string;
 	regex?: string;
 }
-type DeviceClass = "mobile" | "tablet" | "desktop";
-interface Condition {
+/** The device classes a condition can target. */
+export type DeviceClass = "mobile" | "tablet" | "desktop";
+/**
+ * Declarative predicate evaluated at runtime by the rules engine (in `core`).
+ * All present fields must hold for the condition to pass. Used both to gate an
+ * individual step (`Step.condition`) and to auto-start a tour (`Rule.when`).
+ */
+export interface Condition {
 	/** Current page URL must match. */
 	url?: UrlMatch;
 	/** Visitor role must equal this (e.g. "admin", "guest"). */
@@ -39,14 +39,15 @@ interface Condition {
 	/** Show at most this many times. */
 	maxShows?: number;
 }
-interface Action {
+/** What a step does to advance, beyond the visitor clicking "next". */
+export interface Action {
 	type: "click" | "input" | "navigate" | "none";
 	/** Destination for `navigate`. */
 	url?: string;
 	/** Value to type for `input`. */
 	value?: string;
 }
-interface Step {
+export interface Step {
 	id: string;
 	/**
 	 * Ranked candidates for the step's target, most stable first. The player
@@ -74,13 +75,18 @@ interface Step {
 	/** Interaction the step performs or expects to advance. */
 	action?: Action;
 }
-interface Rule {
+/** Auto-start rule: trigger a tour when `when` holds. */
+export interface Rule {
 	/** Tour to trigger; defaults to the enclosing tour. */
 	tourId?: string;
 	when: Condition;
 }
-type CtaCorner = "bottom-right" | "bottom-left" | "top-right" | "top-left";
-type Trigger = {
+/**
+ * How a tour auto-starts. `manual` (default) only starts via a shortcode/API
+ * call; the others fire once when their condition is met.
+ */
+export type CtaCorner = "bottom-right" | "bottom-left" | "top-right" | "top-left";
+export type Trigger = {
 	type: "manual";
 } | {
 	type: "load";
@@ -99,7 +105,8 @@ type Trigger = {
 	/** Distance from the corner edges in px (default 24). */
 	offset?: number;
 };
-interface DisplaySettings {
+/** Tour-level visual settings, read by both the player and the editor. */
+export interface DisplaySettings {
 	/**
 	 * Gap in pixels between the target element and the spotlight/highlight
 	 * outline. Applies everywhere the target is framed. Defaults to 6.
@@ -117,7 +124,7 @@ interface DisplaySettings {
 	 */
 	alignOffset?: number;
 }
-interface Tour {
+export interface Tour {
 	id: string;
 	schemaVersion: number;
 	title: LocalizedText;
@@ -131,6 +138,24 @@ interface Tour {
 	/** Optional visual settings shared by player and editor. */
 	display?: DisplaySettings;
 }
+export interface PickerHandle {
+	start(): void;
+	stop(): void;
+}
+export interface PickerOptions {
+	/**
+	 * Elements the picker must never highlight or capture (e.g. the editor's own
+	 * UI). Anything at or inside one of these is treated as empty space, so the
+	 * selector search does not react to the tool's own chrome.
+	 */
+	ignore?: Array<Element | null | undefined>;
+}
+/**
+ * Create a picker. Call start() to enter selection mode and stop() to leave it.
+ * onPick fires once with the captured selector(s), after which the picker stops
+ * itself automatically.
+ */
+export declare function createPicker(onPick: (selectors: string[]) => void, options?: PickerOptions): PickerHandle;
 /**
  * Selector engine — the project's main technical risk. Instead of one brittle
  * selector per step, we build a ranked list of candidates (most stable first),

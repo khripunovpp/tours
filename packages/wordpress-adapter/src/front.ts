@@ -55,6 +55,9 @@ function compiled(): Tour[] {
   return out;
 }
 
+/** The live mount, so shortcode buttons can start a tour through it. */
+let mounted: ReturnType<typeof mountTours> | null = null;
+
 /** Compile and play a published tour (the first one if no id is given). */
 export function run(tourId?: string): void {
   const tours = compiled();
@@ -63,6 +66,9 @@ export function run(tourId?: string): void {
     console.warn('[tours] no published tour to run', tourId ?? '');
     return;
   }
+  // Through the mount, so it knows a tour is running and does not start a
+  // second one on the next navigation.
+  if (mounted?.start(tour.id)) return;
   createPlayer(tour, { state }).start();
 }
 
@@ -80,7 +86,7 @@ function init(): void {
   // Continuing an in-flight tour, arming auto-start triggers and re-checking
   // both after navigation all live in mountTours. The list is passed as a
   // getter because the plugin can localize tours after this runs.
-  mountTours(compiled, {
+  mounted = mountTours(compiled, {
     state,
     // Supplied on every evaluation, so logging in or changing level takes
     // effect on the next navigation without a reload.

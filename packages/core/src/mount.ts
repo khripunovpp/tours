@@ -21,7 +21,7 @@
 import { createPlayer, resumeTour, type PlayerHandle, type PlayerOptions, type RuntimeTour } from './player.js';
 import { armTrigger } from './trigger.js';
 import { matchRules, detectDevice } from './rules.js';
-import { seenCount, markSeen, readProgress, writeProgress } from './state.js';
+import { seenCount, markSeen, readProgress, writeProgress, clearProgress } from './state.js';
 import { showResumeInvite } from './cta.js';
 import { onLocationChange } from './history.js';
 import { createLogger } from './logger.js';
@@ -35,21 +35,37 @@ export interface MountOptions extends PlayerOptions {
   canRun?: (tour: RuntimeTour) => boolean;
 }
 
+export interface MountHandle {
+  /**
+   * Start a tour now, from the top — a "show me the tour" button.
+   *
+   * Goes through the mount rather than round a separate `createPlayer`, which
+   * would leave this mount unaware of the running tour and let it start a second
+   * one on the next navigation. Returns false if the id is unknown or the tour
+   * is not eligible.
+   */
+  start(tourId: string): boolean;
+  /** Stop whatever is running, without unmounting. */
+  stop(): void;
+  /** Stop everything and release the location watcher. */
+  unmount(): void;
+}
+
 /**
- * Register tours and keep them running across navigation. Returns an unmount
- * function that stops any running tour and releases the watcher.
+ * Register tours and keep them running across navigation.
  *
  * Pass a function rather than an array when the set of tours is computed —
  * it is re-read on every navigation, so tours loaded later are picked up.
  *
  * ```ts
- * mountTours(tours, { state: createLocalState() });
+ * const tours = mountTours(list, { state: createLocalState() });
+ * tours.start('welcome');   // e.g. from a "show me again" button
  * ```
  */
 export function mountTours(
   input: readonly RuntimeTour[] | (() => readonly RuntimeTour[]),
   options: MountOptions = {},
-): () => void {
+): MountHandle {
   const log = createLogger('mount');
   const state = options.state;
   const list = (): readonly RuntimeTour[] => (typeof input === 'function' ? input() : input);
@@ -151,10 +167,29 @@ export function mountTours(
   activate();
   const off = onLocationChange(activate);
 
-  return () => {
-    off();
-    disarm();
-    current?.stop();
-    current = null;
+  return {
+    start(tourId) {
+      const tour = list().find((t) => t.id === tourId);
+      if (!tour || !eligible(tour)) return false;
+      current?.stop();
+      disarm();
+      // Clear any half-finished run of this tour, so "start" means the top
+      // rather than "resume wherever you left off".
+      if (state) clearProgress(state);
+      const player = createPlayer(tour, options);
+      current = player;
+      player.start();
+      return true;
+    },
+    stop() {
+      current?.stop();
+      current = null;
+    },
+    unmount() {
+      off();
+      disarm();
+      current?.stop();
+      current = null;
+    },
   };
 }

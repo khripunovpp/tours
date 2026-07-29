@@ -34,7 +34,7 @@ export type { PlayerHandle, PlayerOptions, RuntimeStep, RuntimeTour } from './pl
 export { matchUrl, deriveUrl } from './url.js';
 export { armTrigger } from './trigger.js';
 export { mountTours } from './mount.js';
-export type { MountOptions } from './mount.js';
+export type { MountOptions, MountHandle } from './mount.js';
 export {
   createLocalState,
   readProgress,

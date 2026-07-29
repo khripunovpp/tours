@@ -1252,6 +1252,11 @@ export class TourBuilder {
       const c = t.conditions;
       wrap.append(
         h('div', { class: 'settings__divider' }),
+        h('label', { class: 'settings__label' }, ['Visitor traits']),
+        this.traitRows(c.traits, () => this.markDirty()),
+        h('div', { class: 'settings__hint' }, [
+          'Role, plan, group — whatever the host reports. Every listed trait must match.',
+        ]),
         this.checkboxField('Show only on the first visit', c.firstVisitOnly, (on) => {
           c.firstVisitOnly = on;
         }),
@@ -1274,6 +1279,59 @@ export class TourBuilder {
         ),
       );
     }
+    return wrap;
+  }
+
+  /**
+   * Key/value rows for visitor traits.
+   *
+   * Traits are deliberately open-ended in the schema — role, plan, group,
+   * enrolment, whatever the host reports — so the editor cannot offer a fixed
+   * list of fields. Free rows are the honest shape for that.
+   */
+  private traitRows(traits: Record<string, string>, onChange: () => void): HTMLElement {
+    const wrap = h('div', { class: 'traits' });
+
+    for (const [key, value] of Object.entries(traits)) {
+      const row = h('div', { class: 'traits__row' });
+      const k = h('input', { class: 'traits__key', placeholder: 'key' }) as HTMLInputElement;
+      k.value = key;
+      const v = h('input', { class: 'traits__val', placeholder: 'value' }) as HTMLInputElement;
+      v.value = value;
+      // Renaming a key is delete-then-add, so the row order can shift; the
+      // panel is re-rendered rather than patched to keep it honest.
+      k.addEventListener('change', () => {
+        const next = k.value.trim();
+        delete traits[key];
+        if (next) traits[next] = v.value;
+        onChange();
+        this.render();
+      });
+      v.addEventListener('change', () => {
+        traits[key] = v.value;
+        onChange();
+      });
+      const del = iconButton('trash', 'Remove this condition');
+      del.addEventListener('click', () => {
+        delete traits[key];
+        onChange();
+        this.render();
+      });
+      row.append(k, v, del);
+      wrap.append(row);
+    }
+
+    const add = h('button', { class: 'traits__add', type: 'button' }, ['+ Add a trait']);
+    add.addEventListener('click', () => {
+      // A blank key is what an empty row is; it is replaced as soon as the
+      // author types one, and never compiled while empty.
+      let n = 1;
+      while (`trait${n}` in traits) n += 1;
+      traits[`trait${n}`] = '';
+      onChange();
+      this.render();
+    });
+    wrap.append(add);
     return wrap;
   }
 
@@ -1534,6 +1592,7 @@ export class TourBuilder {
     if (isActive) {
       card.append(this.section('placement', 'Card position', () => this.renderPlacementBody(step)));
       card.append(this.section('behaviour', 'Behaviour', () => this.renderBehaviourBody(step)));
+      card.append(this.section('condition', 'Show this step when…', () => this.renderConditionBody(step)));
       card.append(this.section('page', 'Page', () => this.renderPageBody(step)));
     }
     return card;
@@ -1555,6 +1614,51 @@ export class TourBuilder {
       }),
       h('div', { class: 'settings__hint' }, [
         'Off leaves the page fully usable and only outlines the target — for a step the visitor should be free to poke at.',
+      ]),
+    );
+    return wrap;
+  }
+
+  /**
+   * Per-step gate. The tour may run, and this step still be skipped — for a
+   * feature only some visitors have, or a control that only exists on desktop.
+   *
+   * A skipped step is passed over like one whose element never appeared, and
+   * drops out of the progress count, so the visitor never sees a gap.
+   */
+  private renderConditionBody(step: DraftStep): HTMLElement {
+    const wrap = h('div', { class: 'settings' });
+    const cond = (step.condition ??= {});
+    const touched = (): void => {
+      // Drop the object entirely once it is empty, so an untouched step does
+      // not compile a meaningless `condition: {}` into the tour.
+      if (Object.keys(cond).length === 0 || (cond.traits && Object.keys(cond.traits).length === 0 && !cond.device)) {
+        if (!cond.device && (!cond.traits || Object.keys(cond.traits).length === 0)) delete step.condition;
+      }
+      this.markDirty();
+    };
+
+    wrap.append(
+      this.selectField(
+        'Device',
+        cond.device ?? 'any',
+        [
+          ['any', 'Any device'],
+          ['mobile', 'Mobile only'],
+          ['tablet', 'Tablet only'],
+          ['desktop', 'Desktop only'],
+        ],
+        (v) => {
+          if (v === 'any') delete cond.device;
+          else cond.device = v as NonNullable<typeof cond.device>;
+          touched();
+          this.render();
+        },
+      ),
+      h('label', { class: 'settings__label' }, ['Visitor traits']),
+      this.traitRows((cond.traits ??= {}) as Record<string, string>, touched),
+      h('div', { class: 'settings__hint' }, [
+        'Every trait listed must match what the host reports for this visitor. A trait the host does not report never matches.',
       ]),
     );
     return wrap;

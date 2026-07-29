@@ -46,6 +46,12 @@ export interface DraftStep {
   action?: Action;
   /** Dim the rest of the page for this step. Default true. */
   overlay: boolean;
+  /**
+   * Per-step gate. Held as the schema shape rather than a flattened copy, so
+   * fields the form does not render survive a round-trip untouched instead of
+   * being silently dropped on save.
+   */
+  condition?: Condition;
 }
 
 export type TourStatus = 'draft' | 'published';
@@ -62,6 +68,8 @@ export interface DraftConditions {
   /** 0 = no limit. */
   maxShows: number;
   device: 'any' | 'mobile' | 'tablet' | 'desktop';
+  /** Host-supplied facts the visitor must match — role, plan, group, anything. */
+  traits: Record<string, string>;
 }
 
 export type { Trigger };
@@ -138,7 +146,7 @@ export function createDraftTour(kind: TourKind = 'tour'): DraftTour {
     status: 'draft',
     trigger: { type: 'manual' },
     audience: 'all',
-    conditions: { firstVisitOnly: true, maxShows: 0, device: 'any' },
+    conditions: { firstVisitOnly: true, maxShows: 0, device: 'any', traits: {} },
     dismissMode: 'end',
     resumeText: '',
     resumeButton: '',
@@ -165,7 +173,7 @@ export function cloneDraft(src: DraftTour, kind: TourKind, name?: string): Draft
     status: 'draft',
     trigger: { ...src.trigger },
     audience: src.audience,
-    conditions: { ...src.conditions },
+    conditions: { ...src.conditions, traits: { ...src.conditions.traits } },
     dismissMode: src.dismissMode ?? 'end',
     resumeText: src.resumeText ?? '',
     resumeButton: src.resumeButton ?? '',
@@ -231,6 +239,7 @@ export function normalizeTours(input: unknown): DraftTour[] {
         device: ['mobile', 'tablet', 'desktop'].includes(t.conditions?.device as string)
           ? (t.conditions!.device as DraftConditions['device'])
           : 'any',
+        traits: stringMap(t.conditions?.traits),
       },
       display: {
         padding: numOr(t.display?.padding, DEFAULT_PADDING),
@@ -275,6 +284,7 @@ export function compileTour(draft: DraftTour): Tour {
       ...(s.action ? { action: s.action } : {}),
       // Only emitted when it differs from the default, to keep stored tours lean.
       ...(s.overlay === false ? { overlay: false } : {}),
+      ...(s.condition && Object.keys(s.condition).length > 0 ? { condition: s.condition } : {}),
     }));
 
   // Auto-start conditions → a single rule (omit when all are defaults).
@@ -282,6 +292,7 @@ export function compileTour(draft: DraftTour): Tour {
   if (draft.conditions.firstVisitOnly) when.firstVisitOnly = true;
   if (draft.conditions.maxShows > 0) when.maxShows = draft.conditions.maxShows;
   if (draft.conditions.device !== 'any') when.device = draft.conditions.device;
+  if (Object.keys(draft.conditions.traits).length > 0) when.traits = { ...draft.conditions.traits };
   const rules = Object.keys(when).length > 0 ? [{ when }] : undefined;
 
   return {
@@ -328,6 +339,20 @@ export function toTour(
   return validate(compileTour(draft));
 }
 
+/**
+ * Coerce untrusted JSON into a flat string map. Numbers are kept as text: the
+ * builder edits traits in text inputs, and a value's type should not depend on
+ * whether it happened to look numeric.
+ */
+function stringMap(value: unknown): Record<string, string> {
+  if (!value || typeof value !== 'object') return {};
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof v === 'string' || typeof v === 'number') out[k] = String(v);
+  }
+  return out;
+}
+
 /** True if a value looks like a shipped schema Tour (vs. a builder draft). */
 function looksLikeSchemaTour(value: unknown): boolean {
   if (!value || typeof value !== 'object') return false;
@@ -355,6 +380,7 @@ export function fromTour(tour: Tour): DraftTour {
       firstVisitOnly: rule.firstVisitOnly === true,
       maxShows: numOr(rule.maxShows, 0),
       device: device === 'mobile' || device === 'tablet' || device === 'desktop' ? device : 'any',
+      traits: stringMap(rule.traits),
     },
     display: {
       padding: numOr(tour.display?.padding, DEFAULT_PADDING),
@@ -372,11 +398,13 @@ export function fromTour(tour: Tour): DraftTour {
       placement: s.placement ?? 'auto',
       align: s.align ?? 'center',
       overlay: s.overlay !== false,
+      ...(s.condition ? { condition: s.condition } : {}),
       backLabel: s.backLabel ?? 'Back',
       nextLabel: s.nextLabel ?? 'Next',
       ...(s.action ? { action: s.action } : {}),
       // Only emitted when it differs from the default, to keep stored tours lean.
       ...(s.overlay === false ? { overlay: false } : {}),
+      ...(s.condition && Object.keys(s.condition).length > 0 ? { condition: s.condition } : {}),
     })),
   };
 }

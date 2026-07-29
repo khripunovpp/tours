@@ -207,6 +207,12 @@ export interface DraftStep {
 	action?: Action;
 	/** Dim the rest of the page for this step. Default true. */
 	overlay: boolean;
+	/**
+	 * Per-step gate. Held as the schema shape rather than a flattened copy, so
+	 * fields the form does not render survive a round-trip untouched instead of
+	 * being silently dropped on save.
+	 */
+	condition?: Condition;
 }
 export type TourStatus = "draft" | "published";
 /** A draft is either a real tour or a reusable template. */
@@ -218,6 +224,8 @@ interface DraftConditions {
 	/** 0 = no limit. */
 	maxShows: number;
 	device: "any" | "mobile" | "tablet" | "desktop";
+	/** Host-supplied facts the visitor must match — role, plan, group, anything. */
+	traits: Record<string, string>;
 }
 export interface DraftDisplay {
 	/** Gap in px between the target element and the outline (player + editor). */
@@ -491,6 +499,14 @@ export declare class TourBuilder {
 	private renderBody;
 	/** Rules tab: start trigger, audience, and auto-start conditions. */
 	private renderRulesBody;
+	/**
+	 * Key/value rows for visitor traits.
+	 *
+	 * Traits are deliberately open-ended in the schema — role, plan, group,
+	 * enrolment, whatever the host reports — so the editor cannot offer a fixed
+	 * list of fields. Free rows are the honest shape for that.
+	 */
+	private traitRows;
 	/** A labelled checkbox row. */
 	private checkboxField;
 	/** A labelled <select>. */
@@ -529,6 +545,14 @@ export declare class TourBuilder {
 	 * not after it.
 	 */
 	private renderBehaviourBody;
+	/**
+	 * Per-step gate. The tour may run, and this step still be skipped — for a
+	 * feature only some visitors have, or a control that only exists on desktop.
+	 *
+	 * A skipped step is passed over like one whose element never appeared, and
+	 * drops out of the progress count, so the visitor never sees a gap.
+	 */
+	private renderConditionBody;
 	/** Page sub-panel: which pages this step shows on (multi-page tours). */
 	private renderPageBody;
 	/**

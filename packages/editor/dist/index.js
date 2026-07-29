@@ -1755,6 +1755,35 @@ button { font: inherit; cursor: pointer; }
   white-space: nowrap;
 }
 .selpop__page:hover { background: var(--e-surface); }
+
+/* Visitor-trait key/value rows. */
+.traits { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
+.traits__row { display: flex; align-items: center; gap: 6px; }
+.traits__key, .traits__val {
+  min-width: 0;
+  font: inherit;
+  font-size: 12px;
+  color: var(--e-fg);
+  background: var(--e-surface);
+  border: 1px solid var(--e-border);
+  border-radius: 6px;
+  padding: 5px 7px;
+}
+.traits__key { flex: 0 1 40%; }
+.traits__val { flex: 1 1 60%; }
+.traits__key:focus, .traits__val:focus { outline: none; border-color: var(--e-accent); }
+.traits__add {
+  align-self: flex-start;
+  font: inherit;
+  font-size: 12px;
+  color: var(--e-muted);
+  background: transparent;
+  border: 1px dashed var(--e-border);
+  border-radius: 6px;
+  padding: 5px 9px;
+  cursor: pointer;
+}
+.traits__add:hover { color: var(--e-fg); border-color: var(--e-accent); }
 .selpop__add--on { color: #fff; background: var(--e-accent); border-style: solid; border-color: var(--e-accent); }
 
 .card__content {
@@ -2036,7 +2065,7 @@ function createDraftTour(kind = "tour") {
     status: "draft",
     trigger: { type: "manual" },
     audience: "all",
-    conditions: { firstVisitOnly: true, maxShows: 0, device: "any" },
+    conditions: { firstVisitOnly: true, maxShows: 0, device: "any", traits: {} },
     dismissMode: "end",
     resumeText: "",
     resumeButton: "",
@@ -2058,7 +2087,7 @@ function cloneDraft(src, kind, name) {
     status: "draft",
     trigger: { ...src.trigger },
     audience: src.audience,
-    conditions: { ...src.conditions },
+    conditions: { ...src.conditions, traits: { ...src.conditions.traits } },
     dismissMode: src.dismissMode ?? "end",
     resumeText: src.resumeText ?? "",
     resumeButton: src.resumeButton ?? "",
@@ -2105,7 +2134,8 @@ function normalizeTours(input) {
       conditions: {
         firstVisitOnly: (t.conditions?.firstVisitOnly ?? true) === true,
         maxShows: numOr(t.conditions?.maxShows, 0),
-        device: ["mobile", "tablet", "desktop"].includes(t.conditions?.device) ? t.conditions.device : "any"
+        device: ["mobile", "tablet", "desktop"].includes(t.conditions?.device) ? t.conditions.device : "any",
+        traits: stringMap(t.conditions?.traits)
       },
       display: {
         padding: numOr(t.display?.padding, DEFAULT_PADDING),
@@ -2137,12 +2167,14 @@ function compileTour(draft) {
     ...s.page ? { pageUrl: { glob: s.page } } : {},
     ...s.action ? { action: s.action } : {},
     // Only emitted when it differs from the default, to keep stored tours lean.
-    ...s.overlay === false ? { overlay: false } : {}
+    ...s.overlay === false ? { overlay: false } : {},
+    ...s.condition && Object.keys(s.condition).length > 0 ? { condition: s.condition } : {}
   }));
   const when = {};
   if (draft.conditions.firstVisitOnly) when.firstVisitOnly = true;
   if (draft.conditions.maxShows > 0) when.maxShows = draft.conditions.maxShows;
   if (draft.conditions.device !== "any") when.device = draft.conditions.device;
+  if (Object.keys(draft.conditions.traits).length > 0) when.traits = { ...draft.conditions.traits };
   const rules = Object.keys(when).length > 0 ? [{ when }] : void 0;
   return {
     id: draft.id,
@@ -2176,6 +2208,14 @@ function compileTour(draft) {
 function toTour(draft) {
   return validate(compileTour(draft));
 }
+function stringMap(value) {
+  if (!value || typeof value !== "object") return {};
+  const out = {};
+  for (const [k, v] of Object.entries(value)) {
+    if (typeof v === "string" || typeof v === "number") out[k] = String(v);
+  }
+  return out;
+}
 function looksLikeSchemaTour(value) {
   if (!value || typeof value !== "object") return false;
   const o = value;
@@ -2199,7 +2239,8 @@ function fromTour(tour) {
     conditions: {
       firstVisitOnly: rule.firstVisitOnly === true,
       maxShows: numOr(rule.maxShows, 0),
-      device: device === "mobile" || device === "tablet" || device === "desktop" ? device : "any"
+      device: device === "mobile" || device === "tablet" || device === "desktop" ? device : "any",
+      traits: stringMap(rule.traits)
     },
     display: {
       padding: numOr(tour.display?.padding, DEFAULT_PADDING),
@@ -2217,11 +2258,13 @@ function fromTour(tour) {
       placement: s.placement ?? "auto",
       align: s.align ?? "center",
       overlay: s.overlay !== false,
+      ...s.condition ? { condition: s.condition } : {},
       backLabel: s.backLabel ?? "Back",
       nextLabel: s.nextLabel ?? "Next",
       ...s.action ? { action: s.action } : {},
       // Only emitted when it differs from the default, to keep stored tours lean.
-      ...s.overlay === false ? { overlay: false } : {}
+      ...s.overlay === false ? { overlay: false } : {},
+      ...s.condition && Object.keys(s.condition).length > 0 ? { condition: s.condition } : {}
     }))
   };
 }
@@ -3303,6 +3346,11 @@ ${result.errors.join("\n")}`);
       const c = t.conditions;
       wrap.append(
         h("div", { class: "settings__divider" }),
+        h("label", { class: "settings__label" }, ["Visitor traits"]),
+        this.traitRows(c.traits, () => this.markDirty()),
+        h("div", { class: "settings__hint" }, [
+          "Role, plan, group — whatever the host reports. Every listed trait must match."
+        ]),
         this.checkboxField("Show only on the first visit", c.firstVisitOnly, (on) => {
           c.firstVisitOnly = on;
         }),
@@ -3325,6 +3373,52 @@ ${result.errors.join("\n")}`);
         )
       );
     }
+    return wrap;
+  }
+  /**
+   * Key/value rows for visitor traits.
+   *
+   * Traits are deliberately open-ended in the schema — role, plan, group,
+   * enrolment, whatever the host reports — so the editor cannot offer a fixed
+   * list of fields. Free rows are the honest shape for that.
+   */
+  traitRows(traits, onChange) {
+    const wrap = h("div", { class: "traits" });
+    for (const [key, value] of Object.entries(traits)) {
+      const row = h("div", { class: "traits__row" });
+      const k = h("input", { class: "traits__key", placeholder: "key" });
+      k.value = key;
+      const v = h("input", { class: "traits__val", placeholder: "value" });
+      v.value = value;
+      k.addEventListener("change", () => {
+        const next = k.value.trim();
+        delete traits[key];
+        if (next) traits[next] = v.value;
+        onChange();
+        this.render();
+      });
+      v.addEventListener("change", () => {
+        traits[key] = v.value;
+        onChange();
+      });
+      const del = iconButton("trash", "Remove this condition");
+      del.addEventListener("click", () => {
+        delete traits[key];
+        onChange();
+        this.render();
+      });
+      row.append(k, v, del);
+      wrap.append(row);
+    }
+    const add = h("button", { class: "traits__add", type: "button" }, ["+ Add a trait"]);
+    add.addEventListener("click", () => {
+      let n = 1;
+      while (`trait${n}` in traits) n += 1;
+      traits[`trait${n}`] = "";
+      onChange();
+      this.render();
+    });
+    wrap.append(add);
     return wrap;
   }
   /** A labelled checkbox row. */
@@ -3549,6 +3643,7 @@ ${result.errors.join("\n")}`);
     if (isActive) {
       card.append(this.section("placement", "Card position", () => this.renderPlacementBody(step)));
       card.append(this.section("behaviour", "Behaviour", () => this.renderBehaviourBody(step)));
+      card.append(this.section("condition", "Show this step when…", () => this.renderConditionBody(step)));
       card.append(this.section("page", "Page", () => this.renderPageBody(step)));
     }
     return card;
@@ -3569,6 +3664,47 @@ ${result.errors.join("\n")}`);
       }),
       h("div", { class: "settings__hint" }, [
         "Off leaves the page fully usable and only outlines the target — for a step the visitor should be free to poke at."
+      ])
+    );
+    return wrap;
+  }
+  /**
+   * Per-step gate. The tour may run, and this step still be skipped — for a
+   * feature only some visitors have, or a control that only exists on desktop.
+   *
+   * A skipped step is passed over like one whose element never appeared, and
+   * drops out of the progress count, so the visitor never sees a gap.
+   */
+  renderConditionBody(step) {
+    const wrap = h("div", { class: "settings" });
+    const cond = step.condition ?? (step.condition = {});
+    const touched = () => {
+      if (Object.keys(cond).length === 0 || cond.traits && Object.keys(cond.traits).length === 0 && !cond.device) {
+        if (!cond.device && (!cond.traits || Object.keys(cond.traits).length === 0)) delete step.condition;
+      }
+      this.markDirty();
+    };
+    wrap.append(
+      this.selectField(
+        "Device",
+        cond.device ?? "any",
+        [
+          ["any", "Any device"],
+          ["mobile", "Mobile only"],
+          ["tablet", "Tablet only"],
+          ["desktop", "Desktop only"]
+        ],
+        (v) => {
+          if (v === "any") delete cond.device;
+          else cond.device = v;
+          touched();
+          this.render();
+        }
+      ),
+      h("label", { class: "settings__label" }, ["Visitor traits"]),
+      this.traitRows(cond.traits ?? (cond.traits = {}), touched),
+      h("div", { class: "settings__hint" }, [
+        "Every trait listed must match what the host reports for this visitor. A trait the host does not report never matches."
       ])
     );
     return wrap;

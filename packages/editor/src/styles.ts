@@ -452,6 +452,35 @@ button { font: inherit; cursor: pointer; }
   white-space: nowrap;
 }
 .selpop__page:hover { background: var(--e-surface); }
+
+/* Visitor-trait key/value rows. */
+.traits { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
+.traits__row { display: flex; align-items: center; gap: 6px; }
+.traits__key, .traits__val {
+  min-width: 0;
+  font: inherit;
+  font-size: 12px;
+  color: var(--e-fg);
+  background: var(--e-surface);
+  border: 1px solid var(--e-border);
+  border-radius: 6px;
+  padding: 5px 7px;
+}
+.traits__key { flex: 0 1 40%; }
+.traits__val { flex: 1 1 60%; }
+.traits__key:focus, .traits__val:focus { outline: none; border-color: var(--e-accent); }
+.traits__add {
+  align-self: flex-start;
+  font: inherit;
+  font-size: 12px;
+  color: var(--e-muted);
+  background: transparent;
+  border: 1px dashed var(--e-border);
+  border-radius: 6px;
+  padding: 5px 9px;
+  cursor: pointer;
+}
+.traits__add:hover { color: var(--e-fg); border-color: var(--e-accent); }
 .selpop__add--on { color: #fff; background: var(--e-accent); border-style: solid; border-color: var(--e-accent); }
 
 .card__content {

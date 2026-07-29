@@ -90,6 +90,13 @@ export interface DraftTour {
   audience: Audience;
   /** Auto-start conditions. */
   conditions: DraftConditions;
+  /**
+   * What the card's × does: end the tour, or set it aside with an invitation to
+   * carry on. Stored flat because the builder edits it as three plain fields.
+   */
+  dismissMode: 'end' | 'minimize';
+  resumeText: string;
+  resumeButton: string;
   steps: DraftStep[];
   display: DraftDisplay;
 }
@@ -132,6 +139,9 @@ export function createDraftTour(kind: TourKind = 'tour'): DraftTour {
     trigger: { type: 'manual' },
     audience: 'all',
     conditions: { firstVisitOnly: true, maxShows: 0, device: 'any' },
+    dismissMode: 'end',
+    resumeText: '',
+    resumeButton: '',
     steps: [createDraftStep()],
     display: {
       padding: DEFAULT_PADDING,
@@ -156,6 +166,9 @@ export function cloneDraft(src: DraftTour, kind: TourKind, name?: string): Draft
     trigger: { ...src.trigger },
     audience: src.audience,
     conditions: { ...src.conditions },
+    dismissMode: src.dismissMode ?? 'end',
+    resumeText: src.resumeText ?? '',
+    resumeButton: src.resumeButton ?? '',
     steps: src.steps.map((s) => ({ ...s, id: uid('step'), selectors: [...s.selectors] })),
     display: { ...src.display },
   };
@@ -209,6 +222,9 @@ export function normalizeTours(input: unknown): DraftTour[] {
       status: t.status === 'published' ? 'published' : 'draft',
       trigger: normalizeTrigger(t.trigger),
       audience: t.audience === 'auth' || t.audience === 'guest' ? t.audience : 'all',
+      dismissMode: t.dismissMode === 'minimize' ? 'minimize' : 'end',
+      resumeText: typeof t.resumeText === 'string' ? t.resumeText : '',
+      resumeButton: typeof t.resumeButton === 'string' ? t.resumeButton : '',
       conditions: {
         firstVisitOnly: (t.conditions?.firstVisitOnly ?? true) === true,
         maxShows: numOr(t.conditions?.maxShows, 0),
@@ -276,6 +292,22 @@ export function compileTour(draft: DraftTour): Tour {
     trigger: draft.trigger,
     audience: draft.audience,
     ...(rules ? { rules } : {}),
+    // Only emitted when it differs from the default, so stored tours stay lean.
+    ...(draft.dismissMode === 'minimize'
+      ? {
+          dismiss: {
+            mode: 'minimize' as const,
+            ...(draft.resumeText || draft.resumeButton
+              ? {
+                  resume: {
+                    text: draft.resumeText || 'Carry on with the tour?',
+                    button: draft.resumeButton || 'Resume',
+                  },
+                }
+              : {}),
+          },
+        }
+      : {}),
     display: {
       padding: draft.display.padding,
       radius: draft.display.radius,
@@ -314,6 +346,11 @@ export function fromTour(tour: Tour): DraftTour {
     status: 'draft',
     trigger: normalizeTrigger(tour.trigger),
     audience: tour.audience === 'auth' || tour.audience === 'guest' ? tour.audience : 'all',
+    // Round-trips the dismiss policy, so importing then re-exporting a tour
+    // does not quietly drop it.
+    dismissMode: tour.dismiss?.mode === 'minimize' ? 'minimize' : 'end',
+    resumeText: tour.dismiss?.resume?.text ?? '',
+    resumeButton: tour.dismiss?.resume?.button ?? '',
     conditions: {
       firstVisitOnly: rule.firstVisitOnly === true,
       maxShows: numOr(rule.maxShows, 0),

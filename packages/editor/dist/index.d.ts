@@ -242,6 +242,13 @@ export interface DraftTour {
 	audience: Audience;
 	/** Auto-start conditions. */
 	conditions: DraftConditions;
+	/**
+	 * What the card's × does: end the tour, or set it aside with an invitation to
+	 * carry on. Stored flat because the builder edits it as three plain fields.
+	 */
+	dismissMode: "end" | "minimize";
+	resumeText: string;
+	resumeButton: string;
 	steps: DraftStep[];
 	display: DraftDisplay;
 }

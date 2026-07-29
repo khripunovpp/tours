@@ -2037,6 +2037,9 @@ function createDraftTour(kind = "tour") {
     trigger: { type: "manual" },
     audience: "all",
     conditions: { firstVisitOnly: true, maxShows: 0, device: "any" },
+    dismissMode: "end",
+    resumeText: "",
+    resumeButton: "",
     steps: [createDraftStep()],
     display: {
       padding: DEFAULT_PADDING,
@@ -2056,6 +2059,9 @@ function cloneDraft(src, kind, name) {
     trigger: { ...src.trigger },
     audience: src.audience,
     conditions: { ...src.conditions },
+    dismissMode: src.dismissMode ?? "end",
+    resumeText: src.resumeText ?? "",
+    resumeButton: src.resumeButton ?? "",
     steps: src.steps.map((s) => ({ ...s, id: uid("step"), selectors: [...s.selectors] })),
     display: { ...src.display }
   };
@@ -2093,6 +2099,9 @@ function normalizeTours(input) {
       status: t.status === "published" ? "published" : "draft",
       trigger: normalizeTrigger(t.trigger),
       audience: t.audience === "auth" || t.audience === "guest" ? t.audience : "all",
+      dismissMode: t.dismissMode === "minimize" ? "minimize" : "end",
+      resumeText: typeof t.resumeText === "string" ? t.resumeText : "",
+      resumeButton: typeof t.resumeButton === "string" ? t.resumeButton : "",
       conditions: {
         firstVisitOnly: (t.conditions?.firstVisitOnly ?? true) === true,
         maxShows: numOr(t.conditions?.maxShows, 0),
@@ -2143,6 +2152,18 @@ function compileTour(draft) {
     trigger: draft.trigger,
     audience: draft.audience,
     ...rules ? { rules } : {},
+    // Only emitted when it differs from the default, so stored tours stay lean.
+    ...draft.dismissMode === "minimize" ? {
+      dismiss: {
+        mode: "minimize",
+        ...draft.resumeText || draft.resumeButton ? {
+          resume: {
+            text: draft.resumeText || "Carry on with the tour?",
+            button: draft.resumeButton || "Resume"
+          }
+        } : {}
+      }
+    } : {},
     display: {
       padding: draft.display.padding,
       radius: draft.display.radius,
@@ -2170,6 +2191,11 @@ function fromTour(tour) {
     status: "draft",
     trigger: normalizeTrigger(tour.trigger),
     audience: tour.audience === "auth" || tour.audience === "guest" ? tour.audience : "all",
+    // Round-trips the dismiss policy, so importing then re-exporting a tour
+    // does not quietly drop it.
+    dismissMode: tour.dismiss?.mode === "minimize" ? "minimize" : "end",
+    resumeText: tour.dismiss?.resume?.text ?? "",
+    resumeButton: tour.dismiss?.resume?.button ?? "",
     conditions: {
       firstVisitOnly: rule.firstVisitOnly === true,
       maxShows: numOr(rule.maxShows, 0),
@@ -3204,6 +3230,34 @@ ${result.errors.join("\n")}`);
         }
       )
     );
+    wrap.append(
+      this.selectField(
+        "Closing the tour",
+        t.dismissMode,
+        [
+          ["end", "Ends it — progress is cleared"],
+          ["minimize", "Sets it aside — offer to carry on"]
+        ],
+        (v) => {
+          t.dismissMode = v === "minimize" ? "minimize" : "end";
+          this.markDirty();
+          this.render();
+        }
+      )
+    );
+    if (t.dismissMode === "minimize") {
+      wrap.append(
+        this.textField("Invitation text", t.resumeText, "Carry on with the tour?", (v) => {
+          t.resumeText = v;
+        }),
+        this.textField("Button label", t.resumeButton, "Resume", (v) => {
+          t.resumeButton = v;
+        }),
+        h("div", { class: "settings__hint" }, [
+          "A set-aside tour never restarts on its own — the visitor has to accept the invitation."
+        ])
+      );
+    }
     if (t.trigger.type === "selector") {
       wrap.append(
         this.textField("Element selector (CSS)", t.trigger.selector, "#start, .cta", (v) => {

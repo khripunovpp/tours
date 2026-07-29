@@ -1172,6 +1172,37 @@ export class TourBuilder {
       ),
     );
 
+    // What the × does. Sits next to the trigger because the two bracket the
+    // tour's life: how it opens, and what closing it means.
+    wrap.append(
+      this.selectField(
+        'Closing the tour',
+        t.dismissMode,
+        [
+          ['end', 'Ends it — progress is cleared'],
+          ['minimize', 'Sets it aside — offer to carry on'],
+        ],
+        (v) => {
+          t.dismissMode = v === 'minimize' ? 'minimize' : 'end';
+          this.markDirty();
+          this.render();
+        },
+      ),
+    );
+    if (t.dismissMode === 'minimize') {
+      wrap.append(
+        this.textField('Invitation text', t.resumeText, 'Carry on with the tour?', (v) => {
+          t.resumeText = v;
+        }),
+        this.textField('Button label', t.resumeButton, 'Resume', (v) => {
+          t.resumeButton = v;
+        }),
+        h('div', { class: 'settings__hint' }, [
+          'A set-aside tour never restarts on its own — the visitor has to accept the invitation.',
+        ]),
+      );
+    }
+
     // Trigger-specific parameter.
     if (t.trigger.type === 'selector') {
       wrap.append(

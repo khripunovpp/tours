@@ -2408,6 +2408,7 @@ function toPageGlob(url) {
   return trimmed ? `${trimmed}*` : "";
 }
 const RESUME_PARAM = "tours-resume";
+const TRAIT_KEYS_ID = "tours-trait-keys";
 function h(tag, attrs = {}, children = []) {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
@@ -3424,7 +3425,13 @@ ${result.errors.join("\n")}`);
     const wrap = h("div", { class: "traits" });
     for (const [key, value] of Object.entries(traits)) {
       const row = h("div", { class: "traits__row" });
-      const k = h("input", { class: "traits__key", placeholder: "key" });
+      const k = h("input", {
+        class: "traits__key",
+        placeholder: "key",
+        // A datalist suggests without restricting: a host may report keys it
+        // never declared, and the schema does not limit them either.
+        ...this.options.traitKeys?.length ? { list: TRAIT_KEYS_ID } : {}
+      });
       k.value = key;
       const v = h("input", { class: "traits__val", placeholder: "value" });
       v.value = value;
@@ -3447,6 +3454,11 @@ ${result.errors.join("\n")}`);
       });
       row.append(k, v, del);
       wrap.append(row);
+    }
+    if (this.options.traitKeys?.length) {
+      const dl = h("datalist", { id: TRAIT_KEYS_ID });
+      for (const key of this.options.traitKeys) dl.append(h("option", { value: key }));
+      wrap.append(dl);
     }
     const add = h("button", { class: "traits__add", type: "button" }, ["+ Add a trait"]);
     add.addEventListener("click", () => {

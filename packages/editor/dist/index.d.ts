@@ -314,6 +314,14 @@ export interface TourBuilderOptions {
 	/** URL query flag that auto-mounts the builder (used by `fromUrl`). */
 	urlFlag?: string;
 	/**
+	 * Trait keys the host can actually answer for, offered as suggestions in the
+	 * condition editors.
+	 *
+	 * A mistyped key matches nobody and fails silently — the rule just never
+	 * fires — so letting an author pick is worth more than it looks.
+	 */
+	traitKeys?: string[];
+	/**
 	 * Extra top offset in px, added above the panel and a top-positioned nav —
 	 * e.g. to clear a host's fixed bar (the WordPress admin bar).
 	 */

@@ -19,6 +19,8 @@ interface WpData {
   role?: string | null;
   /** Extra facts, via the `site_tours_viewer_traits` filter. */
   traits?: Record<string, string | number>;
+  /** Trait keys this site can answer for, offered to the builder. */
+  traitKeys?: string[];
 }
 
 function data(): WpData {

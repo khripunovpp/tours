@@ -37,6 +37,9 @@ import { sitePages, matchPages, toPageGlob } from './sitemap.js';
  */
 const RESUME_PARAM = 'tours-resume';
 
+/** Id of the datalist backing the trait-key inputs. */
+const TRAIT_KEYS_ID = 'tours-trait-keys';
+
 export type NavPosition = 'top' | 'bottom';
 export type PanelPosition = 'left' | 'right';
 type Mode = 'build' | 'preview';
@@ -51,6 +54,14 @@ export interface TourBuilderOptions {
   panelPosition?: PanelPosition;
   /** URL query flag that auto-mounts the builder (used by `fromUrl`). */
   urlFlag?: string;
+  /**
+   * Trait keys the host can actually answer for, offered as suggestions in the
+   * condition editors.
+   *
+   * A mistyped key matches nobody and fails silently — the rule just never
+   * fires — so letting an author pick is worth more than it looks.
+   */
+  traitKeys?: string[];
   /**
    * Extra top offset in px, added above the panel and a top-positioned nav —
    * e.g. to clear a host's fixed bar (the WordPress admin bar).
@@ -1299,7 +1310,13 @@ export class TourBuilder {
 
     for (const [key, value] of Object.entries(traits)) {
       const row = h('div', { class: 'traits__row' });
-      const k = h('input', { class: 'traits__key', placeholder: 'key' }) as HTMLInputElement;
+      const k = h('input', {
+        class: 'traits__key',
+        placeholder: 'key',
+        // A datalist suggests without restricting: a host may report keys it
+        // never declared, and the schema does not limit them either.
+        ...(this.options.traitKeys?.length ? { list: TRAIT_KEYS_ID } : {}),
+      }) as HTMLInputElement;
       k.value = key;
       const v = h('input', { class: 'traits__val', placeholder: 'value' }) as HTMLInputElement;
       v.value = value;
@@ -1324,6 +1341,14 @@ export class TourBuilder {
       });
       row.append(k, v, del);
       wrap.append(row);
+    }
+
+    // One datalist per rendered editor; the browser matches it by id within the
+    // shadow root.
+    if (this.options.traitKeys?.length) {
+      const dl = h('datalist', { id: TRAIT_KEYS_ID });
+      for (const key of this.options.traitKeys) dl.append(h('option', { value: key }));
+      wrap.append(dl);
     }
 
     const add = h('button', { class: 'traits__add', type: 'button' }, ['+ Add a trait']);

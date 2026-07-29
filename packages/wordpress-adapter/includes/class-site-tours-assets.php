@@ -48,6 +48,8 @@ class Site_Tours_Assets {
 				 * so this is a filter rather than a guess.
 				 */
 				'traits'        => (object) apply_filters( 'site_tours_viewer_traits', array() ),
+				/** Keys the builder can offer, so an author picks instead of typing. */
+				'traitKeys'     => Site_Tours_Viewer::known_keys(),
 			)
 		);
 
@@ -108,11 +110,15 @@ class Site_Tours_Assets {
 				'nonce' => $nonce,
 			)
 		);
+		// Keys this site can actually answer for. Without them an author types
+		// trait names blind, and a typo matches nobody without saying so.
+		$keys = wp_json_encode( Site_Tours_Viewer::known_keys() );
 		return 'window.addEventListener("load",function(){'
 			. 'var S=window.SiteToursAdmin;if(!S)return;'
 			. 'var b=document.getElementById("wpadminbar");'
 			. 'var off=b?b.offsetHeight:0;'
-			. 'S.TourBuilder.fromUrl({topOffset:off,storage:S.createWordPressStore(' . $cfg . ')});'
+			. 'S.TourBuilder.fromUrl({topOffset:off,traitKeys:' . $keys . ','
+			. 'storage:S.createWordPressStore(' . $cfg . ')});'
 			. '});';
 	}
 

@@ -26,11 +26,13 @@ define( 'SITE_TOURS_URL', plugin_dir_url( __FILE__ ) );
 
 require_once SITE_TOURS_DIR . 'includes/class-site-tours-cpt.php';
 require_once SITE_TOURS_DIR . 'includes/class-site-tours-rest.php';
+require_once SITE_TOURS_DIR . 'includes/class-site-tours-viewer.php';
 require_once SITE_TOURS_DIR . 'includes/class-site-tours-assets.php';
 require_once SITE_TOURS_DIR . 'includes/class-site-tours-admin.php';
 
 Site_Tours_CPT::init();
 Site_Tours_REST::init();
+Site_Tours_Viewer::init();
 Site_Tours_Assets::init();
 
 if ( is_admin() ) {

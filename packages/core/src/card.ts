@@ -43,7 +43,11 @@ function makeButton(spec: CardButton): HTMLButtonElement {
 /** Build a step card element from the given options. */
 export function renderCard(opts: CardOptions): HTMLElement {
   const card = document.createElement('div');
-  card.className = `tours-card${opts.ghost ? ' tours-card--ghost' : ''}`;
+  // The close button is absolutely positioned, so the content has to be told to
+  // keep clear of it — otherwise the first line runs underneath the ×.
+  card.className =
+    `tours-card${opts.ghost ? ' tours-card--ghost' : ''}` +
+    `${opts.showClose ? ' tours-card--closable' : ''}`;
   if (opts.radius != null) card.style.borderRadius = `${opts.radius}px`;
 
   if (opts.showClose) {
@@ -102,6 +106,9 @@ export const CARD_STYLES = `
   white-space: pre-wrap;
   word-break: break-word;
 }
+/* Room for the × — only when there is one, so a card without it keeps the full
+   width. 8px offset + 24px button, less the card's own 16px padding. */
+.tours-card--closable .tours-card__content { padding-right: 20px; }
 .tours-card__footer {
   display: flex;
   align-items: center;

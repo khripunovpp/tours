@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tours — vanilla sandbox</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        margin: 0; padding: 2.5rem 1.5rem 6rem;
+      }
+      main { max-width: 46rem; margin: 0 auto; }
+      h1 { font-size: 1.35rem; margin: 0 0 .25rem; }
+      .sub { color: #6b7280; margin: 0 0 2rem; }
+      section {
+        border: 1px solid #e5e7eb; border-radius: 12px;
+        padding: 1.25rem 1.25rem 1.5rem; margin: 0 0 1.25rem;
+      }
+      h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em;
+           color: #6b7280; margin: 0 0 1rem; }
+      .row { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+      button { font: inherit; padding: .5rem 1rem; border: 1px solid #d1d5db;
+               border-radius: 8px; background: #fff; cursor: pointer; }
+      button.primary { background: #111827; color: #fff; border-color: #111827; }
+      input[type="text"] { font: inherit; padding: .5rem .7rem; border: 1px solid #d1d5db;
+                           border-radius: 8px; }
+      /* A scrollable container — the case R2 is about. */
+      .scroller { max-height: 8rem; overflow: auto; border: 1px dashed #d1d5db;
+                  border-radius: 8px; padding: .75rem; }
+      .scroller p { margin: 0 0 2rem; }
+      code { background: #f3f4f6; padding: .1rem .35rem; border-radius: 4px; }
+      #log { font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+             white-space: pre-wrap; color: #374151; max-height: 12rem; overflow: auto; }
+      @media (prefers-color-scheme: dark) {
+        body { background: #0b0f19; color: #e5e7eb; }
+        section { border-color: #1f2937; }
+        button { background: #111827; color: #e5e7eb; border-color: #374151; }
+        button.primary { background: #2563eb; border-color: #2563eb; color: #fff; }
+        input[type="text"] { background: #111827; color: #e5e7eb; border-color: #374151; }
+        code, #log { background: transparent; }
+        code { background: #1f2937; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Tours — vanilla sandbox</h1>
+      <p class="sub">
+        Wired to package <strong>source</strong>: edit <code>packages/*/src</code>
+        and this reloads. Open with <code>?tours-edit=1</code> for the builder.
+      </p>
+
+      <section>
+        <h2>Targets</h2>
+        <div class="row">
+          <button id="compose" class="primary">New post</button>
+          <button id="settings">Settings</button>
+          <input id="search" type="text" placeholder="Search…" />
+        </div>
+      </section>
+
+      <section>
+        <h2>Inside a scroll container</h2>
+        <div class="scroller">
+          <p>Scroll down…</p>
+          <p>…further…</p>
+          <button id="buried">Buried target</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Run</h2>
+        <div class="row">
+          <button id="run-basic" class="primary">Basic tour</button>
+          <button id="run-nodim">Step without dimming</button>
+          <button id="run-interactive">Interactive step</button>
+          <button id="run-minimize">Minimizable tour</button>
+          <button id="reset">Reset stored progress</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Events</h2>
+        <div id="log">…</div>
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

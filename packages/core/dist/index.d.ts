@@ -84,6 +84,18 @@ export interface Step {
 	condition?: Condition;
 	/** Interaction the step performs or expects to advance. */
 	action?: Action;
+	/**
+	 * Dim the rest of the page for this step. Defaults to true.
+	 *
+	 * `false` leaves the page fully usable and merely outlines the target — for a
+	 * step that explains something the visitor should be free to poke at. Users of
+	 * other tour libraries fake this with an enormous spotlight padding; it is a
+	 * flag here.
+	 *
+	 * Distinct from `action: { type: 'click' }`: that also changes how the step
+	 * *advances*. This only changes how it *looks*.
+	 */
+	overlay?: boolean;
 }
 /** Auto-start rule: trigger a tour when `when` holds. */
 export interface Rule {
@@ -478,18 +490,33 @@ export interface MountOptions extends PlayerOptions {
 	 */
 	canRun?: (tour: RuntimeTour) => boolean;
 }
+export interface MountHandle {
+	/**
+	 * Start a tour now, from the top — a "show me the tour" button.
+	 *
+	 * Goes through the mount rather than round a separate `createPlayer`, which
+	 * would leave this mount unaware of the running tour and let it start a second
+	 * one on the next navigation. Returns false if the id is unknown or the tour
+	 * is not eligible.
+	 */
+	start(tourId: string): boolean;
+	/** Stop whatever is running, without unmounting. */
+	stop(): void;
+	/** Stop everything and release the location watcher. */
+	unmount(): void;
+}
 /**
- * Register tours and keep them running across navigation. Returns an unmount
- * function that stops any running tour and releases the watcher.
+ * Register tours and keep them running across navigation.
  *
  * Pass a function rather than an array when the set of tours is computed —
  * it is re-read on every navigation, so tours loaded later are picked up.
  *
  * ```ts
- * mountTours(tours, { state: createLocalState() });
+ * const tours = mountTours(list, { state: createLocalState() });
+ * tours.start('welcome');   // e.g. from a "show me again" button
  * ```
  */
-export declare function mountTours(input: readonly RuntimeTour[] | (() => readonly RuntimeTour[]), options?: MountOptions): () => void;
+export declare function mountTours(input: readonly RuntimeTour[] | (() => readonly RuntimeTour[]), options?: MountOptions): MountHandle;
 /**
  * Debug logger. Silent by default so production pages stay quiet; enable it by
  * adding `use_logs` to the page URL query string (e.g. `?use_logs` or
@@ -594,6 +621,6 @@ export interface CardOptions {
 /** Build a step card element from the given options. */
 export declare function renderCard(opts: CardOptions): HTMLElement;
 /** Styles for the step card. Injected into any shadow root that renders one. */
-export declare const CARD_STYLES = "\n.tours-card {\n  position: fixed;\n  z-index: 2147483001;\n  box-sizing: border-box;\n  max-width: 320px;\n  min-width: 220px;\n  padding: 16px;\n  font: 14px/1.5 system-ui, sans-serif;\n  color: #111827;\n  background: #ffffff;\n  border: 1px solid #e5e7eb;\n  border-radius: 10px;\n  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);\n}\n.tours-card--ghost { pointer-events: none; }\n.tours-card--ghost .tours-card__btn,\n.tours-card--ghost .tours-card__close { pointer-events: auto; }\n.tours-card__content {\n  white-space: pre-wrap;\n  word-break: break-word;\n}\n.tours-card__footer {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 8px;\n  margin-top: 14px;\n}\n.tours-card__progress {\n  flex: 1;\n  text-align: center;\n  font-size: 12px;\n  color: #6b7280;\n}\n.tours-card__btn {\n  box-sizing: border-box;\n  padding: 6px 12px;\n  font: inherit;\n  font-size: 13px;\n  font-weight: 600;\n  line-height: 1;\n  color: #111827;\n  background: #f3f4f6;\n  border: 1px solid #e5e7eb;\n  border-radius: 7px;\n  cursor: pointer;\n}\n.tours-card__btn:hover { background: #e5e7eb; }\n.tours-card__btn--primary { color: #fff; background: #2563eb; border-color: #2563eb; }\n.tours-card__btn--primary:hover { background: #1d4ed8; }\n.tours-card__btn--disabled { opacity: 0.45; pointer-events: none; cursor: default; }\n.tours-card__close {\n  position: absolute;\n  top: 8px;\n  right: 8px;\n  width: 24px;\n  height: 24px;\n  padding: 0;\n  font: 16px/1 system-ui, sans-serif;\n  color: #6b7280;\n  background: transparent;\n  border: none;\n  border-radius: 4px;\n  cursor: pointer;\n}\n.tours-card__close:hover { background: #f3f4f6; color: #111827; }\n";
+export declare const CARD_STYLES = "\n.tours-card {\n  position: fixed;\n  z-index: 2147483001;\n  box-sizing: border-box;\n  max-width: 320px;\n  min-width: 220px;\n  padding: 16px;\n  font: 14px/1.5 system-ui, sans-serif;\n  color: #111827;\n  background: #ffffff;\n  border: 1px solid #e5e7eb;\n  border-radius: 10px;\n  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);\n}\n.tours-card--ghost { pointer-events: none; }\n.tours-card--ghost .tours-card__btn,\n.tours-card--ghost .tours-card__close { pointer-events: auto; }\n.tours-card__content {\n  white-space: pre-wrap;\n  word-break: break-word;\n}\n/* Room for the \u00D7 \u2014 only when there is one, so a card without it keeps the full\n   width. 8px offset + 24px button, less the card's own 16px padding. */\n.tours-card--closable .tours-card__content { padding-right: 20px; }\n.tours-card__footer {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 8px;\n  margin-top: 14px;\n}\n.tours-card__progress {\n  flex: 1;\n  text-align: center;\n  font-size: 12px;\n  color: #6b7280;\n}\n.tours-card__btn {\n  box-sizing: border-box;\n  padding: 6px 12px;\n  font: inherit;\n  font-size: 13px;\n  font-weight: 600;\n  line-height: 1;\n  color: #111827;\n  background: #f3f4f6;\n  border: 1px solid #e5e7eb;\n  border-radius: 7px;\n  cursor: pointer;\n}\n.tours-card__btn:hover { background: #e5e7eb; }\n.tours-card__btn--primary { color: #fff; background: #2563eb; border-color: #2563eb; }\n.tours-card__btn--primary:hover { background: #1d4ed8; }\n.tours-card__btn--disabled { opacity: 0.45; pointer-events: none; cursor: default; }\n.tours-card__close {\n  position: absolute;\n  top: 8px;\n  right: 8px;\n  width: 24px;\n  height: 24px;\n  padding: 0;\n  font: 16px/1 system-ui, sans-serif;\n  color: #6b7280;\n  background: transparent;\n  border: none;\n  border-radius: 4px;\n  cursor: pointer;\n}\n.tours-card__close:hover { background: #f3f4f6; color: #111827; }\n";
 
 export {};

@@ -1,0 +1,12 @@
+{
+  "name": "@tours/dev-vanilla",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "vite", "build": "vite build" },
+  "dependencies": {
+    "@tours/core": "workspace:*",
+    "@tours/editor": "workspace:*",
+    "@tours/schema": "workspace:*"
+  },
+  "devDependencies": { "vite": "6.4.3" }
+}

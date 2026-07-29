@@ -130,6 +130,9 @@ function validate(json) {
       if (step.action !== void 0) {
         validateAction(step.action, `steps[${i}].action`, errors);
       }
+      if (step.overlay !== void 0 && typeof step.overlay !== "boolean") {
+        errors.push(`steps[${i}].overlay must be a boolean`);
+      }
     });
   }
   if (json.trigger !== void 0) {

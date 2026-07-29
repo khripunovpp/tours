@@ -83,6 +83,18 @@ export interface Step {
 	condition?: Condition;
 	/** Interaction the step performs or expects to advance. */
 	action?: Action;
+	/**
+	 * Dim the rest of the page for this step. Defaults to true.
+	 *
+	 * `false` leaves the page fully usable and merely outlines the target — for a
+	 * step that explains something the visitor should be free to poke at. Users of
+	 * other tour libraries fake this with an enormous spotlight padding; it is a
+	 * flag here.
+	 *
+	 * Distinct from `action: { type: 'click' }`: that also changes how the step
+	 * *advances*. This only changes how it *looks*.
+	 */
+	overlay?: boolean;
 }
 /** Auto-start rule: trigger a tour when `when` holds. */
 export interface Rule {
@@ -193,6 +205,8 @@ export interface DraftStep {
 	nextLabel: string;
 	/** Optional interaction to advance (e.g. navigate to another page). */
 	action?: Action;
+	/** Dim the rest of the page for this step. Default true. */
+	overlay: boolean;
 }
 export type TourStatus = "draft" | "published";
 /** A draft is either a real tour or a reusable template. */
@@ -324,6 +338,16 @@ export declare class TourBuilder {
 	private panelPosition;
 	private picker;
 	private picking;
+	/**
+	 * Append the picked candidates instead of replacing the step's list. Used by
+	 * the selector editor, where the point is to add a fallback rather than start
+	 * over.
+	 */
+	private pickAppend;
+	/** Step whose selector list is open in the editor popover, if any. */
+	private selectorEditorFor;
+	/** Index being dragged in the selector list, while a drag is in progress. */
+	private dragFrom;
 	private player;
 	/** Dashed outline over the active step's target element (no backdrop). */
 	private highlight;
@@ -461,7 +485,23 @@ export declare class TourBuilder {
 	/** A labelled text input that writes through on change. */
 	private textField;
 	private renderConnector;
+	/**
+	 * Selector list editor, shown over the panel.
+	 *
+	 * A step keeps a ranked list of candidates, but the UI only ever showed the
+	 * first one and offered no way to drop a bad entry or add a fallback — the
+	 * picker could only replace the lot. This is that missing editor.
+	 */
+	private renderSelectorEditor;
 	private renderCard;
+	/**
+	 * Per-step behaviour toggles.
+	 *
+	 * Exists because of the standing rule that anything the schema can express
+	 * must be reachable from the builder — `overlay` shipped with this section,
+	 * not after it.
+	 */
+	private renderBehaviourBody;
 	/** Page sub-panel: which pages this step shows on (multi-page tours). */
 	private renderPageBody;
 	/**

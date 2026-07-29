@@ -40,6 +40,11 @@ const PLAYER_STYLES = `
   pointer-events: none;
   transition: all 120ms ease-out;
 }
+/* Step with overlay: false — outline the target, dim nothing. The huge shadow
+   above *is* the dimming, so it is replaced rather than merely hidden. */
+.tours-spotlight--plain {
+  box-shadow: 0 0 0 2px var(--tours-outline, rgba(37, 99, 235, 0.9));
+}
 .tours-backdrop {
   position: fixed;
   inset: 0;
@@ -442,6 +447,9 @@ function validate(json) {
       if (step.action !== void 0) {
         validateAction(step.action, `steps[${i}].action`, errors);
       }
+      if (step.overlay !== void 0 && typeof step.overlay !== "boolean") {
+        errors.push(`steps[${i}].overlay must be a boolean`);
+      }
     });
   }
   if (json.trigger !== void 0) {
@@ -553,7 +561,7 @@ function makeButton(spec) {
 }
 function renderCard(opts) {
   const card = document.createElement("div");
-  card.className = `tours-card${opts.ghost ? " tours-card--ghost" : ""}`;
+  card.className = `tours-card${opts.ghost ? " tours-card--ghost" : ""}${opts.showClose ? " tours-card--closable" : ""}`;
   if (opts.radius != null) card.style.borderRadius = `${opts.radius}px`;
   if (opts.showClose) {
     const close = document.createElement("button");
@@ -606,6 +614,9 @@ const CARD_STYLES = `
   white-space: pre-wrap;
   word-break: break-word;
 }
+/* Room for the × — only when there is one, so a card without it keeps the full
+   width. 8px offset + 24px button, less the card's own 16px padding. */
+.tours-card--closable .tours-card__content { padding-right: 20px; }
 .tours-card__footer {
   display: flex;
   align-items: center;
@@ -943,6 +954,14 @@ function createPlayer(tour, options = {}) {
     const b = rect.bottom + pad;
     backdrop.style.clipPath = `polygon(0 0, 0 100%, ${l}px 100%, ${l}px ${t}px, ${r}px ${t}px, ${r}px ${b}px, ${l}px ${b}px, ${l}px 100%, 100% 100%, 100% 0)`;
   }
+  function dims(step) {
+    return step.overlay !== false;
+  }
+  function applyOverlay(step) {
+    const dim = dims(step);
+    if (backdrop) backdrop.style.display = dim ? "" : "none";
+    spotlight?.classList.toggle("tours-spotlight--plain", !dim);
+  }
   function positionSpotlight(rect, fast = false) {
     if (!spotlight) return;
     spotlight.style.transitionDuration = fast ? "0ms" : "";
@@ -1044,7 +1063,8 @@ function createPlayer(tour, options = {}) {
     const rect = target.getBoundingClientRect();
     positionSpotlight(rect);
     positionTooltip(rect, step);
-    cutHole(isInteractive(step) ? rect : null);
+    applyOverlay(step);
+    cutHole(dims(step) && isInteractive(step) ? rect : null);
     watchForVisitorAdvance(step);
     emit(options.on, "stepActivated", { tour, index, step, target });
   }
@@ -1641,6 +1661,83 @@ button { font: inherit; cursor: pointer; }
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 .card__sel--empty { color: #d97706; }
+.card__sel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  padding: 1px 5px;
+  cursor: pointer;
+}
+.card__sel:hover { background: var(--e-surface); border-color: var(--e-border); }
+.card__selcount {
+  font-family: system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--e-accent);
+}
+.card__page { cursor: pointer; }
+.card__page:hover { border-color: var(--e-accent); color: var(--e-fg); }
+
+/* Selector list editor, floated over the panel body. */
+.selpop {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  margin: 0 0 12px;
+  padding: 10px;
+  background: var(--e-bg);
+  border: 1px solid var(--e-accent);
+  border-radius: 10px;
+  box-shadow: var(--e-shadow);
+}
+.selpop__head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.selpop__head .spacer { flex: 1; }
+.selpop__title { font-size: 12px; font-weight: 700; color: var(--e-fg); }
+.selpop__empty { margin: 0 0 8px; font-size: 12px; color: var(--e-muted); }
+.selpop__list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.selpop__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px;
+  border-radius: 6px;
+}
+.selpop__row:hover { background: var(--e-surface); }
+.selpop__rank {
+  flex: none;
+  width: 16px; height: 16px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700;
+  color: var(--e-muted);
+  background: var(--e-surface);
+  border-radius: 4px;
+}
+.selpop__code {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--e-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.selpop__add {
+  width: 100%;
+  font: inherit;
+  font-size: 12px;
+  padding: 7px 10px;
+  color: var(--e-fg);
+  background: var(--e-surface);
+  border: 1px dashed var(--e-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.selpop__add:hover { border-color: var(--e-accent); }
+.selpop__add--on { color: #fff; background: var(--e-accent); border-style: solid; border-color: var(--e-accent); }
 
 .card__content {
   padding: 12px;
@@ -1909,7 +2006,8 @@ function createDraftStep(type = "step") {
     placement: "auto",
     align: "center",
     backLabel: "Back",
-    nextLabel: "Next"
+    nextLabel: "Next",
+    overlay: true
   };
 }
 function createDraftTour(kind = "tour") {
@@ -2010,7 +2108,9 @@ function compileTour(draft) {
     backLabel: s.backLabel,
     nextLabel: s.nextLabel,
     ...s.page ? { pageUrl: { glob: s.page } } : {},
-    ...s.action ? { action: s.action } : {}
+    ...s.action ? { action: s.action } : {},
+    // Only emitted when it differs from the default, to keep stored tours lean.
+    ...s.overlay === false ? { overlay: false } : {}
   }));
   const when = {};
   if (draft.conditions.firstVisitOnly) when.firstVisitOnly = true;
@@ -2072,9 +2172,12 @@ function fromTour(tour) {
       page: s.pageUrl?.glob ?? "",
       placement: s.placement ?? "auto",
       align: s.align ?? "center",
+      overlay: s.overlay !== false,
       backLabel: s.backLabel ?? "Back",
       nextLabel: s.nextLabel ?? "Next",
-      ...s.action ? { action: s.action } : {}
+      ...s.action ? { action: s.action } : {},
+      // Only emitted when it differs from the default, to keep stored tours lean.
+      ...s.overlay === false ? { overlay: false } : {}
     }))
   };
 }
@@ -2189,6 +2292,9 @@ class TourBuilder {
     this.mode = "build";
     this.picker = null;
     this.picking = false;
+    this.pickAppend = false;
+    this.selectorEditorFor = null;
+    this.dragFrom = null;
     this.player = null;
     this.highlight = null;
     this.cardPreview = null;
@@ -2376,7 +2482,7 @@ class TourBuilder {
     this.render();
   }
   // ---------- picker (selector search) ----------
-  togglePicking() {
+  togglePicking(append = false) {
     if (this.picking) {
       this.stopPicking();
       return;
@@ -2384,11 +2490,17 @@ class TourBuilder {
     const step = this.activeStep;
     if (!step) return;
     this.picking = true;
+    this.pickAppend = append;
     this.picker = createPicker(
       (selectors) => {
-        step.selectors = selectors;
+        if (this.pickAppend) {
+          for (const s of selectors) if (!step.selectors.includes(s)) step.selectors.push(s);
+        } else {
+          step.selectors = selectors;
+        }
         if (!step.page) step.page = this.currentPage();
         this.picking = false;
+        this.pickAppend = false;
         this.picker = null;
         this.log.log("bound selector to step", step.id, selectors);
         this.render();
@@ -2402,6 +2514,7 @@ class TourBuilder {
     this.picker?.stop();
     this.picker = null;
     this.picking = false;
+    this.pickAppend = false;
   }
   // ---------- preview ----------
   togglePreview() {
@@ -2970,6 +3083,9 @@ ${result.errors.join("\n")}`);
       body.append(this.renderRulesBody());
       return body;
     }
+    const editing = this.selectorEditorFor ? this.tour.steps.find((s) => s.id === this.selectorEditorFor) : void 0;
+    if (editing) body.append(this.renderSelectorEditor(editing));
+    else if (this.selectorEditorFor) this.selectorEditorFor = null;
     const list = h("div", { class: "steps" });
     list.append(this.renderConnector(-1));
     this.tour.steps.forEach((step, i) => {
@@ -3131,6 +3247,72 @@ ${result.errors.join("\n")}`);
     c.append(h("div", { class: "connector__line" }), add, h("div", { class: "connector__line" }));
     return c;
   }
+  /**
+   * Selector list editor, shown over the panel.
+   *
+   * A step keeps a ranked list of candidates, but the UI only ever showed the
+   * first one and offered no way to drop a bad entry or add a fallback — the
+   * picker could only replace the lot. This is that missing editor.
+   */
+  renderSelectorEditor(step) {
+    const pop = h("div", { class: "selpop" });
+    const head = h("div", { class: "selpop__head" });
+    head.append(h("span", { class: "selpop__title" }, ["Selectors"]));
+    const close = iconButton("close", "Close");
+    close.addEventListener("click", () => {
+      this.selectorEditorFor = null;
+      this.render();
+    });
+    head.append(h("div", { class: "spacer" }), close);
+    const list = h("div", { class: "selpop__list" });
+    if (step.selectors.length === 0) {
+      list.append(h("p", { class: "selpop__empty" }, ["No selectors yet. Add one with the crosshair below."]));
+    }
+    step.selectors.forEach((value, i) => {
+      const row = h("div", { class: "selpop__row", draggable: "true" });
+      row.addEventListener("dragstart", (e) => {
+        this.dragFrom = i;
+        row.classList.add("selpop__row--dragging");
+        e.dataTransfer?.setData("text/plain", String(i));
+      });
+      row.addEventListener("dragend", () => {
+        this.dragFrom = null;
+        row.classList.remove("selpop__row--dragging");
+      });
+      row.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        row.classList.add("selpop__row--over");
+      });
+      row.addEventListener("dragleave", () => row.classList.remove("selpop__row--over"));
+      row.addEventListener("drop", (e) => {
+        e.preventDefault();
+        const from = this.dragFrom;
+        this.dragFrom = null;
+        if (from === null || from === i) return;
+        const [moved] = step.selectors.splice(from, 1);
+        step.selectors.splice(i, 0, moved);
+        this.markDirty();
+        this.render();
+      });
+      row.append(h("span", { class: "selpop__grip", title: "Drag to reorder" }, ["⠿"]));
+      row.append(h("span", { class: "selpop__rank" }, [String(i + 1)]));
+      row.append(h("code", { class: "selpop__code", title: value }, [value]));
+      const del = iconButton("trash", "Remove this selector");
+      del.addEventListener("click", () => {
+        step.selectors.splice(i, 1);
+        this.markDirty();
+        this.render();
+      });
+      row.append(del);
+      list.append(row);
+    });
+    const add = h("button", { class: `selpop__add ${this.picking ? "selpop__add--on" : ""}`.trim(), type: "button" }, [
+      this.picking ? "◎ Picking — click an element, or press Esc" : "⌖ Add by picking an element"
+    ]);
+    add.addEventListener("click", () => this.togglePicking(true));
+    pop.append(head, list, add);
+    return pop;
+  }
   renderCard(step, index) {
     const isActive = step.id === this.activeStepId;
     const card = h("div", {
@@ -3145,9 +3327,30 @@ ${result.errors.join("\n")}`);
     card.append(this.renderCardControl(step, index), this.renderCardContent(step), this.renderCardFooter(step));
     if (isActive) {
       card.append(this.section("placement", "Card position", () => this.renderPlacementBody(step)));
+      card.append(this.section("behaviour", "Behaviour", () => this.renderBehaviourBody(step)));
       card.append(this.section("page", "Page", () => this.renderPageBody(step)));
     }
     return card;
+  }
+  /**
+   * Per-step behaviour toggles.
+   *
+   * Exists because of the standing rule that anything the schema can express
+   * must be reachable from the builder — `overlay` shipped with this section,
+   * not after it.
+   */
+  renderBehaviourBody(step) {
+    const wrap = h("div", { class: "settings" });
+    wrap.append(
+      this.checkboxField("Dim the rest of the page", step.overlay !== false, (on) => {
+        step.overlay = on;
+        this.render();
+      }),
+      h("div", { class: "settings__hint" }, [
+        "Off leaves the page fully usable and only outlines the target — for a step the visitor should be free to poke at."
+      ])
+    );
+    return wrap;
   }
   /** Page sub-panel: which pages this step shows on (multi-page tours). */
   renderPageBody(step) {
@@ -3261,15 +3464,36 @@ ${result.errors.join("\n")}`);
     type.innerHTML = ICONS[step.type === "action" ? "bolt" : "step"];
     type.append(document.createTextNode(step.type === "action" ? "Action" : "Step"));
     const sel = step.selectors[0];
-    const selEl = h("span", { class: `card__sel ${sel ? "" : "card__sel--empty"}`.trim(), title: sel ?? "" }, [
-      sel ?? "no selector"
-    ]);
+    const count = step.selectors.length;
+    const selEl = h(
+      "button",
+      {
+        class: `card__sel ${sel ? "" : "card__sel--empty"}`.trim(),
+        type: "button",
+        title: step.selectors.join("\n") || "No selector yet — click to add one"
+      },
+      [sel ?? "no selector"]
+    );
+    if (count > 1) selEl.append(h("span", { class: "card__selcount" }, [`+${count - 1}`]));
+    selEl.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.setActive(step.id);
+      this.selectorEditorFor = this.selectorEditorFor === step.id ? null : step.id;
+      this.render();
+    });
     const del = iconButton("trash", "Delete step");
     del.addEventListener("click", () => this.removeStep(step.id));
     row.append(check, idx, type, h("div", { class: "spacer" }));
     if (step.page && !matchUrl({ glob: step.page }, window.location.href)) {
       const path = step.page.replace(/^https?:\/\/[^/]+/, "").replace(/\*$/, "") || "/";
-      row.append(h("span", { class: "card__page", title: step.page }, [`⧉ ${path}`]));
+      const pageEl = h("button", { class: "card__page", type: "button", title: step.page }, [`⧉ ${path}`]);
+      pageEl.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.setActive(step.id);
+        this.openSections.add("page");
+        this.render();
+      });
+      row.append(pageEl);
     }
     row.append(selEl, del);
     return row;

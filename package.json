@@ -9,6 +9,8 @@
   },
   "scripts": {
     "dev": "pnpm --filter @tours/demo dev",
+    "sandbox": "pnpm --filter @tours/dev-vanilla dev",
+    "sandbox:ng": "pnpm --filter @tours/dev-angular dev",
     "dev:all": "pnpm -r --parallel dev",
     "build": "pnpm --filter @tours/demo build",
     "preview": "pnpm --filter @tours/demo preview",
@@ -18,7 +20,7 @@
     "dev:solid": "pnpm --filter @tours/demo-solid dev",
     "dev:angular": "pnpm --filter @tours/demo-angular dev",
     "typecheck": "pnpm -r exec tsc --noEmit",
-    "test": "echo \"(no tests yet — added at the end of M0)\"",
+    "test": "echo \"(no tests yet \u2014 added at the end of M0)\"",
     "build:lib": "node scripts/build-lib.mjs",
     "build:packages": "node scripts/build-packages.mjs",
     "build:wp": "node scripts/build-wp.mjs",

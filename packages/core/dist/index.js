@@ -40,6 +40,11 @@ const PLAYER_STYLES = `
   pointer-events: none;
   transition: all 120ms ease-out;
 }
+/* Step with overlay: false — outline the target, dim nothing. The huge shadow
+   above *is* the dimming, so it is replaced rather than merely hidden. */
+.tours-spotlight--plain {
+  box-shadow: 0 0 0 2px var(--tours-outline, rgba(37, 99, 235, 0.9));
+}
 .tours-backdrop {
   position: fixed;
   inset: 0;
@@ -364,7 +369,7 @@ function makeButton(spec) {
 }
 function renderCard(opts) {
   const card = document.createElement("div");
-  card.className = `tours-card${opts.ghost ? " tours-card--ghost" : ""}`;
+  card.className = `tours-card${opts.ghost ? " tours-card--ghost" : ""}${opts.showClose ? " tours-card--closable" : ""}`;
   if (opts.radius != null) card.style.borderRadius = `${opts.radius}px`;
   if (opts.showClose) {
     const close = document.createElement("button");
@@ -417,6 +422,9 @@ const CARD_STYLES = `
   white-space: pre-wrap;
   word-break: break-word;
 }
+/* Room for the × — only when there is one, so a card without it keeps the full
+   width. 8px offset + 24px button, less the card's own 16px padding. */
+.tours-card--closable .tours-card__content { padding-right: 20px; }
 .tours-card__footer {
   display: flex;
   align-items: center;
@@ -794,6 +802,14 @@ function createPlayer(tour, options = {}) {
     const b = rect.bottom + pad;
     backdrop.style.clipPath = `polygon(0 0, 0 100%, ${l}px 100%, ${l}px ${t}px, ${r}px ${t}px, ${r}px ${b}px, ${l}px ${b}px, ${l}px 100%, 100% 100%, 100% 0)`;
   }
+  function dims(step) {
+    return step.overlay !== false;
+  }
+  function applyOverlay(step) {
+    const dim = dims(step);
+    if (backdrop) backdrop.style.display = dim ? "" : "none";
+    spotlight?.classList.toggle("tours-spotlight--plain", !dim);
+  }
   function positionSpotlight(rect, fast = false) {
     if (!spotlight) return;
     spotlight.style.transitionDuration = fast ? "0ms" : "";
@@ -895,7 +911,8 @@ function createPlayer(tour, options = {}) {
     const rect = target.getBoundingClientRect();
     positionSpotlight(rect);
     positionTooltip(rect, step);
-    cutHole(isInteractive(step) ? rect : null);
+    applyOverlay(step);
+    cutHole(dims(step) && isInteractive(step) ? rect : null);
     watchForVisitorAdvance(step);
     emit(options.on, "stepActivated", { tour, index, step, target });
   }
@@ -1286,11 +1303,28 @@ function mountTours(input, options = {}) {
   }
   activate();
   const off = onLocationChange(activate);
-  return () => {
-    off();
-    disarm();
-    current?.stop();
-    current = null;
+  return {
+    start(tourId) {
+      const tour = list().find((t) => t.id === tourId);
+      if (!tour || !eligible(tour)) return false;
+      current?.stop();
+      disarm();
+      if (state) clearProgress(state);
+      const player = createPlayer(tour, options);
+      current = player;
+      player.start();
+      return true;
+    },
+    stop() {
+      current?.stop();
+      current = null;
+    },
+    unmount() {
+      off();
+      disarm();
+      current?.stop();
+      current = null;
+    }
   };
 }
 export {

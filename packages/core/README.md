@@ -12,8 +12,12 @@ so the host page's CSS cannot reach it and it cannot leak styles back.
 pnpm add "git+https://github.com/khripunovpp/tours.git#path:/packages/core"
 ```
 
-`#path:` is supported by pnpm and yarn, not by plain npm. For npm, use the
-prebuilt `dist/tours-player.js` bundle from the repository root instead.
+`#path:` is honoured by pnpm and yarn. **Plain npm ignores it silently** — it
+reports `added 1 package` but installs the monorepo root, which then fails with
+`TS2307: Cannot find module '@tours/core'`.
+
+For npm, install a packed tarball (`cd packages/core && pnpm pack`) or use the
+prebuilt `dist/tours-player.js` bundle from the repository root.
 
 ## Usage
 

@@ -1,9 +1,11 @@
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
+import { toursAliases } from '../scripts/dev-aliases.mjs';
 
 // The mock "Community" site + triggers showcase + vanilla SPA. Framework SPA
 // demos live in their own packages under demos/* (each with its own toolchain).
 export default defineConfig({
+  resolve: { alias: toursAliases },
   server: { open: '/hub.html' },
   build: {
     rollupOptions: {

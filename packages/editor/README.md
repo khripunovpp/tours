@@ -13,9 +13,13 @@ needs from `@tours/core`, and renders its whole UI inside a shadow DOM.
 pnpm add "git+https://github.com/khripunovpp/tours.git#path:/packages/editor"
 ```
 
-`#path:` is supported by pnpm and yarn, not by plain npm. For npm, use the
+`#path:` is honoured by pnpm and yarn. **Plain npm ignores it silently** — it
+reports `added 1 package` but installs the monorepo root, which then fails with
+`TS2307: Cannot find module '@tours/editor'`.
+
+For npm, install a packed tarball (`cd packages/editor && pnpm pack`) or use the
 prebuilt `dist/tours-editor.js` (ESM) or `dist/tours-editor.umd.js`
-(`window.Tours` global) from the repository root instead.
+(`window.Tours` global) from the repository root.
 
 ## Usage
 

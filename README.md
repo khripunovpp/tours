@@ -56,7 +56,26 @@ pnpm add "git+https://github.com/khripunovpp/tours.git#path:/packages/schema"
 Pin a tag or commit by appending it before the fragment —
 `…/tours.git#v0.1.0&path:/packages/core`.
 
-> On plain npm, or want no git dependency at all? Use the drop-in bundles below.
+> **Do not use plain npm for this.** npm ignores `#path:` without erroring: it
+> reports `added 1 package` and installs the **monorepo root** into
+> `node_modules/@tours/core`, which then fails with
+> `TS2307: Cannot find module '@tours/core'`. npm consumers should use a tarball
+> or the drop-in bundles below.
+
+### npm consumers — tarball
+
+`npm` installs a packed tarball correctly. Build one per package:
+
+```bash
+cd packages/core && pnpm pack --pack-destination /tmp
+```
+
+then install it by path or from a URL (e.g. a GitHub release asset):
+
+```bash
+npm i /tmp/tours-core-0.1.0.tgz
+npm i https://github.com/khripunovpp/tours/releases/download/v0.1.0/tours-core-0.1.0.tgz
+```
 
 ### Drop-in `<script>` — no build step
 

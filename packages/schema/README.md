@@ -16,7 +16,7 @@ store or validate tours outside the player — a CMS, a build step, an API.
 pnpm add "git+https://github.com/khripunovpp/tours.git#path:/packages/schema"
 ```
 
-`#path:` is supported by pnpm and yarn, not by plain npm.
+`#path:` is honoured by pnpm and yarn. **Plain npm ignores it silently** and installs the monorepo root instead — use a packed tarball or the drop-in bundle.
 
 ## Usage
 

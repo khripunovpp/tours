@@ -13,7 +13,12 @@ import { routes } from './app/routes';
 
 // Mounts only with ?tours-edit=1. Kept out of the component so it is obvious
 // this is a page-level concern, not part of the app's own lifecycle.
-TourBuilder.fromUrl();
+TourBuilder.fromUrl({
+  // What this "host" can attach to a visitor. Without it the builder has
+  // nothing to offer and the tag pickers stay empty — which is exactly what a
+  // real host must supply, so the sandbox models it.
+  tags: ['guest', 'authenticated', 'admin', 'firstVisit', 'hasPurchases', 'level:gold'],
+});
 
 void bootstrapApplication(AppComponent, {
   providers: [

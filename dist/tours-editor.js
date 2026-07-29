@@ -2788,7 +2788,7 @@ ${t.errors.join(`
     const t = a("div", { class: "settings" }), n = e.condition ?? (e.condition = {}), i = () => {
       !n.device && (!n.tags || n.tags.length === 0) && delete e.condition, this.markDirty();
     };
-    return t.append(
+    t.append(
       this.selectField(
         "Device",
         n.device ?? "any",
@@ -2798,12 +2798,15 @@ ${t.errors.join(`
           ["tablet", "Tablet only"],
           ["desktop", "Desktop only"]
         ],
-        (o) => {
-          o === "any" ? delete n.device : n.device = o, i(), this.render();
+        (s) => {
+          s === "any" ? delete n.device : n.device = s, i(), this.render();
         }
-      ),
+      )
+    );
+    const o = n.tags ?? (n.tags = []);
+    return ((this.options.tags?.length ?? 0) > 0 || o.length > 0) && t.append(
       a("label", { class: "settings__label" }, ["Visitor tags"]),
-      this.tagPicker(n.tags ?? (n.tags = []), i),
+      this.tagPicker(o, i),
       a("div", { class: "settings__hint" }, [
         "The visitor must carry every selected tag. A tag the host does not attach is simply absent, so the step is skipped."
       ])

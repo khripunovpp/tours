@@ -14,7 +14,12 @@ const state = createLocalState();
 
 // Mounts only when the URL carries ?tours-edit=1, so the sandbox is usable
 // with and without the builder in the way.
-const builder = TourBuilder.fromUrl();
+const builder = TourBuilder.fromUrl({
+  // What this "host" can attach to a visitor. Without it the builder has
+  // nothing to offer and the tag pickers stay empty — which is exactly what a
+  // real host must supply, so the sandbox models it.
+  tags: ['guest', 'authenticated', 'admin', 'firstVisit', 'hasPurchases', 'level:gold'],
+});
 
 const logEl = document.querySelector<HTMLElement>('#log')!;
 let lines: string[] = [];
@@ -81,9 +86,12 @@ const tours: Record<string, Tour> = {
   },
 };
 
+/** Tags this fake visitor carries — flip them to see rules and steps react. */
+const visitor = ['authenticated', 'level:gold'];
+
 function run(name: keyof typeof tours): void {
   lines = [];
-  createPlayer(tours[name]!, { state, on }).start();
+  createPlayer(tours[name]!, { state, on, viewer: () => visitor }).start();
 }
 
 document.querySelector('#run-basic')!.addEventListener('click', () => run('basic'));

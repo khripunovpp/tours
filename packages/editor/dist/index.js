@@ -3687,13 +3687,18 @@ ${result.errors.join("\n")}`);
           touched();
           this.render();
         }
-      ),
-      h("label", { class: "settings__label" }, ["Visitor tags"]),
-      this.tagPicker(cond.tags ?? (cond.tags = []), touched),
-      h("div", { class: "settings__hint" }, [
-        "The visitor must carry every selected tag. A tag the host does not attach is simply absent, so the step is skipped."
-      ])
+      )
     );
+    const stepTags = cond.tags ?? (cond.tags = []);
+    if ((this.options.tags?.length ?? 0) > 0 || stepTags.length > 0) {
+      wrap.append(
+        h("label", { class: "settings__label" }, ["Visitor tags"]),
+        this.tagPicker(stepTags, touched),
+        h("div", { class: "settings__hint" }, [
+          "The visitor must carry every selected tag. A tag the host does not attach is simply absent, so the step is skipped."
+        ])
+      );
+    }
     return wrap;
   }
   /** Page sub-panel: which pages this step shows on (multi-page tours). */

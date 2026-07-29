@@ -1619,7 +1619,7 @@ export class TourBuilder {
     const wrap = h('div', { class: 'settings' });
     const cond = (step.condition ??= {});
     const touched = (): void => {
-      // Drop the object entirely once it is empty, so an untouched step does
+      // Drop the object entirely once it says nothing, so an untouched step does
       // not compile a meaningless `condition: {}` into the tour.
       if (!cond.device && (!cond.tags || cond.tags.length === 0)) delete step.condition;
       this.markDirty();
@@ -1642,12 +1642,22 @@ export class TourBuilder {
           this.render();
         },
       ),
-      h('label', { class: 'settings__label' }, ['Visitor tags']),
-      this.tagPicker((cond.tags ??= []), touched),
-      h('div', { class: 'settings__hint' }, [
-        'The visitor must carry every selected tag. A tag the host does not attach is simply absent, so the step is skipped.',
-      ]),
     );
+
+    // Nothing to pick from and nothing already set — say nothing at all. The
+    // tour's Rules tab introduces the concept and its empty state explains how
+    // to declare tags; repeating that on every step card is noise for a site
+    // that does not use them.
+    const stepTags = (cond.tags ??= []);
+    if ((this.options.tags?.length ?? 0) > 0 || stepTags.length > 0) {
+      wrap.append(
+        h('label', { class: 'settings__label' }, ['Visitor tags']),
+        this.tagPicker(stepTags, touched),
+        h('div', { class: 'settings__hint' }, [
+          'The visitor must carry every selected tag. A tag the host does not attach is simply absent, so the step is skipped.',
+        ]),
+      );
+    }
     return wrap;
   }
 

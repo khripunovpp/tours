@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@tours/core — Bun example</title>
+
+    <!--
+      No bundler. An import map points the bare specifier straight at the ESM
+      build inside node_modules, which every current browser resolves natively.
+      Swap it for a bundler and the `import` below is unchanged.
+    -->
+    <script type="importmap">
+      {
+        "imports": {
+          "@tours/core": "./node_modules/@tours/core/dist/index.js"
+        }
+      }
+    </script>
+
+    <style>
+      body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 3rem 1.5rem; }
+      main { max-width: 34rem; margin: 0 auto; }
+      h1 { font-size: 1.25rem; margin: 0 0 .25rem; }
+      p.sub { color: #666; margin: 0 0 2rem; }
+      .row { display: flex; gap: .75rem; margin: 2rem 0; }
+      button { font: inherit; padding: .5rem 1rem; border: 1px solid #ccc;
+               border-radius: 8px; background: #fff; cursor: pointer; }
+      button.primary { background: #111; color: #fff; border-color: #111; }
+      code { background: #f4f4f5; padding: .1rem .35rem; border-radius: 4px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>@tours/core via Bun</h1>
+      <p class="sub">Installed from a release tarball with <code>bun</code>.</p>
+
+      <div class="row">
+        <button id="compose" class="primary">New post</button>
+        <button id="settings">Settings</button>
+      </div>
+
+      <button id="start">▶ Start the tour</button>
+    </main>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

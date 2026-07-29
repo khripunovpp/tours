@@ -46,3 +46,10 @@ coverage/
 
 # Planning docs are kept local, out of the repo
 docs/
+
+# Examples install real published artifacts; their trees are throwaway.
+examples/*/node_modules/
+examples/*/package-lock.json
+examples/*/pnpm-lock.yaml
+examples/*/yarn.lock
+examples/*/bun.lockb

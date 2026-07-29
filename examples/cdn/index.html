@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@tours/core — CDN example</title>
+
+    <!--
+      No install, no bundler, no build step.
+
+      `integrity` pins the exact bytes: if the file at this URL ever changes,
+      the browser refuses to run it. That only works against an **immutable**
+      URL, which is why this points at the `@v0.2.0` tag and not at a branch —
+      with a moving target the hash would break on the next commit.
+
+      `crossorigin="anonymous"` is required alongside it. Without it the
+      response is opaque, the browser cannot hash it, and the script is blocked.
+
+      Regenerate the hashes after a release with:  node scripts/sri.mjs --tags
+      Check them against what the CDN really serves: node scripts/sri.mjs --verify
+    -->
+    <script
+      src="https://cdn.jsdelivr.net/gh/khripunovpp/tours@v0.2.0/packages/core/dist/index.umd.js"
+      integrity="sha384-MZ7SpgOcX5238HgVwwzDT2m9w7x+mR7bYODNWkAjD9g9LkLiQpRhngDTH9YcYmTK"
+      crossorigin="anonymous"
+    ></script>
+
+    <style>
+      body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 3rem 1.5rem; }
+      main { max-width: 34rem; margin: 0 auto; }
+      h1 { font-size: 1.25rem; margin: 0 0 .25rem; }
+      p.sub { color: #666; margin: 0 0 2rem; }
+      .row { display: flex; gap: .75rem; margin: 2rem 0; }
+      button { font: inherit; padding: .5rem 1rem; border: 1px solid #ccc;
+               border-radius: 8px; background: #fff; cursor: pointer; }
+      button.primary { background: #111; color: #fff; border-color: #111; }
+      code { background: #f4f4f5; padding: .1rem .35rem; border-radius: 4px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>@tours/core via CDN</h1>
+      <p class="sub">
+        Loaded from jsDelivr with <code>integrity</code> — no package manager
+        involved. Open this file directly; it needs no server.
+      </p>
+
+      <div class="row">
+        <button id="compose" class="primary">New post</button>
+        <button id="settings">Settings</button>
+      </div>
+
+      <button id="start">▶ Start the tour</button>
+    </main>
+
+    <script>
+      // The UMD build exposes everything on `window.ToursCore`.
+      const tour = {
+        id: 'example',
+        schemaVersion: 1,
+        title: { default: 'Getting started' },
+        steps: [
+          {
+            id: 'compose',
+            selectors: ['#compose', 'button.primary'],
+            content: { default: 'Start here to write a new post.' },
+            placement: 'bottom',
+          },
+          {
+            id: 'settings',
+            selectors: ['#settings'],
+            content: { default: 'Everything else lives behind Settings.' },
+            placement: 'bottom',
+          },
+          {
+            id: 'done',
+            selectors: ['#start'],
+            content: { default: "That's the whole tour — replay it any time." },
+            placement: 'top',
+          },
+        ],
+      };
+
+      document.querySelector('#start').addEventListener('click', () => {
+        ToursCore.createPlayer(tour).start();
+      });
+    </script>
+  </body>
+</html>

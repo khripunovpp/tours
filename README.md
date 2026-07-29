@@ -73,17 +73,36 @@ Drop `#v0.2.0&` to track `main` instead of a tag.
 ### CDN — no build step, no install
 
 Each package ships a minified UMD bundle, exposed as `ToursCore`,
-`ToursEditor` and `ToursSchema`:
+`ToursEditor` and `ToursSchema`. jsDelivr serves the tagged build straight from
+GitHub, so this works today without an npm release:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@tours/core/dist/index.umd.js"></script>
+<script
+  src="https://cdn.jsdelivr.net/gh/khripunovpp/tours@v0.2.0/packages/core/dist/index.umd.js"
+  integrity="sha384-MZ7SpgOcX5238HgVwwzDT2m9w7x+mR7bYODNWkAjD9g9LkLiQpRhngDTH9YcYmTK"
+  crossorigin="anonymous"
+></script>
 <script>
   ToursCore.createPlayer(tour).start();
 </script>
 ```
 
-Until the packages are on npm, serve `packages/core/dist/index.umd.js` from the
-repository yourself.
+`integrity` and `crossorigin` belong together — without `crossorigin` the
+response is opaque, the browser cannot hash it, and the script is blocked. Pin a
+**tag**, never a branch: a moving URL breaks the hash on the next commit.
+
+Regenerate hashes after a release, and verify the CDN serves those exact bytes:
+
+```bash
+node scripts/sri.mjs --tags     # ready-to-paste <script> tags
+node scripts/sri.mjs --verify   # re-hash what jsDelivr actually returns
+```
+
+### Examples
+
+[`examples/`](examples) has the same vanilla page installed five ways — npm,
+pnpm, yarn, bun and CDN — with no framework and no bundler. They install the
+published artifacts exactly as an outside consumer would.
 
 ### Drop-in `<script>` — no build step
 

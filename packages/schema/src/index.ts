@@ -87,6 +87,18 @@ export interface Step {
   condition?: Condition;
   /** Interaction the step performs or expects to advance. */
   action?: Action;
+  /**
+   * Dim the rest of the page for this step. Defaults to true.
+   *
+   * `false` leaves the page fully usable and merely outlines the target — for a
+   * step that explains something the visitor should be free to poke at. Users of
+   * other tour libraries fake this with an enormous spotlight padding; it is a
+   * flag here.
+   *
+   * Distinct from `action: { type: 'click' }`: that also changes how the step
+   * *advances*. This only changes how it *looks*.
+   */
+  overlay?: boolean;
 }
 
 /** Auto-start rule: trigger a tour when `when` holds. */
@@ -353,6 +365,10 @@ export function validate(
       }
       if (step.action !== undefined) {
         validateAction(step.action, `steps[${i}].action`, errors);
+      }
+
+      if (step.overlay !== undefined && typeof step.overlay !== 'boolean') {
+        errors.push(`steps[${i}].overlay must be a boolean`);
       }
     });
   }

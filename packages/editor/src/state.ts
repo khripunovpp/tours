@@ -44,6 +44,8 @@ export interface DraftStep {
   nextLabel: string;
   /** Optional interaction to advance (e.g. navigate to another page). */
   action?: Action;
+  /** Dim the rest of the page for this step. Default true. */
+  overlay: boolean;
 }
 
 export type TourStatus = 'draft' | 'published';
@@ -116,6 +118,7 @@ export function createDraftStep(type: CardType = 'step'): DraftStep {
     align: 'center',
     backLabel: 'Back',
     nextLabel: 'Next',
+    overlay: true,
   };
 }
 
@@ -254,6 +257,8 @@ export function compileTour(draft: DraftTour): Tour {
       nextLabel: s.nextLabel,
       ...(s.page ? { pageUrl: { glob: s.page } } : {}),
       ...(s.action ? { action: s.action } : {}),
+      // Only emitted when it differs from the default, to keep stored tours lean.
+      ...(s.overlay === false ? { overlay: false } : {}),
     }));
 
   // Auto-start conditions → a single rule (omit when all are defaults).
@@ -329,9 +334,12 @@ export function fromTour(tour: Tour): DraftTour {
       page: s.pageUrl?.glob ?? '',
       placement: s.placement ?? 'auto',
       align: s.align ?? 'center',
+      overlay: s.overlay !== false,
       backLabel: s.backLabel ?? 'Back',
       nextLabel: s.nextLabel ?? 'Next',
       ...(s.action ? { action: s.action } : {}),
+      // Only emitted when it differs from the default, to keep stored tours lean.
+      ...(s.overlay === false ? { overlay: false } : {}),
     })),
   };
 }

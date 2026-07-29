@@ -267,6 +267,25 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
       ` ${r}px ${b}px, ${l}px ${b}px, ${l}px 100%, 100% 100%, 100% 0)`;
   }
 
+  /** Does this step dim the page? Defaults to yes. */
+  function dims(step: RuntimeStep): boolean {
+    return step.overlay !== false;
+  }
+
+  /**
+   * Apply the step's overlay mode.
+   *
+   * Without dimming the backdrop is removed outright, not merely made
+   * transparent — it is what captures clicks, and the whole point is a page the
+   * visitor can still use. The consequence is that click-outside-to-dismiss is
+   * unavailable on such a step; the card's × still is.
+   */
+  function applyOverlay(step: RuntimeStep): void {
+    const dim = dims(step);
+    if (backdrop) backdrop.style.display = dim ? '' : 'none';
+    spotlight?.classList.toggle('tours-spotlight--plain', !dim);
+  }
+
   /** Size and place the spotlight cut-out around the target (with padding). */
   function positionSpotlight(rect: DOMRect, fast = false): void {
     if (!spotlight) return;
@@ -408,7 +427,10 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
     positionTooltip(rect, step);
     // Only interactive steps let the click through; elsewhere the backdrop
     // still covers the target, so a stray click cannot fire it by accident.
-    cutHole(isInteractive(step) ? rect : null);
+    applyOverlay(step);
+    // Only meaningful while the backdrop is present; with overlay: false it is
+    // gone entirely and every click already reaches the page.
+    cutHole(dims(step) && isInteractive(step) ? rect : null);
     watchForVisitorAdvance(step);
     emit(options.on, 'stepActivated', { tour, index, step, target });
   }

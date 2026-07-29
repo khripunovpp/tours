@@ -44,6 +44,11 @@ export const PLAYER_STYLES = `
   pointer-events: none;
   transition: all 120ms ease-out;
 }
+/* Step with overlay: false — outline the target, dim nothing. The huge shadow
+   above *is* the dimming, so it is replaced rather than merely hidden. */
+.tours-spotlight--plain {
+  box-shadow: 0 0 0 2px var(--tours-outline, rgba(37, 99, 235, 0.9));
+}
 .tours-backdrop {
   position: fixed;
   inset: 0;

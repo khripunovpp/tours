@@ -532,10 +532,9 @@ function detectDevice(width = window.innerWidth) {
 }
 function matchCondition(cond, ctx) {
   if (cond.url && !matchUrl(cond.url, ctx.url)) return false;
-  if (cond.traits) {
-    for (const [key, want] of Object.entries(cond.traits)) {
-      if (ctx.traits?.[key] !== want) return false;
-    }
+  if (cond.tags && cond.tags.length > 0) {
+    const has = ctx.tags ?? [];
+    for (const tag of cond.tags) if (!has.includes(tag)) return false;
   }
   if (cond.firstVisitOnly && !ctx.firstVisit) return false;
   if (cond.device && cond.device !== ctx.device) return false;
@@ -777,7 +776,7 @@ function createPlayer(tour, options = {}) {
     const seen = state ? seenCount(state, tour.id) : 0;
     return matchesCondition(step.condition, {
       url: window.location.href,
-      traits: options.viewer?.(),
+      tags: options.viewer?.(),
       device: detectDevice(),
       firstVisit: seen === 0,
       seenCount: seen
@@ -1315,14 +1314,14 @@ function mountTours(input, options = {}) {
       }
     }
     const device = detectDevice();
-    const traits = options.viewer?.();
+    const tags = options.viewer?.();
     for (const tour of list()) {
       if (!eligible(tour)) continue;
       if (!tour.trigger || tour.trigger.type === "manual") continue;
       const count = state ? seenCount(state, tour.id) : 0;
       const matches = matchRules(tour.rules, {
         url: window.location.href,
-        traits,
+        tags,
         device,
         firstVisit: count === 0,
         seenCount: count

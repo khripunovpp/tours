@@ -15,7 +15,7 @@ const state = createLocalState();
  */
 const routed: Tour = {
   id: 'routed',
-  schemaVersion: 1,
+  schemaVersion: 2,
   title: { default: 'Across routes' },
   trigger: { type: 'manual' },
   steps: [

@@ -26,7 +26,7 @@ import { createPlayer } from '@tours/core';
 
 const player = createPlayer({
   id: 'welcome',
-  schemaVersion: 1,
+  schemaVersion: 2,
   title: { default: 'Welcome' },
   steps: [
     {
@@ -55,7 +55,7 @@ const el = document.querySelector('#compose');
 
 createPlayer({
   id: 'welcome',
-  schemaVersion: 1,
+  schemaVersion: 2,
   title: { default: 'Welcome' },
   steps: [
     // A node, a lazily-read ref, and a selector fallback — tried in order.
@@ -293,34 +293,36 @@ Override the labels per step with `backLabel` / `nextLabel`.
 
 ### Targeting by who is looking
 
-Tell the library what it knows about the visitor, and rules and steps can target
-it:
+Attach labels to the visitor, and rules and steps can require them:
 
 ```ts
 mountTours(tours, {
   state: createLocalState(),
-  viewer: () => ({ role: 'subscriber', level: 'gold', org: 'acme' }),
+  viewer: () => ['authenticated', 'role:subscriber', 'level:gold'],
 });
 ```
 
 ```ts
 // Whole tour: only for gold subscribers.
-rules: [{ when: { traits: { role: 'subscriber', level: 'gold' } } }]
+rules: [{ when: { tags: ['role:subscriber', 'level:gold'] } }]
 
 // Single step: everyone sees the tour, only gold sees this step.
 { id: 'perk', selectors: ['#perk'], content: { default: '…' },
-  condition: { traits: { level: 'gold' } } }
+  condition: { tags: ['level:gold'] } }
 ```
 
-There is **no dedicated `role` field**, on purpose. Role is not privileged over
-group, organisation, plan or enrolment, and naming each in the schema is a list
-that never ends. One mechanism covers them all and the host decides what the
-keys mean.
+All listed tags must be present. "Any of these" is two rules — rules are OR-ed.
+
+There is **no `role` field and no `audience` field**, on purpose. A role is a
+tag, being logged in is a tag, having purchased is a tag. Naming each in the
+schema is a list that never ends, and two mechanisms for one idea always raise
+"which do I use". Values are expressed by convention — `level:gold` — because
+matching is equality only, so a key/value pair never said more than a tag does.
 
 `viewer` is called on each evaluation rather than read once, so logging in or
 changing plan takes effect on the next step or navigation.
 
-Matching **fails closed**: a trait the host does not report never matches, so a
+Matching **fails closed**: a tag the host does not attach is simply absent, so a
 rule written to exclude someone cannot leak by omission. A step gated out this
 way is passed over exactly like one whose element never appeared — it emits
 `stepSkipped` with reason `condition` and is excluded from the progress count.

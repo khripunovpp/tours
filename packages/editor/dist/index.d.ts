@@ -28,17 +28,21 @@ export interface Condition {
 	/** Current page URL must match. */
 	url?: UrlMatch;
 	/**
-	 * Host-supplied facts the visitor must match. Every listed key must equal the
-	 * value the host reports.
+	 * Labels the visitor must carry. All listed tags must be present.
 	 *
-	 *     traits: { role: 'subscriber', level: 'gold', org: 'acme' }
+	 *     tags: ['authenticated', 'level:gold']
 	 *
-	 * Deliberately open-ended, and deliberately *without* a dedicated `role`
-	 * field: role is not privileged over group, organisation, plan or enrolment,
-	 * and naming each one in the schema is a list that never ends. One mechanism
-	 * covers them all, and the host decides what the keys mean.
+	 * A flat set rather than key/value pairs, because matching was only ever
+	 * equality — `{ level: 'gold' }` said nothing that the tag `level:gold` does
+	 * not. Pairs bought no expressiveness and cost the author two fields to fill
+	 * in blind; a set is something they can pick from a list.
+	 *
+	 * Deliberately without dedicated `role` or `audience` fields: a role is a tag,
+	 * being logged in is a tag, having purchased is a tag. Naming each in the
+	 * schema is a list that never ends, and two mechanisms for one idea always
+	 * raise "which do I use".
 	 */
-	traits?: Record<string, string | number>;
+	tags?: string[];
 	/** Only on the visitor's first visit. */
 	firstVisitOnly?: boolean;
 	/** Only on this device class. */
@@ -170,8 +174,6 @@ export interface Tour {
 	rules?: Rule[];
 	/** How the tour auto-starts (defaults to manual). */
 	trigger?: Trigger;
-	/** Who may see the tour: everyone, logged-in only, or logged-out only. */
-	audience?: "all" | "auth" | "guest";
 	/** Optional visual settings shared by player and editor. */
 	display?: DisplaySettings;
 	/** What the card's × does. Defaults to ending the tour. */
@@ -217,15 +219,13 @@ export interface DraftStep {
 export type TourStatus = "draft" | "published";
 /** A draft is either a real tour or a reusable template. */
 export type TourKind = "tour" | "template";
-/** Who may see the tour. */
-export type Audience = "all" | "auth" | "guest";
 interface DraftConditions {
 	firstVisitOnly: boolean;
 	/** 0 = no limit. */
 	maxShows: number;
 	device: "any" | "mobile" | "tablet" | "desktop";
-	/** Host-supplied facts the visitor must match — role, plan, group, anything. */
-	traits: Record<string, string>;
+	/** Visitor tags that must all be present — `admin`, `authenticated`, … */
+	tags: string[];
 }
 export interface DraftDisplay {
 	/** Gap in px between the target element and the outline (player + editor). */
@@ -247,7 +247,6 @@ export interface DraftTour {
 	/** How the tour auto-starts. */
 	trigger: Trigger;
 	/** Who may see the tour. */
-	audience: Audience;
 	/** Auto-start conditions. */
 	conditions: DraftConditions;
 	/**
@@ -314,13 +313,12 @@ export interface TourBuilderOptions {
 	/** URL query flag that auto-mounts the builder (used by `fromUrl`). */
 	urlFlag?: string;
 	/**
-	 * Trait keys the host can actually answer for, offered as suggestions in the
-	 * condition editors.
+	 * Tags this host can attach to a visitor, offered in the condition editors.
 	 *
-	 * A mistyped key matches nobody and fails silently — the rule just never
-	 * fires — so letting an author pick is worth more than it looks.
+	 * Without them the author has nothing to pick from, which is the whole point
+	 * of tags over free text.
 	 */
-	traitKeys?: string[];
+	tags?: string[];
 	/**
 	 * Extra top offset in px, added above the panel and a top-positioned nav —
 	 * e.g. to clear a host's fixed bar (the WordPress admin bar).
@@ -508,13 +506,18 @@ export declare class TourBuilder {
 	/** Rules tab: start trigger, audience, and auto-start conditions. */
 	private renderRulesBody;
 	/**
-	 * Key/value rows for visitor traits.
+	 * Tag picker: click to require a label, click again to drop it.
 	 *
-	 * Traits are deliberately open-ended in the schema — role, plan, group,
-	 * enrolment, whatever the host reports — so the editor cannot offer a fixed
-	 * list of fields. Free rows are the honest shape for that.
+	 * Tags are what the host attaches to a visitor — `admin`, `authenticated`,
+	 * `firstVisit`, `level:gold`. Rendered as a row of toggles rather than text
+	 * inputs because the whole reason for tags over key/value pairs is that an
+	 * author should pick, not type: a mistyped label matches nobody and says
+	 * nothing about it.
+	 *
+	 * Anything already on the tour that the host does not advertise is still
+	 * shown, so importing a tour from elsewhere does not hide its rules.
 	 */
-	private traitRows;
+	private tagPicker;
 	/** A labelled checkbox row. */
 	private checkboxField;
 	/** A labelled <select>. */

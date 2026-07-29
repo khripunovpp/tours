@@ -1,6 +1,6 @@
 {
   "id": "community-onboarding",
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "title": {
     "default": "Community onboarding",
     "ru": "Знакомство с сообществом",

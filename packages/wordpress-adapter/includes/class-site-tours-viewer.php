@@ -1,14 +1,14 @@
 <?php
 /**
- * Facts about the current visitor, exposed to tour rules as "traits".
+ * Tags describing the current visitor, which tour rules match against.
  *
- * The tour format has no `role`, no `membershipLevel` and no first-login
- * trigger — it has one open map of traits, and the host decides what the keys
- * mean. This class is WordPress's side of that bargain: the CMS knows who is
- * looking, so it supplies the facts rather than the format growing a case for
- * each one.
+ * The tour format has no `role`, no `audience` and no first-login trigger — it
+ * has one flat set of tags, and the host decides what they mean. This class is
+ * WordPress's side of that bargain: the CMS knows who is looking, so it attaches
+ * the labels rather than the format growing a field for each one.
  *
- * Site owners add their own with the `site_tours_viewer_traits` filter.
+ * Extend from PHP with `site_tours_viewer_tags`. Declare anything you add with
+ * `site_tours_known_tags` too, or the builder cannot offer it to authors.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -22,7 +22,8 @@ class Site_Tours_Viewer {
 
 	public static function init() {
 		add_action( 'wp_login', array( __CLASS__, 'count_login' ), 10, 2 );
-		add_filter( 'site_tours_viewer_traits', array( __CLASS__, 'defaults' ), 5 );
+		add_filter( 'site_tours_viewer_tags', array( __CLASS__, 'defaults' ), 5 );
+		add_filter( 'site_tours_known_tags', array( __CLASS__, 'known_defaults' ), 5 );
 	}
 
 	/**
@@ -45,55 +46,78 @@ class Site_Tours_Viewer {
 	}
 
 	/**
-	 * The traits WordPress can answer for on its own.
-	 *
-	 * Values are strings because a trait is compared for equality, and a tour
-	 * author types the expected value into a text box — `'1'` and `1` must not
-	 * be different answers.
+	 * Tags WordPress can attach on its own.
 	 *
 	 * Registered at priority 5 so a site's own filter, at the default 10, can
-	 * override anything here.
+	 * add to or remove from these.
 	 *
-	 * @param array $traits Traits collected so far.
+	 * @param array $tags Tags collected so far.
 	 * @return array
 	 */
-	public static function defaults( $traits ) {
+	public static function defaults( $tags ) {
 		if ( ! is_user_logged_in() ) {
-			// A guest has no identity to describe. Deliberately not reporting
-			// `firstLogin => 'no'`: absent means "unknown", and rules fail
-			// closed on unknown, which is the safe answer for a stranger.
-			return $traits;
+			// Exactly one tag for a stranger. Rules fail closed on anything
+			// absent, which is the right default for someone unknown.
+			$tags[] = 'guest';
+			return array_values( array_unique( $tags ) );
 		}
 
-		$user  = wp_get_current_user();
-		$count = (int) get_user_meta( $user->ID, self::LOGIN_COUNT_META, true );
+		$user   = wp_get_current_user();
+		$tags[] = 'authenticated';
 
-		$traits['loginCount'] = (string) $count;
+		foreach ( (array) $user->roles as $role ) {
+			// Namespaced, so `role:editor` cannot collide with a site's own
+			// label that happens to be called "editor".
+			$tags[] = 'role:' . $role;
+		}
+		if ( user_can( $user, 'manage_options' ) ) {
+			$tags[] = 'admin';
+		}
+
+		$count = (int) get_user_meta( $user->ID, self::LOGIN_COUNT_META, true );
 		// The counter is incremented before the page renders, so the very first
 		// authenticated page view reports 1.
-		$traits['firstLogin'] = ( 1 === $count ) ? 'yes' : 'no';
-
-		$registered = strtotime( $user->user_registered );
-		if ( $registered ) {
-			$days = (int) floor( ( time() - $registered ) / DAY_IN_SECONDS );
-			$traits['daysSinceRegistration'] = (string) max( 0, $days );
+		if ( 1 === $count ) {
+			$tags[] = 'firstLogin';
 		}
 
-		return $traits;
+		$registered = strtotime( $user->user_registered );
+		if ( $registered && ( time() - $registered ) < WEEK_IN_SECONDS ) {
+			$tags[] = 'newAccount';
+		}
+
+		return array_values( array_unique( $tags ) );
 	}
 
 	/**
-	 * Trait keys this site can answer for, offered to the builder so an author
-	 * picks rather than types.
+	 * Every tag this site can attach, for the builder to offer.
 	 *
-	 * A mistyped key matches nobody, silently — the rule simply never fires —
-	 * so guessing is the failure mode worth designing out.
+	 * Separate from `defaults()` because that one reports the *current* visitor:
+	 * an author editing as an admin must still be able to target `guest`. Roles
+	 * are enumerated from the site rather than from the user for the same
+	 * reason.
 	 *
+	 * @param array $tags Tags declared so far.
 	 * @return array
 	 */
-	public static function known_keys() {
-		$keys = array_keys( (array) apply_filters( 'site_tours_viewer_traits', array() ) );
-		$keys[] = 'role';
-		return array_values( array_unique( $keys ) );
+	public static function known_defaults( $tags ) {
+		$tags = array_merge(
+			$tags,
+			array( 'guest', 'authenticated', 'admin', 'firstLogin', 'newAccount' )
+		);
+		foreach ( array_keys( wp_roles()->get_names() ) as $role ) {
+			$tags[] = 'role:' . $role;
+		}
+		return array_values( array_unique( $tags ) );
+	}
+
+	/** Tags for the visitor of this request. */
+	public static function current() {
+		return array_values( (array) apply_filters( 'site_tours_viewer_tags', array() ) );
+	}
+
+	/** Tags an author may choose from in the builder. */
+	public static function known() {
+		return array_values( (array) apply_filters( 'site_tours_known_tags', array() ) );
 	}
 }

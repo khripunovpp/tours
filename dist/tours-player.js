@@ -241,7 +241,7 @@ function ne(t, e = {}) {
   }
   return { start: E, stop: w };
 }
-const Pt = 6, Dt = 6, Ot = 10, Ut = 12;
+const Pt = 6, Dt = 6, Ut = 10, Ot = 12;
 function Ft(t, e, r) {
   const n = {
     top: t.top,
@@ -397,9 +397,9 @@ function ft(t = window.innerWidth) {
 }
 function pt(t, e) {
   if (t.url && !P(t.url, e.url)) return !1;
-  if (t.traits) {
-    for (const [r, n] of Object.entries(t.traits))
-      if (e.traits?.[r] !== n) return !1;
+  if (t.tags && t.tags.length > 0) {
+    const r = e.tags ?? [];
+    for (const n of t.tags) if (!r.includes(n)) return !1;
   }
   return !(t.firstVisitOnly && !e.firstVisit || t.device && t.device !== e.device || t.unlessSeen && e.seenCount > 0 || t.maxShows !== void 0 && e.seenCount >= t.maxShows);
 }
@@ -580,7 +580,7 @@ function xt() {
 function z(t, e = {}) {
   const r = K("player"), n = e.state;
   let s = null, i = null, a = null, u = null, h = null, f = null, p = null, m = !1, l = 0, E = 0, w = null;
-  const c = t.display?.padding ?? Pt, g = t.display?.radius ?? Dt, v = t.display?.cardRadius ?? Ot, R = t.display?.offset ?? Ut;
+  const c = t.display?.padding ?? Pt, g = t.display?.radius ?? Dt, v = t.display?.cardRadius ?? Ut, R = t.display?.offset ?? Ot;
   function D(o) {
     return j(o.selectors);
   }
@@ -592,7 +592,7 @@ function z(t, e = {}) {
     const d = n ? Q(n, t.id) : 0;
     return jt(o.condition, {
       url: window.location.href,
-      traits: e.viewer?.(),
+      tags: e.viewer?.(),
       device: ft(),
       firstVisit: d === 0,
       seenCount: d
@@ -617,7 +617,7 @@ function z(t, e = {}) {
       _();
     }), i.appendChild(h), a = document.createElement("div"), a.className = "tours-spotlight", a.style.borderRadius = `${g}px`, i.appendChild(a), document.body.appendChild(s);
   }
-  function O(o) {
+  function U(o) {
     if (!h) return;
     if (!o) {
       h.style.clipPath = "";
@@ -626,11 +626,11 @@ function z(t, e = {}) {
     const d = o.left - c, b = o.top - c, x = o.right + c, y = o.bottom + c;
     h.style.clipPath = `polygon(0 0, 0 100%, ${d}px 100%, ${d}px ${b}px, ${x}px ${b}px, ${x}px ${y}px, ${d}px ${y}px, ${d}px 100%, 100% 100%, 100% 0)`;
   }
-  function U(o) {
+  function O(o) {
     return o.overlay !== !1;
   }
   function yt(o) {
-    const d = U(o);
+    const d = O(o);
     h && (h.style.display = d ? "" : "none"), a?.classList.toggle("tours-spotlight--plain", !d);
   }
   function et(o, d = !1) {
@@ -694,7 +694,7 @@ function z(t, e = {}) {
     }
     tt(), d.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" }), vt(o);
     const b = lt(d) ?? d.getBoundingClientRect();
-    et(b), nt(b, o), yt(o), O(U(o) && A(o) ? b : null), Et(o), C(e.on, "stepActivated", { tour: t, index: l, step: o, target: d });
+    et(b), nt(b, o), yt(o), U(O(o) && A(o) ? b : null), Et(o), C(e.on, "stepActivated", { tour: t, index: l, step: o, target: d });
   }
   function Et(o) {
     if (f?.(), f = null, !A(o)) return;
@@ -717,10 +717,10 @@ function z(t, e = {}) {
       Ct();
       return;
     }
-    et(b, !0), nt(b, o), O(U(o) && A(o) ? b : null), u && (u.style.visibility = "");
+    et(b, !0), nt(b, o), U(O(o) && A(o) ? b : null), u && (u.style.visibility = "");
   }
   function Ct() {
-    a && (a.style.display = "none"), u && (u.style.visibility = "hidden"), O(null);
+    a && (a.style.display = "none"), u && (u.style.visibility = "hidden"), U(null);
   }
   function ot(o = 0) {
     if (m || t.steps.length === 0) return;
@@ -943,7 +943,7 @@ function oe(t, e = {}) {
       const g = n ? Q(n, c.id) : 0;
       qt(c.rules, {
         url: window.location.href,
-        traits: w,
+        tags: w,
         device: E,
         firstVisit: g === 0,
         seenCount: g

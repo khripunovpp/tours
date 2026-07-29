@@ -16,7 +16,7 @@ import { placeCard, visibleRect, type Box } from './position.js';
 import { renderCard, CARD_STYLES } from './card.js';
 import { resolveElement, waitForElement, type SelectorLike } from './selector.js';
 import { matchUrl, deriveUrl } from './url.js';
-import { matchesCondition, detectDevice, type ViewerTraits } from './rules.js';
+import { matchesCondition, detectDevice, type ViewerTags } from './rules.js';
 import { onLocationChange } from './history.js';
 import {
   type StateBackend,
@@ -102,11 +102,11 @@ export interface PlayerOptions {
    */
   on?: TourEventHandlers;
   /**
-   * Facts about the current visitor, used to evaluate per-step `condition`s.
+   * Tags describing the current visitor, used to evaluate per-step `condition`s.
    * Called each time a step is evaluated rather than read once, so a change of
    * plan or group takes effect on the next step.
    */
-  viewer?: () => ViewerTraits;
+  viewer?: () => ViewerTags;
 }
 
 /** Attribute the builder puts on its shadow host — see @tours/editor. */
@@ -181,7 +181,7 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
     const seen = state ? seenCount(state, tour.id) : 0;
     return matchesCondition(step.condition, {
       url: window.location.href,
-      traits: options.viewer?.(),
+      tags: options.viewer?.(),
       device: detectDevice(),
       firstVisit: seen === 0,
       seenCount: seen,

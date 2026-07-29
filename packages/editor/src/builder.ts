@@ -24,7 +24,6 @@ import {
   type DraftStep,
   type DraftTour,
   type TourKind,
-  type Audience,
   type Trigger,
 } from './state.js';
 import { createLocalStore, type DraftStore } from './storage.js';
@@ -55,13 +54,12 @@ export interface TourBuilderOptions {
   /** URL query flag that auto-mounts the builder (used by `fromUrl`). */
   urlFlag?: string;
   /**
-   * Trait keys the host can actually answer for, offered as suggestions in the
-   * condition editors.
+   * Tags this host can attach to a visitor, offered in the condition editors.
    *
-   * A mistyped key matches nobody and fails silently — the rule just never
-   * fires — so letting an author pick is worth more than it looks.
+   * Without them the author has nothing to pick from, which is the whole point
+   * of tags over free text.
    */
-  traitKeys?: string[];
+  tags?: string[];
   /**
    * Extra top offset in px, added above the panel and a top-positioned nav —
    * e.g. to clear a host's fixed bar (the WordPress admin bar).
@@ -1158,19 +1156,6 @@ export class TourBuilder {
 
     wrap.append(
       this.selectField(
-        'Audience',
-        t.audience,
-        [
-          ['all', 'Everyone'],
-          ['auth', 'Logged-in users only'],
-          ['guest', 'Logged-out visitors only'],
-        ],
-        (v) => {
-          t.audience = v as Audience;
-          this.markDirty();
-        },
-      ),
-      this.selectField(
         'Start trigger',
         t.trigger.type,
         [
@@ -1268,10 +1253,10 @@ export class TourBuilder {
       const c = t.conditions;
       wrap.append(
         h('div', { class: 'settings__divider' }),
-        h('label', { class: 'settings__label' }, ['Visitor traits']),
-        this.traitRows(c.traits, () => this.markDirty()),
+        h('label', { class: 'settings__label' }, ['Visitor tags']),
+        this.tagPicker(c.tags, () => this.markDirty()),
         h('div', { class: 'settings__hint' }, [
-          'Role, plan, group — whatever the host reports. Every listed trait must match.',
+          'The visitor must carry every selected tag. Logged-in, role, plan — the host decides what exists.',
         ]),
         this.checkboxField('Show only on the first visit', c.firstVisitOnly, (on) => {
           c.firstVisitOnly = on;
@@ -1299,69 +1284,43 @@ export class TourBuilder {
   }
 
   /**
-   * Key/value rows for visitor traits.
+   * Tag picker: click to require a label, click again to drop it.
    *
-   * Traits are deliberately open-ended in the schema — role, plan, group,
-   * enrolment, whatever the host reports — so the editor cannot offer a fixed
-   * list of fields. Free rows are the honest shape for that.
+   * Tags are what the host attaches to a visitor — `admin`, `authenticated`,
+   * `firstVisit`, `level:gold`. Rendered as a row of toggles rather than text
+   * inputs because the whole reason for tags over key/value pairs is that an
+   * author should pick, not type: a mistyped label matches nobody and says
+   * nothing about it.
+   *
+   * Anything already on the tour that the host does not advertise is still
+   * shown, so importing a tour from elsewhere does not hide its rules.
    */
-  private traitRows(traits: Record<string, string>, onChange: () => void): HTMLElement {
-    const wrap = h('div', { class: 'traits' });
+  private tagPicker(selected: string[], onChange: () => void): HTMLElement {
+    const wrap = h('div', { class: 'tags' });
+    const known = this.options.tags ?? [];
+    const all = Array.from(new Set([...known, ...selected]));
 
-    for (const [key, value] of Object.entries(traits)) {
-      const row = h('div', { class: 'traits__row' });
-      const k = h('input', {
-        class: 'traits__key',
-        placeholder: 'key',
-        // A datalist suggests without restricting: a host may report keys it
-        // never declared, and the schema does not limit them either.
-        ...(this.options.traitKeys?.length ? { list: TRAIT_KEYS_ID } : {}),
-      }) as HTMLInputElement;
-      k.value = key;
-      const v = h('input', { class: 'traits__val', placeholder: 'value' }) as HTMLInputElement;
-      v.value = value;
-      // Renaming a key is delete-then-add, so the row order can shift; the
-      // panel is re-rendered rather than patched to keep it honest.
-      k.addEventListener('change', () => {
-        const next = k.value.trim();
-        delete traits[key];
-        if (next) traits[next] = v.value;
+    if (all.length === 0) {
+      wrap.append(
+        h('p', { class: 'selpop__empty' }, [
+          'No tags available. The host declares them — see `tags` in the builder options, or the site_tours_viewer_tags filter.',
+        ]),
+      );
+      return wrap;
+    }
+
+    for (const tag of all) {
+      const on = selected.includes(tag);
+      const chip = h('button', { class: `tags__chip ${on ? 'tags__chip--on' : ''}`.trim(), type: 'button' }, [tag]);
+      chip.addEventListener('click', () => {
+        const i = selected.indexOf(tag);
+        if (i === -1) selected.push(tag);
+        else selected.splice(i, 1);
         onChange();
         this.render();
       });
-      v.addEventListener('change', () => {
-        traits[key] = v.value;
-        onChange();
-      });
-      const del = iconButton('trash', 'Remove this condition');
-      del.addEventListener('click', () => {
-        delete traits[key];
-        onChange();
-        this.render();
-      });
-      row.append(k, v, del);
-      wrap.append(row);
+      wrap.append(chip);
     }
-
-    // One datalist per rendered editor; the browser matches it by id within the
-    // shadow root.
-    if (this.options.traitKeys?.length) {
-      const dl = h('datalist', { id: TRAIT_KEYS_ID });
-      for (const key of this.options.traitKeys) dl.append(h('option', { value: key }));
-      wrap.append(dl);
-    }
-
-    const add = h('button', { class: 'traits__add', type: 'button' }, ['+ Add a trait']);
-    add.addEventListener('click', () => {
-      // A blank key is what an empty row is; it is replaced as soon as the
-      // author types one, and never compiled while empty.
-      let n = 1;
-      while (`trait${n}` in traits) n += 1;
-      traits[`trait${n}`] = '';
-      onChange();
-      this.render();
-    });
-    wrap.append(add);
     return wrap;
   }
 
@@ -1662,9 +1621,7 @@ export class TourBuilder {
     const touched = (): void => {
       // Drop the object entirely once it is empty, so an untouched step does
       // not compile a meaningless `condition: {}` into the tour.
-      if (Object.keys(cond).length === 0 || (cond.traits && Object.keys(cond.traits).length === 0 && !cond.device)) {
-        if (!cond.device && (!cond.traits || Object.keys(cond.traits).length === 0)) delete step.condition;
-      }
+      if (!cond.device && (!cond.tags || cond.tags.length === 0)) delete step.condition;
       this.markDirty();
     };
 
@@ -1685,10 +1642,10 @@ export class TourBuilder {
           this.render();
         },
       ),
-      h('label', { class: 'settings__label' }, ['Visitor traits']),
-      this.traitRows((cond.traits ??= {}) as Record<string, string>, touched),
+      h('label', { class: 'settings__label' }, ['Visitor tags']),
+      this.tagPicker((cond.tags ??= []), touched),
       h('div', { class: 'settings__hint' }, [
-        'Every trait listed must match what the host reports for this visitor. A trait the host does not report never matches.',
+        'The visitor must carry every selected tag. A tag the host does not attach is simply absent, so the step is skipped.',
       ]),
     );
     return wrap;

@@ -41,7 +41,7 @@ human-readable messages suitable for showing to an author.
 ```jsonc
 {
   "id": "community-onboarding",
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "title": { "default": "Community onboarding", "ru": "Знакомство" },
   "steps": [
     {

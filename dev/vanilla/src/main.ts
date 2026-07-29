@@ -39,7 +39,7 @@ const on = {
   tourDismissed: ({ index }: { index: number }) => log(`✕ dismissed at ${index}`),
 };
 
-const base = { schemaVersion: 1 as const, title: { default: 'Sandbox' } };
+const base = { schemaVersion: 2 as const, title: { default: 'Sandbox' } };
 
 const tours: Record<string, Tour> = {
   basic: {

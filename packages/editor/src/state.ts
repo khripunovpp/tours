@@ -60,7 +60,6 @@ export type TourStatus = 'draft' | 'published';
 export type TourKind = 'tour' | 'template';
 
 /** Who may see the tour. */
-export type Audience = 'all' | 'auth' | 'guest';
 
 /** Auto-start conditions (map to schema Rule/Condition). */
 export interface DraftConditions {
@@ -68,8 +67,8 @@ export interface DraftConditions {
   /** 0 = no limit. */
   maxShows: number;
   device: 'any' | 'mobile' | 'tablet' | 'desktop';
-  /** Host-supplied facts the visitor must match — role, plan, group, anything. */
-  traits: Record<string, string>;
+  /** Visitor tags that must all be present — `admin`, `authenticated`, … */
+  tags: string[];
 }
 
 export type { Trigger };
@@ -95,7 +94,6 @@ export interface DraftTour {
   /** How the tour auto-starts. */
   trigger: Trigger;
   /** Who may see the tour. */
-  audience: Audience;
   /** Auto-start conditions. */
   conditions: DraftConditions;
   /**
@@ -145,8 +143,7 @@ export function createDraftTour(kind: TourKind = 'tour'): DraftTour {
     name: kind === 'template' ? 'Untitled template' : 'Untitled tour',
     status: 'draft',
     trigger: { type: 'manual' },
-    audience: 'all',
-    conditions: { firstVisitOnly: true, maxShows: 0, device: 'any', traits: {} },
+    conditions: { firstVisitOnly: true, maxShows: 0, device: 'any', tags: [] },
     dismissMode: 'end',
     resumeText: '',
     resumeButton: '',
@@ -172,8 +169,7 @@ export function cloneDraft(src: DraftTour, kind: TourKind, name?: string): Draft
     name: name ?? src.name,
     status: 'draft',
     trigger: { ...src.trigger },
-    audience: src.audience,
-    conditions: { ...src.conditions, traits: { ...src.conditions.traits } },
+    conditions: { ...src.conditions, tags: [...src.conditions.tags] },
     dismissMode: src.dismissMode ?? 'end',
     resumeText: src.resumeText ?? '',
     resumeButton: src.resumeButton ?? '',
@@ -229,7 +225,6 @@ export function normalizeTours(input: unknown): DraftTour[] {
       name: typeof t.name === 'string' ? t.name : 'Untitled tour',
       status: t.status === 'published' ? 'published' : 'draft',
       trigger: normalizeTrigger(t.trigger),
-      audience: t.audience === 'auth' || t.audience === 'guest' ? t.audience : 'all',
       dismissMode: t.dismissMode === 'minimize' ? 'minimize' : 'end',
       resumeText: typeof t.resumeText === 'string' ? t.resumeText : '',
       resumeButton: typeof t.resumeButton === 'string' ? t.resumeButton : '',
@@ -239,7 +234,7 @@ export function normalizeTours(input: unknown): DraftTour[] {
         device: ['mobile', 'tablet', 'desktop'].includes(t.conditions?.device as string)
           ? (t.conditions!.device as DraftConditions['device'])
           : 'any',
-        traits: stringMap(t.conditions?.traits),
+        tags: stringList(t.conditions?.tags),
       },
       display: {
         padding: numOr(t.display?.padding, DEFAULT_PADDING),
@@ -292,7 +287,7 @@ export function compileTour(draft: DraftTour): Tour {
   if (draft.conditions.firstVisitOnly) when.firstVisitOnly = true;
   if (draft.conditions.maxShows > 0) when.maxShows = draft.conditions.maxShows;
   if (draft.conditions.device !== 'any') when.device = draft.conditions.device;
-  if (Object.keys(draft.conditions.traits).length > 0) when.traits = { ...draft.conditions.traits };
+  if (draft.conditions.tags.length > 0) when.tags = [...draft.conditions.tags];
   const rules = Object.keys(when).length > 0 ? [{ when }] : undefined;
 
   return {
@@ -301,7 +296,6 @@ export function compileTour(draft: DraftTour): Tour {
     title: { default: draft.name },
     steps,
     trigger: draft.trigger,
-    audience: draft.audience,
     ...(rules ? { rules } : {}),
     // Only emitted when it differs from the default, so stored tours stay lean.
     ...(draft.dismissMode === 'minimize'
@@ -339,18 +333,10 @@ export function toTour(
   return validate(compileTour(draft));
 }
 
-/**
- * Coerce untrusted JSON into a flat string map. Numbers are kept as text: the
- * builder edits traits in text inputs, and a value's type should not depend on
- * whether it happened to look numeric.
- */
-function stringMap(value: unknown): Record<string, string> {
-  if (!value || typeof value !== 'object') return {};
-  const out: Record<string, string> = {};
-  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-    if (typeof v === 'string' || typeof v === 'number') out[k] = String(v);
-  }
-  return out;
+/** Coerce untrusted JSON into a list of non-empty tag strings. */
+function stringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return Array.from(new Set(value.filter((v): v is string => typeof v === 'string' && v.length > 0)));
 }
 
 /** True if a value looks like a shipped schema Tour (vs. a builder draft). */
@@ -370,7 +356,6 @@ export function fromTour(tour: Tour): DraftTour {
     name: tour.title?.default ?? 'Imported tour',
     status: 'draft',
     trigger: normalizeTrigger(tour.trigger),
-    audience: tour.audience === 'auth' || tour.audience === 'guest' ? tour.audience : 'all',
     // Round-trips the dismiss policy, so importing then re-exporting a tour
     // does not quietly drop it.
     dismissMode: tour.dismiss?.mode === 'minimize' ? 'minimize' : 'end',
@@ -380,7 +365,7 @@ export function fromTour(tour: Tour): DraftTour {
       firstVisitOnly: rule.firstVisitOnly === true,
       maxShows: numOr(rule.maxShows, 0),
       device: device === 'mobile' || device === 'tablet' || device === 'desktop' ? device : 'any',
-      traits: stringMap(rule.traits),
+      tags: [...(rule.tags ?? [])],
     },
     display: {
       padding: numOr(tour.display?.padding, DEFAULT_PADDING),

@@ -1,6 +1,6 @@
 {
   "id": "employee-onboarding",
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "title": {
     "default": "New employee onboarding",
     "ru": "Онбординг нового сотрудника"

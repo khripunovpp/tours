@@ -13,7 +13,7 @@ import { createPlayer } from '@tours/core';
 
 createPlayer({
   id: 'welcome',
-  schemaVersion: 1,
+  schemaVersion: 2,
   title: { default: 'Welcome' },
   steps: [
     { id: 'compose', selectors: ['#btn-new-post'], content: { default: 'Write your first post here.' }, placement: 'bottom' },

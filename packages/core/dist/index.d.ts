@@ -29,17 +29,21 @@ export interface Condition {
 	/** Current page URL must match. */
 	url?: UrlMatch;
 	/**
-	 * Host-supplied facts the visitor must match. Every listed key must equal the
-	 * value the host reports.
+	 * Labels the visitor must carry. All listed tags must be present.
 	 *
-	 *     traits: { role: 'subscriber', level: 'gold', org: 'acme' }
+	 *     tags: ['authenticated', 'level:gold']
 	 *
-	 * Deliberately open-ended, and deliberately *without* a dedicated `role`
-	 * field: role is not privileged over group, organisation, plan or enrolment,
-	 * and naming each one in the schema is a list that never ends. One mechanism
-	 * covers them all, and the host decides what the keys mean.
+	 * A flat set rather than key/value pairs, because matching was only ever
+	 * equality — `{ level: 'gold' }` said nothing that the tag `level:gold` does
+	 * not. Pairs bought no expressiveness and cost the author two fields to fill
+	 * in blind; a set is something they can pick from a list.
+	 *
+	 * Deliberately without dedicated `role` or `audience` fields: a role is a tag,
+	 * being logged in is a tag, having purchased is a tag. Naming each in the
+	 * schema is a list that never ends, and two mechanisms for one idea always
+	 * raise "which do I use".
 	 */
-	traits?: Record<string, string | number>;
+	tags?: string[];
 	/** Only on the visitor's first visit. */
 	firstVisitOnly?: boolean;
 	/** Only on this device class. */
@@ -175,8 +179,6 @@ export interface Tour {
 	rules?: Rule[];
 	/** How the tour auto-starts (defaults to manual). */
 	trigger?: Trigger;
-	/** Who may see the tour: everyone, logged-in only, or logged-out only. */
-	audience?: "all" | "auth" | "guest";
 	/** Optional visual settings shared by player and editor. */
 	display?: DisplaySettings;
 	/** What the card's × does. Defaults to ending the tour. */
@@ -240,19 +242,22 @@ export interface WaitOptions {
 export declare function waitForElement(selectors: readonly SelectorLike[], options?: WaitOptions): Promise<Element | null>;
 export type Device = "mobile" | "tablet" | "desktop";
 /**
- * What the host knows about the current visitor: role, membership level, group,
- * organisation, enrolment — whatever its rules need to target. Matched against
- * `Condition.traits`.
+ * Labels the host attaches to the current visitor — `admin`, `authenticated`,
+ * `firstVisit`, `hasPurchases`, `level:gold`. Matched against `Condition.tags`.
+ *
+ * A flat set rather than key/value pairs: matching is equality only, so a pair
+ * never said more than a `key:value` tag, and a set is something a tour author
+ * can pick from a list instead of typing blind.
  */
-export type ViewerTraits = Record<string, string | number>;
+export type ViewerTags = readonly string[];
 export interface RuleContext {
 	url: string;
 	/**
-	 * Absent keys never match, so a condition on a trait the host does not report
+	 * A tag the host does not report is simply absent, so a rule requiring it
 	 * fails closed. The alternative — unknown means "matches" — would leak tours
 	 * to exactly the visitors a rule was written to exclude.
 	 */
-	traits?: ViewerTraits;
+	tags?: ViewerTags;
 	device: Device;
 	/** True when the visitor has not seen this tour before. */
 	firstVisit: boolean;
@@ -442,11 +447,11 @@ export interface PlayerOptions {
 	 */
 	on?: TourEventHandlers;
 	/**
-	 * Facts about the current visitor, used to evaluate per-step `condition`s.
+	 * Tags describing the current visitor, used to evaluate per-step `condition`s.
 	 * Called each time a step is evaluated rather than read once, so a change of
 	 * plan or group takes effect on the next step.
 	 */
-	viewer?: () => ViewerTraits;
+	viewer?: () => ViewerTags;
 }
 /**
  * True while the tour builder is mounted.

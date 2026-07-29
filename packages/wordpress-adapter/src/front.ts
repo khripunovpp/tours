@@ -15,31 +15,21 @@ const state = createLocalState();
 interface WpData {
   drafts?: unknown;
   authenticated?: boolean;
-  /** Primary role of the current user, or absent for a guest. */
-  role?: string | null;
-  /** Extra facts, via the `site_tours_viewer_traits` filter. */
-  traits?: Record<string, string | number>;
-  /** Trait keys this site can answer for, offered to the builder. */
-  traitKeys?: string[];
+  /** Tags describing the current visitor, from Site_Tours_Viewer + filters. */
+  tags?: string[];
+  /** Every tag this site can attach, offered to the builder. */
+  knownTags?: string[];
 }
 
 function data(): WpData {
   return (window as unknown as { SiteToursFront_data?: WpData }).SiteToursFront_data ?? {};
 }
 
-/** Whether the current tour audience applies to this visitor. */
-function audienceOk(audience: DraftTour['audience']): boolean {
-  const authed = data().authenticated === true;
-  if (audience === 'auth') return authed;
-  if (audience === 'guest') return !authed;
-  return true;
-}
-
 /** Published, shippable tours visible to this visitor. */
 function published(): DraftTour[] {
-  return normalizeTours(data().drafts).filter(
-    (d) => d.status === 'published' && d.kind === 'tour' && audienceOk(d.audience),
-  );
+  // Audience is no longer a field of its own — it is a tag like any other, and
+  // the rules engine enforces it, so nothing needs filtering here.
+  return normalizeTours(data().drafts).filter((d) => d.status === 'published' && d.kind === 'tour');
 }
 
 /** Ids and names of runnable tours (for building triggers). */
@@ -92,12 +82,8 @@ function init(): void {
     state,
     // Supplied on every evaluation, so logging in or changing level takes
     // effect on the next navigation without a reload.
-    // Role is not a privileged concept in the schema — it is just one trait
-    // among whatever else the site reports, so it is folded in here.
-    viewer: () => {
-      const d = data();
-      return { ...(d.traits ?? {}), ...(d.role ? { role: d.role } : {}) };
-    },
+    // Everything the site knows about the visitor, as a flat set of labels.
+    viewer: () => data().tags ?? [],
   });
 }
 

@@ -1,8 +1,8 @@
 /**
  * Rules engine — decides whether a tour may auto-start right now. A tour's
  * `rules` are OR-ed: it may start if any rule's condition holds (or there are
- * no rules). Conditions cover URL, host-supplied traits, first visit, device
- * and frequency.
+ * no rules). Conditions cover URL, visitor tags, first visit, device and
+ * frequency.
  */
 import type { Rule, Condition } from '@tours/schema';
 import { matchUrl } from './url.js';
@@ -10,20 +10,23 @@ import { matchUrl } from './url.js';
 export type Device = 'mobile' | 'tablet' | 'desktop';
 
 /**
- * What the host knows about the current visitor: role, membership level, group,
- * organisation, enrolment — whatever its rules need to target. Matched against
- * `Condition.traits`.
+ * Labels the host attaches to the current visitor — `admin`, `authenticated`,
+ * `firstVisit`, `hasPurchases`, `level:gold`. Matched against `Condition.tags`.
+ *
+ * A flat set rather than key/value pairs: matching is equality only, so a pair
+ * never said more than a `key:value` tag, and a set is something a tour author
+ * can pick from a list instead of typing blind.
  */
-export type ViewerTraits = Record<string, string | number>;
+export type ViewerTags = readonly string[];
 
 export interface RuleContext {
   url: string;
   /**
-   * Absent keys never match, so a condition on a trait the host does not report
+   * A tag the host does not report is simply absent, so a rule requiring it
    * fails closed. The alternative — unknown means "matches" — would leak tours
    * to exactly the visitors a rule was written to exclude.
    */
-  traits?: ViewerTraits;
+  tags?: ViewerTags;
   device: Device;
   /** True when the visitor has not seen this tour before. */
   firstVisit: boolean;
@@ -40,10 +43,11 @@ export function detectDevice(width: number = window.innerWidth): Device {
 
 function matchCondition(cond: Condition, ctx: RuleContext): boolean {
   if (cond.url && !matchUrl(cond.url, ctx.url)) return false;
-  if (cond.traits) {
-    for (const [key, want] of Object.entries(cond.traits)) {
-      if (ctx.traits?.[key] !== want) return false;
-    }
+  if (cond.tags && cond.tags.length > 0) {
+    // All required — an "any of these" rule is expressed as separate rules,
+    // which are OR-ed.
+    const has = ctx.tags ?? [];
+    for (const tag of cond.tags) if (!has.includes(tag)) return false;
   }
   if (cond.firstVisitOnly && !ctx.firstVisit) return false;
   if (cond.device && cond.device !== ctx.device) return false;

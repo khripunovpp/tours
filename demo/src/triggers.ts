@@ -18,7 +18,7 @@ function oneStep(
 ): Tour {
   return {
     id,
-    schemaVersion: 1,
+    schemaVersion: 2,
     title: { default: id },
     trigger,
     steps: [{ id: `${id}-s`, selectors: [selector], content: { default: content }, placement }],

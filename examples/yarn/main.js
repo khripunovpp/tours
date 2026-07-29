@@ -4,7 +4,7 @@ import { createPlayer } from '@tours/core';
 
 const tour = {
   id: 'example',
-  schemaVersion: 1,
+  schemaVersion: 2,
   title: { default: 'Getting started' },
   steps: [
     {

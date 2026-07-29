@@ -29,17 +29,21 @@ export interface Condition {
 	/** Current page URL must match. */
 	url?: UrlMatch;
 	/**
-	 * Host-supplied facts the visitor must match. Every listed key must equal the
-	 * value the host reports.
+	 * Labels the visitor must carry. All listed tags must be present.
 	 *
-	 *     traits: { role: 'subscriber', level: 'gold', org: 'acme' }
+	 *     tags: ['authenticated', 'level:gold']
 	 *
-	 * Deliberately open-ended, and deliberately *without* a dedicated `role`
-	 * field: role is not privileged over group, organisation, plan or enrolment,
-	 * and naming each one in the schema is a list that never ends. One mechanism
-	 * covers them all, and the host decides what the keys mean.
+	 * A flat set rather than key/value pairs, because matching was only ever
+	 * equality — `{ level: 'gold' }` said nothing that the tag `level:gold` does
+	 * not. Pairs bought no expressiveness and cost the author two fields to fill
+	 * in blind; a set is something they can pick from a list.
+	 *
+	 * Deliberately without dedicated `role` or `audience` fields: a role is a tag,
+	 * being logged in is a tag, having purchased is a tag. Naming each in the
+	 * schema is a list that never ends, and two mechanisms for one idea always
+	 * raise "which do I use".
 	 */
-	traits?: Record<string, string | number>;
+	tags?: string[];
 	/** Only on the visitor's first visit. */
 	firstVisitOnly?: boolean;
 	/** Only on this device class. */
@@ -182,8 +186,6 @@ export interface Tour {
 	rules?: Rule[];
 	/** How the tour auto-starts (defaults to manual). */
 	trigger?: Trigger;
-	/** Who may see the tour: everyone, logged-in only, or logged-out only. */
-	audience?: "all" | "auth" | "guest";
 	/** Optional visual settings shared by player and editor. */
 	display?: DisplaySettings;
 	/** What the card's × does. Defaults to ending the tour. */
@@ -197,7 +199,7 @@ export declare const DEFAULT_RADIUS = 6;
 export declare const DEFAULT_CARD_RADIUS = 10;
 /** Default distance from the target to the card, in pixels. */
 export declare const DEFAULT_OFFSET = 12;
-export declare const SCHEMA_VERSION = 1;
+export declare const SCHEMA_VERSION = 2;
 /**
  * Validate arbitrary JSON against the tour schema. Returns the typed tour on
  * success, or a list of human-readable errors on failure. Used when importing

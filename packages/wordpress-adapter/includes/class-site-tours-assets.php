@@ -40,16 +40,8 @@ class Site_Tours_Assets {
 			array(
 				'drafts'        => self::visible_drafts(),
 				'authenticated' => is_user_logged_in(),
-				'role'          => self::current_role(),
-				/**
-				 * Extra facts a tour rule may target — membership level, plan,
-				 * enrollment. Empty by default: WordPress core has no such
-				 * concept, and every membership plugin models it differently,
-				 * so this is a filter rather than a guess.
-				 */
-				'traits'        => (object) apply_filters( 'site_tours_viewer_traits', array() ),
-				/** Keys the builder can offer, so an author picks instead of typing. */
-				'traitKeys'     => Site_Tours_Viewer::known_keys(),
+				/** Labels for this visitor; tour rules match against them. */
+				'tags'          => Site_Tours_Viewer::current(),
 			)
 		);
 
@@ -67,20 +59,6 @@ class Site_Tours_Assets {
 	}
 
 	/** Published tours visible to the current visitor (audience filtered). */
-	/**
-	 * The current user's primary role, or null for a guest.
-	 *
-	 * WordPress allows several roles per user; tour rules compare a single
-	 * value, so the first is used — matching how role is displayed in wp-admin.
-	 */
-	private static function current_role() {
-		$user = wp_get_current_user();
-		if ( ! $user || ! $user->ID || empty( $user->roles ) ) {
-			return null;
-		}
-		return (string) reset( $user->roles );
-	}
-
 	private static function visible_drafts() {
 		$authed = is_user_logged_in();
 		return array_values(
@@ -110,14 +88,14 @@ class Site_Tours_Assets {
 				'nonce' => $nonce,
 			)
 		);
-		// Keys this site can actually answer for. Without them an author types
-		// trait names blind, and a typo matches nobody without saying so.
-		$keys = wp_json_encode( Site_Tours_Viewer::known_keys() );
+		// Every tag this site can attach. Without them the builder has nothing to
+		// offer and the author is back to typing labels blind.
+		$keys = wp_json_encode( Site_Tours_Viewer::known() );
 		return 'window.addEventListener("load",function(){'
 			. 'var S=window.SiteToursAdmin;if(!S)return;'
 			. 'var b=document.getElementById("wpadminbar");'
 			. 'var off=b?b.offsetHeight:0;'
-			. 'S.TourBuilder.fromUrl({topOffset:off,traitKeys:' . $keys . ','
+			. 'S.TourBuilder.fromUrl({topOffset:off,tags:' . $keys . ','
 			. 'storage:S.createWordPressStore(' . $cfg . ')});'
 			. '});';
 	}

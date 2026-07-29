@@ -2,7 +2,7 @@ const DEFAULT_PADDING = 6;
 const DEFAULT_RADIUS = 6;
 const DEFAULT_CARD_RADIUS = 10;
 const DEFAULT_OFFSET = 12;
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 function isRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -37,15 +37,9 @@ function validateCondition(value, path, errors) {
     return;
   }
   if (value.url !== void 0) validateUrlMatch(value.url, `${path}.url`, errors);
-  if (value.traits !== void 0) {
-    if (!isRecord(value.traits)) {
-      errors.push(`${path}.traits must be an object`);
-    } else {
-      for (const [k, v] of Object.entries(value.traits)) {
-        if (typeof v !== "string" && typeof v !== "number") {
-          errors.push(`${path}.traits.${k} must be a string or number`);
-        }
-      }
+  if (value.tags !== void 0) {
+    if (!Array.isArray(value.tags) || !value.tags.every((t) => typeof t === "string" && t.length > 0)) {
+      errors.push(`${path}.tags must be an array of non-empty strings`);
     }
   }
   if (value.firstVisitOnly !== void 0 && typeof value.firstVisitOnly !== "boolean") {
@@ -154,9 +148,6 @@ function validate(json) {
       }
     }
   }
-  if (json.audience !== void 0 && !["all", "auth", "guest"].includes(json.audience)) {
-    errors.push("tour.audience must be one of all|auth|guest");
-  }
   if (json.display !== void 0) {
     if (!isRecord(json.display)) {
       errors.push("tour.display must be an object");
@@ -195,7 +186,52 @@ function validate(json) {
   return { ok: true, tour: json };
 }
 const migrations = {
-  0: (data) => ({ ...data, schemaVersion: 1 })
+  0: (data) => ({ ...data, schemaVersion: 1 }),
+  /**
+   * v1 → v2: `audience` and `Condition.traits` collapse into `Condition.tags`.
+   *
+   * `audience: 'auth'` becomes the tag `authenticated` on every rule (and on a
+   * tour with no rules, a rule is created, because the audience gate applied
+   * unconditionally). Trait pairs become `key:value` tags, which is exactly what
+   * they meant — matching was equality-only.
+   */
+  1: (data) => {
+    const out = { ...data, schemaVersion: 2 };
+    const audience = out.audience;
+    delete out.audience;
+    const audienceTag = audience === "auth" ? "authenticated" : audience === "guest" ? "guest" : null;
+    const convert = (cond) => {
+      const c = isRecord(cond) ? { ...cond } : {};
+      const tags = Array.isArray(c.tags) ? [...c.tags] : [];
+      if (isRecord(c.traits)) {
+        for (const [k, v] of Object.entries(c.traits)) tags.push(`${k}:${String(v)}`);
+      }
+      delete c.traits;
+      if (typeof c.role === "string" && c.role) tags.push(`role:${c.role}`);
+      delete c.role;
+      if (audienceTag) tags.push(audienceTag);
+      if (tags.length > 0) c.tags = Array.from(new Set(tags));
+      return c;
+    };
+    const rules = Array.isArray(out.rules) ? out.rules : [];
+    if (rules.length > 0) {
+      out.rules = rules.map((r) => {
+        const rule = isRecord(r) ? { ...r } : {};
+        rule.when = convert(rule.when);
+        return rule;
+      });
+    } else if (audienceTag) {
+      out.rules = [{ when: { tags: [audienceTag] } }];
+    }
+    if (Array.isArray(out.steps)) {
+      out.steps = out.steps.map((st) => {
+        const step = isRecord(st) ? { ...st } : {};
+        if (step.condition !== void 0) step.condition = convert(step.condition);
+        return step;
+      });
+    }
+    return out;
+  }
 };
 function versionOf(data) {
   return typeof data.schemaVersion === "number" ? data.schemaVersion : 0;

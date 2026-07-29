@@ -30,17 +30,21 @@ export interface Condition {
   /** Current page URL must match. */
   url?: UrlMatch;
   /**
-   * Host-supplied facts the visitor must match. Every listed key must equal the
-   * value the host reports.
+   * Labels the visitor must carry. All listed tags must be present.
    *
-   *     traits: { role: 'subscriber', level: 'gold', org: 'acme' }
+   *     tags: ['authenticated', 'level:gold']
    *
-   * Deliberately open-ended, and deliberately *without* a dedicated `role`
-   * field: role is not privileged over group, organisation, plan or enrolment,
-   * and naming each one in the schema is a list that never ends. One mechanism
-   * covers them all, and the host decides what the keys mean.
+   * A flat set rather than key/value pairs, because matching was only ever
+   * equality — `{ level: 'gold' }` said nothing that the tag `level:gold` does
+   * not. Pairs bought no expressiveness and cost the author two fields to fill
+   * in blind; a set is something they can pick from a list.
+   *
+   * Deliberately without dedicated `role` or `audience` fields: a role is a tag,
+   * being logged in is a tag, having purchased is a tag. Naming each in the
+   * schema is a list that never ends, and two mechanisms for one idea always
+   * raise "which do I use".
    */
-  traits?: Record<string, string | number>;
+  tags?: string[];
   /** Only on the visitor's first visit. */
   firstVisitOnly?: boolean;
   /** Only on this device class. */
@@ -186,8 +190,6 @@ export interface Tour {
   rules?: Rule[];
   /** How the tour auto-starts (defaults to manual). */
   trigger?: Trigger;
-  /** Who may see the tour: everyone, logged-in only, or logged-out only. */
-  audience?: 'all' | 'auth' | 'guest';
   /** Optional visual settings shared by player and editor. */
   display?: DisplaySettings;
   /** What the card's × does. Defaults to ending the tour. */
@@ -203,7 +205,7 @@ export const DEFAULT_CARD_RADIUS = 10;
 /** Default distance from the target to the card, in pixels. */
 export const DEFAULT_OFFSET = 12;
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 /** True for a plain object (not null, not an array). */
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -247,15 +249,9 @@ function validateCondition(value: unknown, path: string, errors: string[]): void
     return;
   }
   if (value.url !== undefined) validateUrlMatch(value.url, `${path}.url`, errors);
-  if (value.traits !== undefined) {
-    if (!isRecord(value.traits)) {
-      errors.push(`${path}.traits must be an object`);
-    } else {
-      for (const [k, v] of Object.entries(value.traits)) {
-        if (typeof v !== 'string' && typeof v !== 'number') {
-          errors.push(`${path}.traits.${k} must be a string or number`);
-        }
-      }
+  if (value.tags !== undefined) {
+    if (!Array.isArray(value.tags) || !value.tags.every((t) => typeof t === 'string' && t.length > 0)) {
+      errors.push(`${path}.tags must be an array of non-empty strings`);
     }
   }
   if (value.firstVisitOnly !== undefined && typeof value.firstVisitOnly !== 'boolean') {
@@ -393,9 +389,6 @@ export function validate(
     }
   }
 
-  if (json.audience !== undefined && !['all', 'auth', 'guest'].includes(json.audience as string)) {
-    errors.push('tour.audience must be one of all|auth|guest');
-  }
 
   if (json.display !== undefined) {
     if (!isRecord(json.display)) {
@@ -449,6 +442,59 @@ type Migration = (data: Record<string, unknown>) => Record<string, unknown>;
  */
 const migrations: Record<number, Migration> = {
   0: (data) => ({ ...data, schemaVersion: 1 }),
+  /**
+   * v1 → v2: `audience` and `Condition.traits` collapse into `Condition.tags`.
+   *
+   * `audience: 'auth'` becomes the tag `authenticated` on every rule (and on a
+   * tour with no rules, a rule is created, because the audience gate applied
+   * unconditionally). Trait pairs become `key:value` tags, which is exactly what
+   * they meant — matching was equality-only.
+   */
+  1: (data) => {
+    const out: Record<string, unknown> = { ...data, schemaVersion: 2 };
+    const audience = out.audience;
+    delete out.audience;
+
+    const audienceTag =
+      audience === 'auth' ? 'authenticated' : audience === 'guest' ? 'guest' : null;
+
+    const convert = (cond: unknown): Record<string, unknown> => {
+      const c = isRecord(cond) ? { ...cond } : {};
+      const tags: string[] = Array.isArray(c.tags) ? [...(c.tags as string[])] : [];
+      if (isRecord(c.traits)) {
+        for (const [k, v] of Object.entries(c.traits)) tags.push(`${k}:${String(v)}`);
+      }
+      delete c.traits;
+      // `role` predates traits and was equality-only too.
+      if (typeof c.role === 'string' && c.role) tags.push(`role:${c.role}`);
+      delete c.role;
+      if (audienceTag) tags.push(audienceTag);
+      if (tags.length > 0) c.tags = Array.from(new Set(tags));
+      return c;
+    };
+
+    const rules = Array.isArray(out.rules) ? (out.rules as unknown[]) : [];
+    if (rules.length > 0) {
+      out.rules = rules.map((r) => {
+        const rule = isRecord(r) ? { ...r } : {};
+        rule.when = convert(rule.when);
+        return rule;
+      });
+    } else if (audienceTag) {
+      // No rules meant "always"; the audience gate still applied, so it needs a
+      // rule of its own or the restriction would be silently dropped.
+      out.rules = [{ when: { tags: [audienceTag] } }];
+    }
+
+    if (Array.isArray(out.steps)) {
+      out.steps = (out.steps as unknown[]).map((st) => {
+        const step = isRecord(st) ? { ...st } : {};
+        if (step.condition !== undefined) step.condition = convert(step.condition);
+        return step;
+      });
+    }
+    return out;
+  },
 };
 
 /** Reads a numeric schemaVersion, defaulting missing/invalid ones to 0. */

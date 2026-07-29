@@ -319,7 +319,7 @@ const DEFAULT_PADDING = 6;
 const DEFAULT_RADIUS = 6;
 const DEFAULT_CARD_RADIUS = 10;
 const DEFAULT_OFFSET = 12;
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 function isRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -354,15 +354,9 @@ function validateCondition(value, path, errors) {
     return;
   }
   if (value.url !== void 0) validateUrlMatch(value.url, `${path}.url`, errors);
-  if (value.traits !== void 0) {
-    if (!isRecord(value.traits)) {
-      errors.push(`${path}.traits must be an object`);
-    } else {
-      for (const [k, v] of Object.entries(value.traits)) {
-        if (typeof v !== "string" && typeof v !== "number") {
-          errors.push(`${path}.traits.${k} must be a string or number`);
-        }
-      }
+  if (value.tags !== void 0) {
+    if (!Array.isArray(value.tags) || !value.tags.every((t) => typeof t === "string" && t.length > 0)) {
+      errors.push(`${path}.tags must be an array of non-empty strings`);
     }
   }
   if (value.firstVisitOnly !== void 0 && typeof value.firstVisitOnly !== "boolean") {
@@ -470,9 +464,6 @@ function validate(json) {
         errors.push("tour.trigger.offset must be a non-negative number");
       }
     }
-  }
-  if (json.audience !== void 0 && !["all", "auth", "guest"].includes(json.audience)) {
-    errors.push("tour.audience must be one of all|auth|guest");
   }
   if (json.display !== void 0) {
     if (!isRecord(json.display)) {
@@ -724,10 +715,9 @@ function detectDevice(width = window.innerWidth) {
 }
 function matchCondition(cond, ctx) {
   if (cond.url && !matchUrl(cond.url, ctx.url)) return false;
-  if (cond.traits) {
-    for (const [key, want] of Object.entries(cond.traits)) {
-      if (ctx.traits?.[key] !== want) return false;
-    }
+  if (cond.tags && cond.tags.length > 0) {
+    const has = ctx.tags ?? [];
+    for (const tag of cond.tags) if (!has.includes(tag)) return false;
   }
   if (cond.firstVisitOnly && !ctx.firstVisit) return false;
   if (cond.device && cond.device !== ctx.device) return false;
@@ -929,7 +919,7 @@ function createPlayer(tour, options = {}) {
     const seen = state ? seenCount(state, tour.id) : 0;
     return matchesCondition(step.condition, {
       url: window.location.href,
-      traits: options.viewer?.(),
+      tags: options.viewer?.(),
       device: detectDevice(),
       firstVisit: seen === 0,
       seenCount: seen
@@ -1793,34 +1783,25 @@ button { font: inherit; cursor: pointer; }
 }
 .selpop__page:hover { background: var(--e-surface); }
 
-/* Visitor-trait key/value rows. */
-.traits { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
-.traits__row { display: flex; align-items: center; gap: 6px; }
-.traits__key, .traits__val {
-  min-width: 0;
+/* Visitor tags: a row of toggles, not a form. */
+.tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px; }
+.tags__chip {
   font: inherit;
-  font-size: 12px;
-  color: var(--e-fg);
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--e-muted);
   background: var(--e-surface);
   border: 1px solid var(--e-border);
-  border-radius: 6px;
-  padding: 5px 7px;
-}
-.traits__key { flex: 0 1 40%; }
-.traits__val { flex: 1 1 60%; }
-.traits__key:focus, .traits__val:focus { outline: none; border-color: var(--e-accent); }
-.traits__add {
-  align-self: flex-start;
-  font: inherit;
-  font-size: 12px;
-  color: var(--e-muted);
-  background: transparent;
-  border: 1px dashed var(--e-border);
-  border-radius: 6px;
-  padding: 5px 9px;
+  border-radius: 999px;
+  padding: 3px 10px;
   cursor: pointer;
 }
-.traits__add:hover { color: var(--e-fg); border-color: var(--e-accent); }
+.tags__chip:hover { color: var(--e-fg); border-color: var(--e-accent); }
+.tags__chip--on {
+  color: #fff;
+  background: var(--e-accent);
+  border-color: var(--e-accent);
+}
 .selpop__add--on { color: #fff; background: var(--e-accent); border-style: solid; border-color: var(--e-accent); }
 
 .card__content {
@@ -2101,8 +2082,7 @@ function createDraftTour(kind = "tour") {
     name: kind === "template" ? "Untitled template" : "Untitled tour",
     status: "draft",
     trigger: { type: "manual" },
-    audience: "all",
-    conditions: { firstVisitOnly: true, maxShows: 0, device: "any", traits: {} },
+    conditions: { firstVisitOnly: true, maxShows: 0, device: "any", tags: [] },
     dismissMode: "end",
     resumeText: "",
     resumeButton: "",
@@ -2123,8 +2103,7 @@ function cloneDraft(src, kind, name) {
     name: name ?? src.name,
     status: "draft",
     trigger: { ...src.trigger },
-    audience: src.audience,
-    conditions: { ...src.conditions, traits: { ...src.conditions.traits } },
+    conditions: { ...src.conditions, tags: [...src.conditions.tags] },
     dismissMode: src.dismissMode ?? "end",
     resumeText: src.resumeText ?? "",
     resumeButton: src.resumeButton ?? "",
@@ -2164,7 +2143,6 @@ function normalizeTours(input) {
       name: typeof t.name === "string" ? t.name : "Untitled tour",
       status: t.status === "published" ? "published" : "draft",
       trigger: normalizeTrigger(t.trigger),
-      audience: t.audience === "auth" || t.audience === "guest" ? t.audience : "all",
       dismissMode: t.dismissMode === "minimize" ? "minimize" : "end",
       resumeText: typeof t.resumeText === "string" ? t.resumeText : "",
       resumeButton: typeof t.resumeButton === "string" ? t.resumeButton : "",
@@ -2172,7 +2150,7 @@ function normalizeTours(input) {
         firstVisitOnly: (t.conditions?.firstVisitOnly ?? true) === true,
         maxShows: numOr(t.conditions?.maxShows, 0),
         device: ["mobile", "tablet", "desktop"].includes(t.conditions?.device) ? t.conditions.device : "any",
-        traits: stringMap(t.conditions?.traits)
+        tags: stringList(t.conditions?.tags)
       },
       display: {
         padding: numOr(t.display?.padding, DEFAULT_PADDING),
@@ -2211,7 +2189,7 @@ function compileTour(draft) {
   if (draft.conditions.firstVisitOnly) when.firstVisitOnly = true;
   if (draft.conditions.maxShows > 0) when.maxShows = draft.conditions.maxShows;
   if (draft.conditions.device !== "any") when.device = draft.conditions.device;
-  if (Object.keys(draft.conditions.traits).length > 0) when.traits = { ...draft.conditions.traits };
+  if (draft.conditions.tags.length > 0) when.tags = [...draft.conditions.tags];
   const rules = Object.keys(when).length > 0 ? [{ when }] : void 0;
   return {
     id: draft.id,
@@ -2219,7 +2197,6 @@ function compileTour(draft) {
     title: { default: draft.name },
     steps,
     trigger: draft.trigger,
-    audience: draft.audience,
     ...rules ? { rules } : {},
     // Only emitted when it differs from the default, so stored tours stay lean.
     ...draft.dismissMode === "minimize" ? {
@@ -2245,13 +2222,9 @@ function compileTour(draft) {
 function toTour(draft) {
   return validate(compileTour(draft));
 }
-function stringMap(value) {
-  if (!value || typeof value !== "object") return {};
-  const out = {};
-  for (const [k, v] of Object.entries(value)) {
-    if (typeof v === "string" || typeof v === "number") out[k] = String(v);
-  }
-  return out;
+function stringList(value) {
+  if (!Array.isArray(value)) return [];
+  return Array.from(new Set(value.filter((v) => typeof v === "string" && v.length > 0)));
 }
 function looksLikeSchemaTour(value) {
   if (!value || typeof value !== "object") return false;
@@ -2267,7 +2240,6 @@ function fromTour(tour) {
     name: tour.title?.default ?? "Imported tour",
     status: "draft",
     trigger: normalizeTrigger(tour.trigger),
-    audience: tour.audience === "auth" || tour.audience === "guest" ? tour.audience : "all",
     // Round-trips the dismiss policy, so importing then re-exporting a tour
     // does not quietly drop it.
     dismissMode: tour.dismiss?.mode === "minimize" ? "minimize" : "end",
@@ -2277,7 +2249,7 @@ function fromTour(tour) {
       firstVisitOnly: rule.firstVisitOnly === true,
       maxShows: numOr(rule.maxShows, 0),
       device: device === "mobile" || device === "tablet" || device === "desktop" ? device : "any",
-      traits: stringMap(rule.traits)
+      tags: [...rule.tags ?? []]
     },
     display: {
       padding: numOr(tour.display?.padding, DEFAULT_PADDING),
@@ -2408,7 +2380,6 @@ function toPageGlob(url) {
   return trimmed ? `${trimmed}*` : "";
 }
 const RESUME_PARAM = "tours-resume";
-const TRAIT_KEYS_ID = "tours-trait-keys";
 function h(tag, attrs = {}, children = []) {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
@@ -3283,19 +3254,6 @@ ${result.errors.join("\n")}`);
     const t = this.tour;
     wrap.append(
       this.selectField(
-        "Audience",
-        t.audience,
-        [
-          ["all", "Everyone"],
-          ["auth", "Logged-in users only"],
-          ["guest", "Logged-out visitors only"]
-        ],
-        (v) => {
-          t.audience = v;
-          this.markDirty();
-        }
-      ),
-      this.selectField(
         "Start trigger",
         t.trigger.type,
         [
@@ -3385,10 +3343,10 @@ ${result.errors.join("\n")}`);
       const c = t.conditions;
       wrap.append(
         h("div", { class: "settings__divider" }),
-        h("label", { class: "settings__label" }, ["Visitor traits"]),
-        this.traitRows(c.traits, () => this.markDirty()),
+        h("label", { class: "settings__label" }, ["Visitor tags"]),
+        this.tagPicker(c.tags, () => this.markDirty()),
         h("div", { class: "settings__hint" }, [
-          "Role, plan, group — whatever the host reports. Every listed trait must match."
+          "The visitor must carry every selected tag. Logged-in, role, plan — the host decides what exists."
         ]),
         this.checkboxField("Show only on the first visit", c.firstVisitOnly, (on) => {
           c.firstVisitOnly = on;
@@ -3415,60 +3373,41 @@ ${result.errors.join("\n")}`);
     return wrap;
   }
   /**
-   * Key/value rows for visitor traits.
+   * Tag picker: click to require a label, click again to drop it.
    *
-   * Traits are deliberately open-ended in the schema — role, plan, group,
-   * enrolment, whatever the host reports — so the editor cannot offer a fixed
-   * list of fields. Free rows are the honest shape for that.
+   * Tags are what the host attaches to a visitor — `admin`, `authenticated`,
+   * `firstVisit`, `level:gold`. Rendered as a row of toggles rather than text
+   * inputs because the whole reason for tags over key/value pairs is that an
+   * author should pick, not type: a mistyped label matches nobody and says
+   * nothing about it.
+   *
+   * Anything already on the tour that the host does not advertise is still
+   * shown, so importing a tour from elsewhere does not hide its rules.
    */
-  traitRows(traits, onChange) {
-    const wrap = h("div", { class: "traits" });
-    for (const [key, value] of Object.entries(traits)) {
-      const row = h("div", { class: "traits__row" });
-      const k = h("input", {
-        class: "traits__key",
-        placeholder: "key",
-        // A datalist suggests without restricting: a host may report keys it
-        // never declared, and the schema does not limit them either.
-        ...this.options.traitKeys?.length ? { list: TRAIT_KEYS_ID } : {}
-      });
-      k.value = key;
-      const v = h("input", { class: "traits__val", placeholder: "value" });
-      v.value = value;
-      k.addEventListener("change", () => {
-        const next = k.value.trim();
-        delete traits[key];
-        if (next) traits[next] = v.value;
+  tagPicker(selected, onChange) {
+    const wrap = h("div", { class: "tags" });
+    const known = this.options.tags ?? [];
+    const all = Array.from(/* @__PURE__ */ new Set([...known, ...selected]));
+    if (all.length === 0) {
+      wrap.append(
+        h("p", { class: "selpop__empty" }, [
+          "No tags available. The host declares them — see `tags` in the builder options, or the site_tours_viewer_tags filter."
+        ])
+      );
+      return wrap;
+    }
+    for (const tag of all) {
+      const on = selected.includes(tag);
+      const chip = h("button", { class: `tags__chip ${on ? "tags__chip--on" : ""}`.trim(), type: "button" }, [tag]);
+      chip.addEventListener("click", () => {
+        const i = selected.indexOf(tag);
+        if (i === -1) selected.push(tag);
+        else selected.splice(i, 1);
         onChange();
         this.render();
       });
-      v.addEventListener("change", () => {
-        traits[key] = v.value;
-        onChange();
-      });
-      const del = iconButton("trash", "Remove this condition");
-      del.addEventListener("click", () => {
-        delete traits[key];
-        onChange();
-        this.render();
-      });
-      row.append(k, v, del);
-      wrap.append(row);
+      wrap.append(chip);
     }
-    if (this.options.traitKeys?.length) {
-      const dl = h("datalist", { id: TRAIT_KEYS_ID });
-      for (const key of this.options.traitKeys) dl.append(h("option", { value: key }));
-      wrap.append(dl);
-    }
-    const add = h("button", { class: "traits__add", type: "button" }, ["+ Add a trait"]);
-    add.addEventListener("click", () => {
-      let n = 1;
-      while (`trait${n}` in traits) n += 1;
-      traits[`trait${n}`] = "";
-      onChange();
-      this.render();
-    });
-    wrap.append(add);
     return wrap;
   }
   /** A labelled checkbox row. */
@@ -3729,9 +3668,7 @@ ${result.errors.join("\n")}`);
     const wrap = h("div", { class: "settings" });
     const cond = step.condition ?? (step.condition = {});
     const touched = () => {
-      if (Object.keys(cond).length === 0 || cond.traits && Object.keys(cond.traits).length === 0 && !cond.device) {
-        if (!cond.device && (!cond.traits || Object.keys(cond.traits).length === 0)) delete step.condition;
-      }
+      if (!cond.device && (!cond.tags || cond.tags.length === 0)) delete step.condition;
       this.markDirty();
     };
     wrap.append(
@@ -3751,10 +3688,10 @@ ${result.errors.join("\n")}`);
           this.render();
         }
       ),
-      h("label", { class: "settings__label" }, ["Visitor traits"]),
-      this.traitRows(cond.traits ?? (cond.traits = {}), touched),
+      h("label", { class: "settings__label" }, ["Visitor tags"]),
+      this.tagPicker(cond.tags ?? (cond.tags = []), touched),
       h("div", { class: "settings__hint" }, [
-        "Every trait listed must match what the host reports for this visitor. A trait the host does not report never matches."
+        "The visitor must carry every selected tag. A tag the host does not attach is simply absent, so the step is skipped."
       ])
     );
     return wrap;

@@ -37,8 +37,16 @@ function validateCondition(value, path, errors) {
     return;
   }
   if (value.url !== void 0) validateUrlMatch(value.url, `${path}.url`, errors);
-  if (value.role !== void 0 && typeof value.role !== "string") {
-    errors.push(`${path}.role must be a string`);
+  if (value.traits !== void 0) {
+    if (!isRecord(value.traits)) {
+      errors.push(`${path}.traits must be an object`);
+    } else {
+      for (const [k, v] of Object.entries(value.traits)) {
+        if (typeof v !== "string" && typeof v !== "number") {
+          errors.push(`${path}.traits.${k} must be a string or number`);
+        }
+      }
+    }
   }
   if (value.firstVisitOnly !== void 0 && typeof value.firstVisitOnly !== "boolean") {
     errors.push(`${path}.firstVisitOnly must be a boolean`);

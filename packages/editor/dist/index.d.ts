@@ -27,8 +27,18 @@ type DeviceClass = "mobile" | "tablet" | "desktop";
 export interface Condition {
 	/** Current page URL must match. */
 	url?: UrlMatch;
-	/** Visitor role must equal this (e.g. "admin", "guest"). */
-	role?: string;
+	/**
+	 * Host-supplied facts the visitor must match. Every listed key must equal the
+	 * value the host reports.
+	 *
+	 *     traits: { role: 'subscriber', level: 'gold', org: 'acme' }
+	 *
+	 * Deliberately open-ended, and deliberately *without* a dedicated `role`
+	 * field: role is not privileged over group, organisation, plan or enrolment,
+	 * and naming each one in the schema is a list that never ends. One mechanism
+	 * covers them all, and the host decides what the keys mean.
+	 */
+	traits?: Record<string, string | number>;
 	/** Only on the visitor's first visit. */
 	firstVisitOnly?: boolean;
 	/** Only on this device class. */

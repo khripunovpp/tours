@@ -1,16 +1,29 @@
 /**
  * Rules engine — decides whether a tour may auto-start right now. A tour's
  * `rules` are OR-ed: it may start if any rule's condition holds (or there are
- * no rules). Conditions cover URL, role, first visit, device, and frequency.
+ * no rules). Conditions cover URL, host-supplied traits, first visit, device
+ * and frequency.
  */
 import type { Rule, Condition } from '@tours/schema';
 import { matchUrl } from './url.js';
 
 export type Device = 'mobile' | 'tablet' | 'desktop';
 
+/**
+ * What the host knows about the current visitor: role, membership level, group,
+ * organisation, enrolment — whatever its rules need to target. Matched against
+ * `Condition.traits`.
+ */
+export type ViewerTraits = Record<string, string | number>;
+
 export interface RuleContext {
   url: string;
-  role?: string;
+  /**
+   * Absent keys never match, so a condition on a trait the host does not report
+   * fails closed. The alternative — unknown means "matches" — would leak tours
+   * to exactly the visitors a rule was written to exclude.
+   */
+  traits?: ViewerTraits;
   device: Device;
   /** True when the visitor has not seen this tour before. */
   firstVisit: boolean;
@@ -27,12 +40,21 @@ export function detectDevice(width: number = window.innerWidth): Device {
 
 function matchCondition(cond: Condition, ctx: RuleContext): boolean {
   if (cond.url && !matchUrl(cond.url, ctx.url)) return false;
-  if (cond.role !== undefined && cond.role !== ctx.role) return false;
+  if (cond.traits) {
+    for (const [key, want] of Object.entries(cond.traits)) {
+      if (ctx.traits?.[key] !== want) return false;
+    }
+  }
   if (cond.firstVisitOnly && !ctx.firstVisit) return false;
   if (cond.device && cond.device !== ctx.device) return false;
   if (cond.unlessSeen && ctx.seenCount > 0) return false;
   if (cond.maxShows !== undefined && ctx.seenCount >= cond.maxShows) return false;
   return true;
+}
+
+/** True if a single condition holds — exported for per-step gating. */
+export function matchesCondition(cond: Condition | undefined, ctx: RuleContext): boolean {
+  return !cond || matchCondition(cond, ctx);
 }
 
 /** True if the tour may start given the context (no rules ⇒ always). */

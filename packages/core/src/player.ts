@@ -16,12 +16,14 @@ import { placeCard } from './position.js';
 import { renderCard, CARD_STYLES } from './card.js';
 import { resolveElement, waitForElement, type SelectorLike } from './selector.js';
 import { matchUrl, deriveUrl } from './url.js';
+import { matchesCondition, detectDevice, type ViewerTraits } from './rules.js';
 import { onLocationChange } from './history.js';
 import {
   type StateBackend,
   readProgress,
   writeProgress,
   clearProgress,
+  seenCount,
 } from './state.js';
 import { createLogger } from './logger.js';
 import { showResumeInvite, type ResumeInvite } from './cta.js';
@@ -99,6 +101,12 @@ export interface PlayerOptions {
    * as `tours:<name>`, for pages with no build step.
    */
   on?: TourEventHandlers;
+  /**
+   * Facts about the current visitor, used to evaluate per-step `condition`s.
+   * Called each time a step is evaluated rather than read once, so a change of
+   * plan or group takes effect on the next step.
+   */
+  viewer?: () => ViewerTraits;
 }
 
 /** Attribute the builder puts on its shadow host — see @tours/editor. */
@@ -157,6 +165,27 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
    */
   function isInteractive(step: RuntimeStep): boolean {
     return step.action?.type === 'click';
+  }
+
+  /**
+   * True if the step's own `condition` holds for this visitor right now.
+   *
+   * `Step.condition` has been in the schema and validated since the start, but
+   * nothing ever evaluated it — a step gated on a plan or a device was shown to
+   * everyone regardless.
+   */
+  function stepAllowed(step: RuntimeStep): boolean {
+    if (!step.condition) return true;
+    // No state backend means no history to reason about: treat the visitor as
+    // brand new rather than refusing to evaluate.
+    const seen = state ? seenCount(state, tour.id) : 0;
+    return matchesCondition(step.condition, {
+      url: window.location.href,
+      traits: options.viewer?.(),
+      device: detectDevice(),
+      firstVisit: seen === 0,
+      seenCount: seen,
+    });
   }
 
   /** True if a step belongs to the current page (no pageUrl ⇒ any page). */
@@ -329,6 +358,22 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
     }
 
     log.log('render step', index, step.id);
+
+    // Gated out for this visitor — pass over it exactly like an unfindable one,
+    // so the progress counter stays honest.
+    if (!stepAllowed(step)) {
+      log.log(`step "${step.id}" skipped: condition not met`);
+      emit(options.on, 'stepSkipped', { tour, index, step, reason: 'condition' });
+      skipped += 1;
+      if (index < tour.steps.length - 1) {
+        index += 1;
+        render();
+      } else {
+        stop(skipped >= tour.steps.length ? 'dismissed' : 'completed');
+      }
+      return;
+    }
+
     const target = findTarget(step);
     if (!target) {
       // The element may not be in the DOM yet (SPA / lazy). Wait for it, then

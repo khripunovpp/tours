@@ -28,8 +28,18 @@ export type DeviceClass = "mobile" | "tablet" | "desktop";
 export interface Condition {
 	/** Current page URL must match. */
 	url?: UrlMatch;
-	/** Visitor role must equal this (e.g. "admin", "guest"). */
-	role?: string;
+	/**
+	 * Host-supplied facts the visitor must match. Every listed key must equal the
+	 * value the host reports.
+	 *
+	 *     traits: { role: 'subscriber', level: 'gold', org: 'acme' }
+	 *
+	 * Deliberately open-ended, and deliberately *without* a dedicated `role`
+	 * field: role is not privileged over group, organisation, plan or enrolment,
+	 * and naming each one in the schema is a list that never ends. One mechanism
+	 * covers them all, and the host decides what the keys mean.
+	 */
+	traits?: Record<string, string | number>;
 	/** Only on the visitor's first visit. */
 	firstVisitOnly?: boolean;
 	/** Only on this device class. */
@@ -216,6 +226,33 @@ export interface WaitOptions {
  * and resolves with the element, or null on timeout. Never rejects.
  */
 export declare function waitForElement(selectors: readonly SelectorLike[], options?: WaitOptions): Promise<Element | null>;
+export type Device = "mobile" | "tablet" | "desktop";
+/**
+ * What the host knows about the current visitor: role, membership level, group,
+ * organisation, enrolment — whatever its rules need to target. Matched against
+ * `Condition.traits`.
+ */
+export type ViewerTraits = Record<string, string | number>;
+export interface RuleContext {
+	url: string;
+	/**
+	 * Absent keys never match, so a condition on a trait the host does not report
+	 * fails closed. The alternative — unknown means "matches" — would leak tours
+	 * to exactly the visitors a rule was written to exclude.
+	 */
+	traits?: ViewerTraits;
+	device: Device;
+	/** True when the visitor has not seen this tour before. */
+	firstVisit: boolean;
+	/** How many times this tour has already been shown to the visitor. */
+	seenCount: number;
+}
+/** Coarse device class from the viewport width. */
+export declare function detectDevice(width?: number): Device;
+/** True if a single condition holds — exported for per-step gating. */
+export declare function matchesCondition(cond: Condition | undefined, ctx: RuleContext): boolean;
+/** True if the tour may start given the context (no rules ⇒ always). */
+export declare function matchRules(rules: Rule[] | undefined, ctx: RuleContext): boolean;
 /**
  * Visitor state backend — where the player remembers its progress so a tour can
  * continue after the visitor navigates to another page. Within one site this is
@@ -392,6 +429,12 @@ export interface PlayerOptions {
 	 * as `tours:<name>`, for pages with no build step.
 	 */
 	on?: TourEventHandlers;
+	/**
+	 * Facts about the current visitor, used to evaluate per-step `condition`s.
+	 * Called each time a step is evaluated rather than read once, so a change of
+	 * plan or group takes effect on the next step.
+	 */
+	viewer?: () => ViewerTraits;
 }
 /**
  * True while the tour builder is mounted.
@@ -447,20 +490,6 @@ export interface MountOptions extends PlayerOptions {
  * ```
  */
 export declare function mountTours(input: readonly RuntimeTour[] | (() => readonly RuntimeTour[]), options?: MountOptions): () => void;
-export type Device = "mobile" | "tablet" | "desktop";
-export interface RuleContext {
-	url: string;
-	role?: string;
-	device: Device;
-	/** True when the visitor has not seen this tour before. */
-	firstVisit: boolean;
-	/** How many times this tour has already been shown to the visitor. */
-	seenCount: number;
-}
-/** Coarse device class from the viewport width. */
-export declare function detectDevice(width?: number): Device;
-/** True if the tour may start given the context (no rules ⇒ always). */
-export declare function matchRules(rules: Rule[] | undefined, ctx: RuleContext): boolean;
 /**
  * Debug logger. Silent by default so production pages stay quiet; enable it by
  * adding `use_logs` to the page URL query string (e.g. `?use_logs` or

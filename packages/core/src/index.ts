@@ -46,7 +46,8 @@ export {
 } from './state.js';
 export type { StateBackend, TourProgress } from './state.js';
 export { matchRules, detectDevice } from './rules.js';
-export type { RuleContext, Device } from './rules.js';
+export type { RuleContext, Device, ViewerTraits } from './rules.js';
+export { matchesCondition } from './rules.js';
 export { createLogger, isLoggingEnabled } from './logger.js';
 export type { Logger } from './logger.js';
 export { placeCard, autoSide } from './position.js';

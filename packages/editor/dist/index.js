@@ -349,8 +349,16 @@ function validateCondition(value, path, errors) {
     return;
   }
   if (value.url !== void 0) validateUrlMatch(value.url, `${path}.url`, errors);
-  if (value.role !== void 0 && typeof value.role !== "string") {
-    errors.push(`${path}.role must be a string`);
+  if (value.traits !== void 0) {
+    if (!isRecord(value.traits)) {
+      errors.push(`${path}.traits must be an object`);
+    } else {
+      for (const [k, v] of Object.entries(value.traits)) {
+        if (typeof v !== "string" && typeof v !== "number") {
+          errors.push(`${path}.traits.${k} must be a string or number`);
+        }
+      }
+    }
   }
   if (value.firstVisitOnly !== void 0 && typeof value.firstVisitOnly !== "boolean") {
     errors.push(`${path}.firstVisitOnly must be a boolean`);
@@ -672,6 +680,27 @@ function deriveUrl(match) {
   if (/^https?:\/\//i.test(base) || base.startsWith("#") || base.startsWith("/")) return base;
   return null;
 }
+function detectDevice(width = window.innerWidth) {
+  if (width <= 640) return "mobile";
+  if (width <= 1024) return "tablet";
+  return "desktop";
+}
+function matchCondition(cond, ctx) {
+  if (cond.url && !matchUrl(cond.url, ctx.url)) return false;
+  if (cond.traits) {
+    for (const [key, want] of Object.entries(cond.traits)) {
+      if (ctx.traits?.[key] !== want) return false;
+    }
+  }
+  if (cond.firstVisitOnly && !ctx.firstVisit) return false;
+  if (cond.device && cond.device !== ctx.device) return false;
+  if (cond.unlessSeen && ctx.seenCount > 0) return false;
+  if (cond.maxShows !== void 0 && ctx.seenCount >= cond.maxShows) return false;
+  return true;
+}
+function matchesCondition(cond, ctx) {
+  return !cond || matchCondition(cond, ctx);
+}
 const CHANGE_EVENT = "tours:locationchange";
 let patched = false;
 function patchHistory() {
@@ -703,6 +732,12 @@ function writeProgress(state, progress) {
 }
 function clearProgress(state) {
   state.remove(PROGRESS_KEY);
+}
+const SEEN_PREFIX = "tours:seen:";
+function seenCount(state, tourId) {
+  const raw = state.get(SEEN_PREFIX + tourId);
+  const n = raw ? parseInt(raw, 10) : 0;
+  return Number.isNaN(n) ? 0 : n;
 }
 const CTA_STYLES = `
 :host { all: initial; }
@@ -852,6 +887,17 @@ function createPlayer(tour, options = {}) {
   function isInteractive(step) {
     return step.action?.type === "click";
   }
+  function stepAllowed(step) {
+    if (!step.condition) return true;
+    const seen = state ? seenCount(state, tour.id) : 0;
+    return matchesCondition(step.condition, {
+      url: window.location.href,
+      traits: options.viewer?.(),
+      device: detectDevice(),
+      firstVisit: seen === 0,
+      seenCount: seen
+    });
+  }
   function onThisPage(step) {
     return matchUrl(step.pageUrl, window.location.href);
   }
@@ -959,6 +1005,18 @@ function createPlayer(tour, options = {}) {
       return;
     }
     log.log("render step", index, step.id);
+    if (!stepAllowed(step)) {
+      log.log(`step "${step.id}" skipped: condition not met`);
+      emit(options.on, "stepSkipped", { tour, index, step, reason: "condition" });
+      skipped += 1;
+      if (index < tour.steps.length - 1) {
+        index += 1;
+        render();
+      } else {
+        stop(skipped >= tour.steps.length ? "dismissed" : "completed");
+      }
+      return;
+    }
     const target = findTarget(step);
     if (!target) {
       log.log(`step "${step.id}" target not found yet — waiting`, step.selectors);

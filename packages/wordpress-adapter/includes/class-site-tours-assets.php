@@ -40,6 +40,14 @@ class Site_Tours_Assets {
 			array(
 				'drafts'        => self::visible_drafts(),
 				'authenticated' => is_user_logged_in(),
+				'role'          => self::current_role(),
+				/**
+				 * Extra facts a tour rule may target — membership level, plan,
+				 * enrollment. Empty by default: WordPress core has no such
+				 * concept, and every membership plugin models it differently,
+				 * so this is a filter rather than a guess.
+				 */
+				'traits'        => (object) apply_filters( 'site_tours_viewer_traits', array() ),
 			)
 		);
 
@@ -57,6 +65,20 @@ class Site_Tours_Assets {
 	}
 
 	/** Published tours visible to the current visitor (audience filtered). */
+	/**
+	 * The current user's primary role, or null for a guest.
+	 *
+	 * WordPress allows several roles per user; tour rules compare a single
+	 * value, so the first is used — matching how role is displayed in wp-admin.
+	 */
+	private static function current_role() {
+		$user = wp_get_current_user();
+		if ( ! $user || ! $user->ID || empty( $user->roles ) ) {
+			return null;
+		}
+		return (string) reset( $user->roles );
+	}
+
 	private static function visible_drafts() {
 		$authed = is_user_logged_in();
 		return array_values(

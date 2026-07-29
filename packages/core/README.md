@@ -268,6 +268,40 @@ wherever the visitor came from — not necessarily the tour's previous page.
 
 Override the labels per step with `backLabel` / `nextLabel`.
 
+### Targeting by who is looking
+
+Tell the library what it knows about the visitor, and rules and steps can target
+it:
+
+```ts
+mountTours(tours, {
+  state: createLocalState(),
+  viewer: () => ({ role: 'subscriber', level: 'gold', org: 'acme' }),
+});
+```
+
+```ts
+// Whole tour: only for gold subscribers.
+rules: [{ when: { traits: { role: 'subscriber', level: 'gold' } } }]
+
+// Single step: everyone sees the tour, only gold sees this step.
+{ id: 'perk', selectors: ['#perk'], content: { default: '…' },
+  condition: { traits: { level: 'gold' } } }
+```
+
+There is **no dedicated `role` field**, on purpose. Role is not privileged over
+group, organisation, plan or enrolment, and naming each in the schema is a list
+that never ends. One mechanism covers them all and the host decides what the
+keys mean.
+
+`viewer` is called on each evaluation rather than read once, so logging in or
+changing plan takes effect on the next step or navigation.
+
+Matching **fails closed**: a trait the host does not report never matches, so a
+rule written to exclude someone cannot leak by omission. A step gated out this
+way is passed over exactly like one whose element never appeared — it emits
+`stepSkipped` with reason `condition` and is excluded from the progress count.
+
 ### Lifecycle events
 
 Every stage is reported, and two stages can be blocked.

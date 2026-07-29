@@ -15,6 +15,10 @@ const state = createLocalState();
 interface WpData {
   drafts?: unknown;
   authenticated?: boolean;
+  /** Primary role of the current user, or absent for a guest. */
+  role?: string | null;
+  /** Extra facts, via the `site_tours_viewer_traits` filter. */
+  traits?: Record<string, string | number>;
 }
 
 function data(): WpData {
@@ -76,7 +80,17 @@ function init(): void {
   // Continuing an in-flight tour, arming auto-start triggers and re-checking
   // both after navigation all live in mountTours. The list is passed as a
   // getter because the plugin can localize tours after this runs.
-  mountTours(compiled, { state });
+  mountTours(compiled, {
+    state,
+    // Supplied on every evaluation, so logging in or changing level takes
+    // effect on the next navigation without a reload.
+    // Role is not a privileged concept in the schema — it is just one trait
+    // among whatever else the site reports, so it is folded in here.
+    viewer: () => {
+      const d = data();
+      return { ...(d.traits ?? {}), ...(d.role ? { role: d.role } : {}) };
+    },
+  });
 }
 
 if (document.readyState === 'loading') {

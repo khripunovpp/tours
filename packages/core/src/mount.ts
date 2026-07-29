@@ -121,12 +121,17 @@ export function mountTours(
 
     // Nothing in flight — arm auto-start triggers whose rules hold here.
     const device = detectDevice();
+    // Inherited from PlayerOptions, so the same facts gate both a tour's rules
+    // and its individual steps. Without it, targeting matches nobody: the rules
+    // engine has always understood traits, but nothing supplied them.
+    const traits = options.viewer?.();
     for (const tour of list()) {
       if (!eligible(tour)) continue;
       if (!tour.trigger || tour.trigger.type === 'manual') continue;
       const count = state ? seenCount(state, tour.id) : 0;
       const matches = matchRules(tour.rules, {
         url: window.location.href,
+        traits,
         device,
         firstVisit: count === 0,
         seenCount: count,

@@ -1,6 +1,6 @@
 {
   "name": "@tours/core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Framework-agnostic product tour player, picker and triggers. Renders in shadow DOM, no runtime dependencies.",
   "license": "MIT",
   "author": "Pavel Khripunov",
@@ -11,26 +11,42 @@
   },
   "homepage": "https://github.com/khripunovpp/tours/tree/main/packages/core#readme",
   "bugs": "https://github.com/khripunovpp/tours/issues",
-  "type": "module",
-  "sideEffects": false,
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
-    "./package.json": "./package.json"
-  },
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist",
-    "README.md"
-  ],
   "keywords": [
     "tours",
     "onboarding",
     "product-tour",
     "walkthrough",
     "guided-tour"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "unpkg": "./dist/index.umd.js",
+  "jsdelivr": "./dist/index.umd.js",
+  "files": [
+    "dist",
+    "README.md"
   ],
   "devDependencies": {
     "@tours/schema": "workspace:*"

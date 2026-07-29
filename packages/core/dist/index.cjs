@@ -1,0 +1,1021 @@
+"use strict";
+Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
+const PICKER_STYLES = `
+:host {
+  all: initial;
+}
+.tours-picker-overlay {
+  position: fixed;
+  z-index: 2147483000;
+  box-sizing: border-box;
+  border: 2px solid #2563eb;
+  background: rgba(37, 99, 235, 0.15);
+  border-radius: 4px;
+  pointer-events: none;
+  transition: all 60ms ease-out;
+}
+.tours-picker-hint {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 2147483001;
+  padding: 8px 14px;
+  font: 13px/1.4 system-ui, sans-serif;
+  color: #fff;
+  background: #111827;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+`;
+const PLAYER_STYLES = `
+:host {
+  all: initial;
+}
+.tours-spotlight {
+  position: fixed;
+  z-index: 2147483000;
+  box-sizing: border-box;
+  border-radius: 6px;
+  box-shadow: 0 0 0 9999px rgba(17, 24, 39, 0.6);
+  pointer-events: none;
+  transition: all 120ms ease-out;
+}
+.tours-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2147482999;
+  background: transparent;
+}
+`;
+function cssString(value) {
+  return JSON.stringify(value);
+}
+function isStableClass(c) {
+  return /^[a-zA-Z][\w-]*$/.test(c) && c.length <= 30 && !/\d{2,}/.test(c) && !/^(css-|sc-|jsx-|emotion-|_|is-|has-)/.test(c);
+}
+function structuralPath(el) {
+  const parts = [];
+  let current = el;
+  while (current && current !== document.body && current.nodeType === 1) {
+    const tag = current.tagName.toLowerCase();
+    const parent = current.parentElement;
+    if (!parent) {
+      parts.unshift(tag);
+      break;
+    }
+    const sameTag = Array.from(parent.children).filter((c) => c.tagName === current.tagName);
+    parts.unshift(sameTag.length > 1 ? `${tag}:nth-of-type(${sameTag.indexOf(current) + 1})` : tag);
+    current = parent;
+  }
+  return `body > ${parts.join(" > ")}`;
+}
+function scopedPath(el) {
+  let anchor = el.parentElement;
+  while (anchor && anchor !== document.body) {
+    if (anchor.id) break;
+    anchor = anchor.parentElement;
+  }
+  if (!anchor || !anchor.id) return null;
+  const parts = [];
+  let current = el;
+  while (current && current !== anchor) {
+    const tag = current.tagName.toLowerCase();
+    const parent = current.parentElement;
+    if (!parent) return null;
+    const sameTag = Array.from(parent.children).filter((c) => c.tagName === current.tagName);
+    parts.unshift(sameTag.length > 1 ? `${tag}:nth-of-type(${sameTag.indexOf(current) + 1})` : tag);
+    current = parent;
+  }
+  return `#${CSS.escape(anchor.id)} > ${parts.join(" > ")}`;
+}
+const DATA_ATTRS = ["data-testid", "data-test", "data-test-id", "data-cy", "data-qa", "data-id", "data-name"];
+function buildSelectors(el) {
+  const out = [];
+  const seen = /* @__PURE__ */ new Set();
+  const tag = el.tagName.toLowerCase();
+  const add = (sel) => {
+    if (!sel || seen.has(sel)) return;
+    try {
+      if (document.querySelector(sel) === el) {
+        seen.add(sel);
+        out.push(sel);
+      }
+    } catch {
+    }
+  };
+  if (el.id) add(`#${CSS.escape(el.id)}`);
+  for (const name2 of DATA_ATTRS) {
+    const v = el.getAttribute(name2);
+    if (v) add(`${tag}[${name2}=${cssString(v)}]`);
+  }
+  const name = el.getAttribute("name");
+  if (name) add(`${tag}[name=${cssString(name)}]`);
+  const aria = el.getAttribute("aria-label");
+  if (aria) add(`[aria-label=${cssString(aria)}]`);
+  const classes = Array.from(el.classList).filter(isStableClass);
+  if (classes.length) add(`${tag}.${classes.map((c) => CSS.escape(c)).join(".")}`);
+  for (const c of classes) add(`${tag}.${CSS.escape(c)}`);
+  add(scopedPath(el));
+  add(structuralPath(el));
+  const text = (el.textContent ?? "").replace(/\s+/g, " ").trim();
+  if (text && text.length <= 50 && /^(a|button|summary|label|h[1-6])$/.test(tag)) {
+    const t = `text=${text}`;
+    if (!seen.has(t)) {
+      seen.add(t);
+      out.push(t);
+    }
+  }
+  if (out.length === 0) out.push(structuralPath(el));
+  return out;
+}
+const TEXT_ROLES = "a, button, summary, label, h1, h2, h3, h4, h5, h6";
+function resolveOne(sel, root) {
+  if (sel.startsWith("text=")) {
+    const want = sel.slice(5).trim();
+    for (const n of Array.from(root.querySelectorAll(TEXT_ROLES))) {
+      if ((n.textContent ?? "").replace(/\s+/g, " ").trim() === want) return n;
+    }
+    return null;
+  }
+  try {
+    return root.querySelector(sel);
+  } catch {
+    return null;
+  }
+}
+function resolveElement(selectors, root = document) {
+  for (const sel of selectors) {
+    const el = resolveOne(sel, root);
+    if (el) return el;
+  }
+  return null;
+}
+function waitForElement(selectors, options = {}) {
+  const root = options.root ?? document;
+  const immediate = resolveElement(selectors, root);
+  if (immediate) return Promise.resolve(immediate);
+  return new Promise((resolve) => {
+    let done = false;
+    let timer;
+    const finish = (el) => {
+      if (done) return;
+      done = true;
+      observer.disconnect();
+      if (timer) clearTimeout(timer);
+      resolve(el);
+    };
+    const observer = new MutationObserver(() => {
+      const el = resolveElement(selectors, root);
+      if (el) finish(el);
+    });
+    observer.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+      attributes: true
+    });
+    const timeout = options.timeout ?? 4e3;
+    if (timeout > 0 && Number.isFinite(timeout)) {
+      timer = setTimeout(() => finish(null), timeout);
+    }
+  });
+}
+let cachedEnabled = null;
+function isLoggingEnabled() {
+  if (cachedEnabled !== null) return cachedEnabled;
+  try {
+    cachedEnabled = new URLSearchParams(window.location.search).has("use_logs");
+  } catch {
+    cachedEnabled = false;
+  }
+  return cachedEnabled;
+}
+function createLogger(scope) {
+  const prefix = `[tours:${scope}]`;
+  return {
+    log: (...args) => {
+      if (isLoggingEnabled()) console.log(prefix, ...args);
+    },
+    warn: (...args) => {
+      if (isLoggingEnabled()) console.warn(prefix, ...args);
+    },
+    error: (...args) => {
+      if (isLoggingEnabled()) console.error(prefix, ...args);
+    }
+  };
+}
+function createPicker(onPick, options = {}) {
+  const log = createLogger("picker");
+  let host = null;
+  let root = null;
+  let overlay = null;
+  let active = false;
+  function isIgnored(el) {
+    if (el === host) return true;
+    for (const ignored of options.ignore ?? []) {
+      if (ignored && ignored.contains(el)) return true;
+    }
+    return false;
+  }
+  function ensureUi() {
+    if (host) return;
+    host = document.createElement("div");
+    host.setAttribute("data-tours-picker", "");
+    root = host.attachShadow({ mode: "open" });
+    const style = document.createElement("style");
+    style.textContent = PICKER_STYLES;
+    root.appendChild(style);
+    overlay = document.createElement("div");
+    overlay.className = "tours-picker-overlay";
+    overlay.style.display = "none";
+    root.appendChild(overlay);
+    const hint = document.createElement("div");
+    hint.className = "tours-picker-hint";
+    hint.textContent = "Hover and click an element • Esc to cancel";
+    root.appendChild(hint);
+    document.body.appendChild(host);
+  }
+  function elementUnder(x, y) {
+    const found = document.elementFromPoint(x, y);
+    if (!found || isIgnored(found)) return null;
+    return found;
+  }
+  function onMove(e) {
+    if (!active || !overlay) return;
+    const el = elementUnder(e.clientX, e.clientY);
+    if (!el) {
+      overlay.style.display = "none";
+      return;
+    }
+    const rect = el.getBoundingClientRect();
+    overlay.style.display = "block";
+    overlay.style.left = `${rect.left}px`;
+    overlay.style.top = `${rect.top}px`;
+    overlay.style.width = `${rect.width}px`;
+    overlay.style.height = `${rect.height}px`;
+  }
+  function onClick(e) {
+    if (!active) return;
+    const el = elementUnder(e.clientX, e.clientY);
+    e.preventDefault();
+    e.stopPropagation();
+    if (!el) return;
+    const selectors = buildSelectors(el);
+    log.log("picked", selectors);
+    stop();
+    onPick(selectors);
+  }
+  function onKey(e) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      stop();
+    }
+  }
+  function start() {
+    if (active) return;
+    active = true;
+    log.log("start");
+    ensureUi();
+    document.addEventListener("mousemove", onMove, true);
+    document.addEventListener("click", onClick, true);
+    document.addEventListener("keydown", onKey, true);
+  }
+  function stop() {
+    if (!active) return;
+    active = false;
+    document.removeEventListener("mousemove", onMove, true);
+    document.removeEventListener("click", onClick, true);
+    document.removeEventListener("keydown", onKey, true);
+    if (host && host.parentNode) {
+      host.parentNode.removeChild(host);
+    }
+    host = null;
+    root = null;
+    overlay = null;
+  }
+  return { start, stop };
+}
+const DEFAULT_PADDING = 6;
+const DEFAULT_RADIUS = 6;
+const DEFAULT_CARD_RADIUS = 10;
+const DEFAULT_OFFSET = 12;
+function autoSide(t, c, v) {
+  const space = {
+    top: t.top,
+    bottom: v.height - t.bottom,
+    left: t.left,
+    right: v.width - t.right
+  };
+  const needed = {
+    top: c.height,
+    bottom: c.height,
+    left: c.width,
+    right: c.width
+  };
+  const order = ["bottom", "top", "right", "left"];
+  const firstFit = order.find((s) => space[s] >= needed[s] + 8);
+  if (firstFit) return firstFit;
+  return order.reduce((best, s) => space[s] > space[best] ? s : best, order[0]);
+}
+function placeCard(input) {
+  const { target: t, card: c, offset, viewport: v } = input;
+  const auto = input.side === "auto";
+  const side = auto ? autoSide(t, c, v) : input.side;
+  const align = auto ? "center" : input.align;
+  const ao = input.alignOffset ?? 0;
+  const inset = align === "start" ? ao : align === "end" ? -ao : 0;
+  let top = 0;
+  let left = 0;
+  if (side === "top" || side === "bottom") {
+    top = side === "top" ? t.top - c.height - offset : t.bottom + offset;
+    left = align === "start" ? t.left : align === "end" ? t.right - c.width : t.left + t.width / 2 - c.width / 2;
+    left += inset;
+  } else {
+    left = side === "left" ? t.left - c.width - offset : t.right + offset;
+    top = align === "start" ? t.top : align === "end" ? t.bottom - c.height : t.top + t.height / 2 - c.height / 2;
+    top += inset;
+  }
+  left = Math.max(8, Math.min(left, v.width - c.width - 8));
+  top = Math.max(8, Math.min(top, v.height - c.height - 8));
+  return { top, left };
+}
+function makeButton(spec) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = `tours-card__btn${spec.primary ? " tours-card__btn--primary" : ""}${spec.disabled ? " tours-card__btn--disabled" : ""}`;
+  btn.textContent = spec.label;
+  if (!spec.disabled && spec.onClick) btn.addEventListener("click", spec.onClick);
+  return btn;
+}
+function renderCard(opts) {
+  const card = document.createElement("div");
+  card.className = `tours-card${opts.ghost ? " tours-card--ghost" : ""}`;
+  if (opts.radius != null) card.style.borderRadius = `${opts.radius}px`;
+  if (opts.showClose) {
+    const close = document.createElement("button");
+    close.className = "tours-card__close";
+    close.type = "button";
+    close.textContent = "×";
+    close.setAttribute("aria-label", "Close");
+    if (opts.onClose) close.addEventListener("click", opts.onClose);
+    card.appendChild(close);
+  }
+  const content = document.createElement("div");
+  content.className = "tours-card__content";
+  if (opts.contentHtml != null) content.innerHTML = opts.contentHtml;
+  else content.textContent = opts.contentText ?? "";
+  card.appendChild(content);
+  if (opts.back || opts.next || opts.progress) {
+    const footer = document.createElement("div");
+    footer.className = "tours-card__footer";
+    if (opts.back) footer.appendChild(makeButton(opts.back));
+    if (opts.progress) {
+      const p = document.createElement("span");
+      p.className = "tours-card__progress";
+      p.textContent = opts.progress;
+      footer.appendChild(p);
+    }
+    if (opts.next) footer.appendChild(makeButton(opts.next));
+    card.appendChild(footer);
+  }
+  return card;
+}
+const CARD_STYLES = `
+.tours-card {
+  position: fixed;
+  z-index: 2147483001;
+  box-sizing: border-box;
+  max-width: 320px;
+  min-width: 220px;
+  padding: 16px;
+  font: 14px/1.5 system-ui, sans-serif;
+  color: #111827;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+.tours-card--ghost { pointer-events: none; }
+.tours-card--ghost .tours-card__btn,
+.tours-card--ghost .tours-card__close { pointer-events: auto; }
+.tours-card__content {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.tours-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 14px;
+}
+.tours-card__progress {
+  flex: 1;
+  text-align: center;
+  font-size: 12px;
+  color: #6b7280;
+}
+.tours-card__btn {
+  box-sizing: border-box;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  color: #111827;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.tours-card__btn:hover { background: #e5e7eb; }
+.tours-card__btn--primary { color: #fff; background: #2563eb; border-color: #2563eb; }
+.tours-card__btn--primary:hover { background: #1d4ed8; }
+.tours-card__btn--disabled { opacity: 0.45; pointer-events: none; cursor: default; }
+.tours-card__close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font: 16px/1 system-ui, sans-serif;
+  color: #6b7280;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.tours-card__close:hover { background: #f3f4f6; color: #111827; }
+`;
+function globToRegExp(glob) {
+  const escaped = glob.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*\*/g, "\0").replace(/\*/g, "[^/]*").replace(/ /g, ".*").replace(/\?/g, ".");
+  return new RegExp(`^${escaped}$`);
+}
+function matchUrl(match, url) {
+  if (!match) return true;
+  if (match.regex) {
+    try {
+      return new RegExp(match.regex).test(url);
+    } catch {
+      return false;
+    }
+  }
+  if (match.glob) {
+    try {
+      return globToRegExp(match.glob).test(url);
+    } catch {
+      return false;
+    }
+  }
+  return true;
+}
+function deriveUrl(match) {
+  if (!match || !match.glob) return null;
+  const base = match.glob.replace(/\*+/g, "");
+  if (/^https?:\/\//i.test(base) || base.startsWith("#") || base.startsWith("/")) return base;
+  return null;
+}
+const CHANGE_EVENT = "tours:locationchange";
+let patched = false;
+function patchHistory() {
+  if (patched) return;
+  patched = true;
+  for (const method of ["pushState", "replaceState"]) {
+    const original = history[method];
+    history[method] = function patchedMethod(...args) {
+      const result = original.apply(this, args);
+      window.dispatchEvent(new Event(CHANGE_EVENT));
+      return result;
+    };
+  }
+}
+function onLocationChange(cb) {
+  patchHistory();
+  window.addEventListener("popstate", cb);
+  window.addEventListener("hashchange", cb);
+  window.addEventListener(CHANGE_EVENT, cb);
+  return () => {
+    window.removeEventListener("popstate", cb);
+    window.removeEventListener("hashchange", cb);
+    window.removeEventListener(CHANGE_EVENT, cb);
+  };
+}
+const PROGRESS_KEY = "tours:progress";
+function createLocalState() {
+  return {
+    get(key) {
+      try {
+        return localStorage.getItem(key);
+      } catch {
+        return null;
+      }
+    },
+    set(key, value) {
+      try {
+        localStorage.setItem(key, value);
+      } catch {
+      }
+    },
+    remove(key) {
+      try {
+        localStorage.removeItem(key);
+      } catch {
+      }
+    }
+  };
+}
+function readProgress(state) {
+  const raw = state.get(PROGRESS_KEY);
+  if (!raw) return null;
+  try {
+    const p = JSON.parse(raw);
+    if (typeof p?.tourId === "string" && typeof p?.index === "number") return p;
+  } catch {
+  }
+  return null;
+}
+function writeProgress(state, progress) {
+  state.set(PROGRESS_KEY, JSON.stringify(progress));
+}
+function clearProgress(state) {
+  state.remove(PROGRESS_KEY);
+}
+const SEEN_PREFIX = "tours:seen:";
+function seenCount(state, tourId) {
+  const raw = state.get(SEEN_PREFIX + tourId);
+  const n = raw ? parseInt(raw, 10) : 0;
+  return Number.isNaN(n) ? 0 : n;
+}
+function markSeen(state, tourId) {
+  state.set(SEEN_PREFIX + tourId, String(seenCount(state, tourId) + 1));
+}
+function createPlayer(tour, options = {}) {
+  const log = createLogger("player");
+  const state = options.state;
+  let host = null;
+  let root = null;
+  let spotlight = null;
+  let tooltip = null;
+  let active = false;
+  let index = 0;
+  let skipped = 0;
+  let unwatch = null;
+  const pad = tour.display?.padding ?? DEFAULT_PADDING;
+  const radius = tour.display?.radius ?? DEFAULT_RADIUS;
+  const cardRadius = tour.display?.cardRadius ?? DEFAULT_CARD_RADIUS;
+  const offset = tour.display?.offset ?? DEFAULT_OFFSET;
+  function findTarget(step) {
+    return resolveElement(step.selectors);
+  }
+  function onThisPage(step) {
+    return matchUrl(step.pageUrl, window.location.href);
+  }
+  function persist() {
+    if (state) writeProgress(state, { tourId: tour.id, index });
+  }
+  function ensureUi() {
+    if (host) return;
+    host = document.createElement("div");
+    host.setAttribute("data-tours-player", "");
+    root = host.attachShadow({ mode: "open" });
+    const style = document.createElement("style");
+    style.textContent = PLAYER_STYLES + CARD_STYLES;
+    root.appendChild(style);
+    const backdrop = document.createElement("div");
+    backdrop.className = "tours-backdrop";
+    backdrop.addEventListener("click", (e) => {
+      const step = tour.steps[index];
+      const target = step ? findTarget(step) : null;
+      if (target) {
+        const r = target.getBoundingClientRect();
+        const inside = e.clientX >= r.left - pad && e.clientX <= r.right + pad && e.clientY >= r.top - pad && e.clientY <= r.bottom + pad;
+        if (inside) return;
+      }
+      stop();
+    });
+    root.appendChild(backdrop);
+    spotlight = document.createElement("div");
+    spotlight.className = "tours-spotlight";
+    spotlight.style.borderRadius = `${radius}px`;
+    root.appendChild(spotlight);
+    document.body.appendChild(host);
+  }
+  function positionSpotlight(rect, fast = false) {
+    if (!spotlight) return;
+    spotlight.style.transitionDuration = fast ? "0ms" : "";
+    spotlight.style.display = "block";
+    spotlight.style.left = `${rect.left - pad}px`;
+    spotlight.style.top = `${rect.top - pad}px`;
+    spotlight.style.width = `${rect.width + pad * 2}px`;
+    spotlight.style.height = `${rect.height + pad * 2}px`;
+  }
+  function positionTooltip(rect, step) {
+    if (!tooltip) return;
+    const framed = {
+      top: rect.top - pad,
+      left: rect.left - pad,
+      right: rect.right + pad,
+      bottom: rect.bottom + pad,
+      width: rect.width + pad * 2,
+      height: rect.height + pad * 2
+    };
+    const { top, left } = placeCard({
+      target: framed,
+      card: { width: tooltip.offsetWidth, height: tooltip.offsetHeight },
+      side: step.placement ?? "bottom",
+      align: step.align ?? "center",
+      offset,
+      alignOffset: tour.display?.alignOffset ?? 0,
+      viewport: { width: window.innerWidth, height: window.innerHeight }
+    });
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+  }
+  function renderTooltip(step) {
+    const total = Math.max(1, tour.steps.length - skipped);
+    const position = Math.max(1, Math.min(index + 1 - skipped, total));
+    if (tooltip) tooltip.remove();
+    tooltip = renderCard({
+      contentText: step.content.default,
+      progress: `Step ${position} of ${total}`,
+      showClose: true,
+      onClose: stop,
+      radius: cardRadius,
+      back: { label: step.backLabel ?? "Back", disabled: index === 0, onClick: prev },
+      next: {
+        label: step.nextLabel ?? (index === total - 1 ? "Done" : "Next"),
+        primary: true,
+        onClick: next
+      }
+    });
+    root?.appendChild(tooltip);
+  }
+  function render() {
+    if (!active) return;
+    const step = tour.steps[index];
+    if (!step) {
+      stop();
+      return;
+    }
+    log.log("render step", index, step.id);
+    const target = findTarget(step);
+    if (!target) {
+      log.log(`step "${step.id}" target not found yet — waiting`, step.selectors);
+      void waitForElement(step.selectors, { timeout: 4e3 }).then((el) => {
+        if (!active || tour.steps[index] !== step) return;
+        if (el) {
+          render();
+        } else {
+          log.warn(`step "${step.id}" skipped: no element for selectors`, step.selectors);
+          skipped += 1;
+          if (index < tour.steps.length - 1) {
+            index += 1;
+            render();
+          } else {
+            stop();
+          }
+        }
+      });
+      return;
+    }
+    ensureUi();
+    target.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+    renderTooltip(step);
+    const rect = target.getBoundingClientRect();
+    positionSpotlight(rect);
+    positionTooltip(rect, step);
+  }
+  function onKey(e) {
+    if (!active) return;
+    if (e.key === "Escape") {
+      e.preventDefault();
+      stop();
+    } else if (e.key === "ArrowRight") {
+      next();
+    } else if (e.key === "ArrowLeft") {
+      prev();
+    }
+  }
+  function reposition() {
+    if (!active) return;
+    const step = tour.steps[index];
+    if (!step) return;
+    const target = findTarget(step);
+    if (!target) return;
+    const rect = target.getBoundingClientRect();
+    positionSpotlight(rect, true);
+    positionTooltip(rect, step);
+  }
+  function start(startIndex = 0) {
+    if (active) return;
+    if (tour.steps.length === 0) return;
+    active = true;
+    index = Math.max(0, Math.min(startIndex, tour.steps.length - 1));
+    skipped = 0;
+    log.log("start", tour.id, `at ${index}/${tour.steps.length}`);
+    ensureUi();
+    window.addEventListener("keydown", onKey, true);
+    window.addEventListener("resize", reposition, true);
+    window.addEventListener("scroll", reposition, true);
+    persist();
+    render();
+  }
+  function hideVisuals() {
+    if (spotlight) spotlight.style.display = "none";
+    if (tooltip) {
+      tooltip.remove();
+      tooltip = null;
+    }
+  }
+  function waitForPageChange() {
+    hideVisuals();
+    if (unwatch) return;
+    unwatch = onLocationChange(() => {
+      if (!active) {
+        unwatch?.();
+        unwatch = null;
+        return;
+      }
+      const step = tour.steps[index];
+      if (step && onThisPage(step)) {
+        unwatch?.();
+        unwatch = null;
+        render();
+      }
+    });
+  }
+  function teardownUi() {
+    if (unwatch) {
+      unwatch();
+      unwatch = null;
+    }
+    if (!active) return;
+    active = false;
+    window.removeEventListener("keydown", onKey, true);
+    window.removeEventListener("resize", reposition, true);
+    window.removeEventListener("scroll", reposition, true);
+    if (host && host.parentNode) {
+      host.parentNode.removeChild(host);
+    }
+    host = null;
+    root = null;
+    spotlight = null;
+    tooltip = null;
+  }
+  function stop() {
+    log.log("stop");
+    teardownUi();
+    if (state) clearProgress(state);
+  }
+  function next() {
+    if (!active) return;
+    const nextIndex = index + 1;
+    const nextStep = tour.steps[nextIndex];
+    if (!nextStep) {
+      stop();
+      return;
+    }
+    if (onThisPage(nextStep)) {
+      index = nextIndex;
+      persist();
+      render();
+      return;
+    }
+    index = nextIndex;
+    persist();
+    const navigate = (url) => {
+      teardownUi();
+      if (options.onNavigate) options.onNavigate(url, nextStep.id);
+      else window.location.assign(url);
+    };
+    const action = tour.steps[index - 1]?.action;
+    if (action && action.type === "navigate" && action.url) {
+      if (action.url.startsWith("#")) {
+        log.log("page transition (hash navigate) → resume at", index);
+        waitForPageChange();
+        window.location.hash = action.url;
+      } else {
+        log.log("page transition (navigate) → resume at", index);
+        navigate(action.url);
+      }
+      return;
+    }
+    const derived = deriveUrl(nextStep.pageUrl);
+    if (derived) {
+      if (derived.startsWith("#")) {
+        log.log("page transition (derived hash) → resume at", index);
+        waitForPageChange();
+        window.location.hash = derived;
+      } else {
+        log.log("page transition (derived navigate) → resume at", index, derived);
+        navigate(derived);
+      }
+      return;
+    }
+    log.log("page transition (wait) → resume at", index);
+    waitForPageChange();
+  }
+  function prev() {
+    if (!active) return;
+    const prevStep = tour.steps[index - 1];
+    if (!prevStep) return;
+    if (onThisPage(prevStep)) {
+      index -= 1;
+      persist();
+      render();
+      return;
+    }
+    index -= 1;
+    persist();
+    log.log("page transition back → resume at", index);
+    waitForPageChange();
+    window.history.back();
+  }
+  return { start, stop, next, prev };
+}
+function resumeTour(tour, options = {}) {
+  const state = options.state;
+  if (!state) return null;
+  const progress = readProgress(state);
+  if (!progress || progress.tourId !== tour.id) return null;
+  const step = tour.steps[progress.index];
+  if (!step) {
+    clearProgress(state);
+    return null;
+  }
+  if (!matchUrl(step.pageUrl, window.location.href)) return null;
+  const player = createPlayer(tour, { state });
+  player.start(progress.index);
+  return player;
+}
+const CTA_STYLES = `
+:host { all: initial; }
+.cta {
+  position: fixed;
+  z-index: 2147483200;
+  box-sizing: border-box;
+  max-width: 300px;
+  padding: 16px 18px;
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: #111827;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+}
+.cta__text { margin: 0 0 12px; padding-right: 18px; }
+.cta__btn {
+  font: inherit;
+  font-weight: 600;
+  color: #fff;
+  background: #2563eb;
+  border: none;
+  border-radius: 9px;
+  padding: 9px 16px;
+  cursor: pointer;
+}
+.cta__btn:hover { background: #1d4ed8; }
+.cta__close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font: 16px/1 system-ui, sans-serif;
+  color: #9aa4b8;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.cta__close:hover { color: #111827; background: #f3f4f6; }
+`;
+function showCta(options) {
+  const corner = options.corner ?? "bottom-right";
+  const offset = options.offset ?? 24;
+  const host = document.createElement("div");
+  host.setAttribute("data-tours-cta", "");
+  const root = host.attachShadow({ mode: "open" });
+  const style = document.createElement("style");
+  style.textContent = CTA_STYLES;
+  root.appendChild(style);
+  const card = document.createElement("div");
+  card.className = "cta";
+  const [vertical, horizontal] = corner.split("-");
+  card.style[vertical] = `${offset}px`;
+  card.style[horizontal] = `${offset}px`;
+  const remove = () => {
+    if (host.parentNode) host.parentNode.removeChild(host);
+  };
+  const close = document.createElement("button");
+  close.className = "cta__close";
+  close.type = "button";
+  close.textContent = "×";
+  close.setAttribute("aria-label", "Dismiss");
+  close.addEventListener("click", remove);
+  const text = document.createElement("p");
+  text.className = "cta__text";
+  text.textContent = options.text;
+  const button = document.createElement("button");
+  button.className = "cta__btn";
+  button.type = "button";
+  button.textContent = options.button;
+  button.addEventListener("click", () => {
+    remove();
+    options.onStart();
+  });
+  card.append(close, text, button);
+  root.appendChild(card);
+  document.body.appendChild(host);
+  return remove;
+}
+function armTrigger(tour, fire) {
+  const trigger = tour.trigger ?? { type: "manual" };
+  let fired = false;
+  const once = () => {
+    if (fired) return;
+    fired = true;
+    fire();
+  };
+  switch (trigger.type) {
+    case "load": {
+      const id = setTimeout(once, 0);
+      return () => clearTimeout(id);
+    }
+    case "timer": {
+      const id = setTimeout(once, Math.max(0, trigger.delay));
+      return () => clearTimeout(id);
+    }
+    case "selector": {
+      let cancelled = false;
+      void waitForElement([trigger.selector], { timeout: 0 }).then((el) => {
+        if (el && !cancelled) once();
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+    case "cta": {
+      let dismiss = () => {
+      };
+      dismiss = showCta({
+        text: trigger.text,
+        button: trigger.button,
+        corner: trigger.corner,
+        offset: trigger.offset,
+        onStart: once
+      });
+      return dismiss;
+    }
+    case "manual":
+    default:
+      return () => {
+      };
+  }
+}
+function detectDevice(width = window.innerWidth) {
+  if (width <= 640) return "mobile";
+  if (width <= 1024) return "tablet";
+  return "desktop";
+}
+function matchCondition(cond, ctx) {
+  if (cond.url && !matchUrl(cond.url, ctx.url)) return false;
+  if (cond.role !== void 0 && cond.role !== ctx.role) return false;
+  if (cond.firstVisitOnly && !ctx.firstVisit) return false;
+  if (cond.device && cond.device !== ctx.device) return false;
+  if (cond.unlessSeen && ctx.seenCount > 0) return false;
+  if (cond.maxShows !== void 0 && ctx.seenCount >= cond.maxShows) return false;
+  return true;
+}
+function matchRules(rules, ctx) {
+  if (!rules || rules.length === 0) return true;
+  return rules.some((rule) => matchCondition(rule.when, ctx));
+}
+exports.CARD_STYLES = CARD_STYLES;
+exports.PROGRESS_KEY = PROGRESS_KEY;
+exports.armTrigger = armTrigger;
+exports.autoSide = autoSide;
+exports.buildSelectors = buildSelectors;
+exports.clearProgress = clearProgress;
+exports.createLocalState = createLocalState;
+exports.createLogger = createLogger;
+exports.createPicker = createPicker;
+exports.createPlayer = createPlayer;
+exports.deriveUrl = deriveUrl;
+exports.detectDevice = detectDevice;
+exports.isLoggingEnabled = isLoggingEnabled;
+exports.markSeen = markSeen;
+exports.matchRules = matchRules;
+exports.matchUrl = matchUrl;
+exports.placeCard = placeCard;
+exports.readProgress = readProgress;
+exports.renderCard = renderCard;
+exports.resolveElement = resolveElement;
+exports.resumeTour = resumeTour;
+exports.seenCount = seenCount;
+exports.waitForElement = waitForElement;
+exports.writeProgress = writeProgress;
+//# sourceMappingURL=index.cjs.map

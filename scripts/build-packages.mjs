@@ -1,18 +1,25 @@
 /**
- * Build the three installable npm packages into `packages/<name>/dist`.
+ * Build the three installable packages into `packages/<name>/dist`.
  *
- *   packages/schema/dist/index.{js,d.ts}
- *   packages/core/dist/index.{js,d.ts}
- *   packages/editor/dist/index.{js,d.ts}
+ * Each package ships every format the ecosystem still asks for, so it installs
+ * under any package manager, any bundler, and straight from a CDN:
  *
- * Each output is fully self-contained: cross-package imports are aliased to
- * source and bundled in, so a published package declares **no runtime
- * dependencies**. That is deliberate — these are installed straight from git
- * (`pnpm add "git+ssh://…#path:/packages/core"`), and a git-installed package
- * sits outside the workspace, where a `workspace:*` dependency cannot resolve.
+ *   dist/index.js      ESM  — modern bundlers, Node ESM, Deno, Bun
+ *   dist/index.cjs     CJS  — `require()`, older Node, legacy tooling
+ *   dist/index.umd.js  UMD  — classic <script>, unpkg/jsDelivr, no build step
+ *   dist/index.d.ts    types for the ESM entry
+ *   dist/index.d.cts   types for the CJS entry (Node resolves these separately;
+ *                      without it `require()` gets no types under
+ *                      moduleResolution node16/nodenext)
+ *
+ * Outputs are fully self-contained: cross-package imports are aliased to source
+ * and bundled in, so a published package declares **no runtime dependencies**.
+ * That is deliberate — these are also installed straight from git, and a
+ * git-installed package sits outside the workspace, where a `workspace:*`
+ * dependency cannot resolve.
  *
  * The cost is duplication: a project installing both core and editor gets two
- * copies of the schema (~3 KB gzip). That matches how the drop-in bundles in
+ * copies of the schema (~2 KB gzip). That matches how the drop-in bundles in
  * the repo-root `dist/` already work — see scripts/build-lib.mjs.
  *
  * Unlike the root `dist/`, these outputs are **committed**, because git install
@@ -20,7 +27,7 @@
  */
 import { build } from 'vite';
 import { execFileSync } from 'node:child_process';
-import { readFileSync, readdirSync } from 'node:fs';
+import { copyFileSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
@@ -31,30 +38,56 @@ const alias = {
   '@tours/schema': resolve('packages/schema/src/index.ts'),
 };
 
-/** Build order is irrelevant (everything comes from source), but reads well. */
-const PACKAGES = ['schema', 'core', 'editor'];
+/**
+ * UMD needs a global name. Keep them distinct so a page can load more than one
+ * <script> without the second clobbering the first.
+ */
+const PACKAGES = [
+  { name: 'schema', global: 'ToursSchema' },
+  { name: 'core', global: 'ToursCore' },
+  { name: 'editor', global: 'ToursEditor' },
+];
 
-for (const name of PACKAGES) {
-  const dir = `packages/${name}`;
-
-  await build({
+/** One single-entry lib build, so no output depends on a shared chunk. */
+function lib({ dir, formats, fileName, global, minify, empty }) {
+  return build({
     configFile: false,
     logLevel: 'warn',
     resolve: { alias },
     build: {
       outDir: `${dir}/dist`,
-      emptyOutDir: true,
-      // Consumers bundle these themselves and want readable stack traces, so
-      // unlike the drop-in bundles in the root dist/ these ship a sourcemap.
+      emptyOutDir: empty,
       sourcemap: true,
-      minify: false,
+      minify,
+      // es2020 keeps optional chaining and nullish coalescing native while
+      // still parsing in every browser and Node the package claims to support.
       target: 'es2020',
-      lib: {
-        entry: `${dir}/src/index.ts`,
-        formats: ['es'],
-        fileName: () => 'index.js',
-      },
+      lib: { entry: `${dir}/src/index.ts`, formats, fileName, name: global },
     },
+  });
+}
+
+for (const { name, global } of PACKAGES) {
+  const dir = `packages/${name}`;
+
+  // ESM + CJS: unminified, because consumers minify these themselves and want
+  // readable stack traces until they do.
+  await lib({
+    dir,
+    formats: ['es', 'cjs'],
+    fileName: (format) => (format === 'es' ? 'index.js' : 'index.cjs'),
+    minify: false,
+    empty: true,
+  });
+
+  // UMD is loaded directly off a CDN, so it *is* the final artifact — minify it.
+  await lib({
+    dir,
+    formats: ['umd'],
+    fileName: () => 'index.umd.js',
+    global,
+    minify: 'esbuild',
+    empty: false,
   });
 
   // Roll every .d.ts up into one file, inlining the cross-package types.
@@ -71,15 +104,19 @@ for (const name of PACKAGES) {
     ],
     { stdio: ['ignore', 'ignore', 'inherit'] },
   );
+
+  // Node picks types per resolved entry: `require()` reads .d.cts, `import`
+  // reads .d.ts. The declarations are identical, so copy rather than rebuild.
+  copyFileSync(`${dir}/dist/index.d.ts`, `${dir}/dist/index.d.cts`);
 }
 
 console.log('✓ npm packages built to packages/*/dist\n');
 const kb = (n) => `${(n / 1024).toFixed(1)} KB`;
-for (const name of PACKAGES) {
+for (const { name } of PACKAGES) {
   const dir = `packages/${name}/dist`;
   for (const file of readdirSync(dir).filter((f) => !f.endsWith('.map')).sort()) {
     const raw = readFileSync(`${dir}/${file}`);
     const label = `@tours/${name}  ${file}`;
-    console.log(`  ${label.padEnd(30)} ${kb(raw.length).padStart(9)} raw  ${kb(gzipSync(raw).length).padStart(9)} gzip`);
+    console.log(`  ${label.padEnd(32)} ${kb(raw.length).padStart(9)} raw  ${kb(gzipSync(raw).length).padStart(9)} gzip`);
   }
 }

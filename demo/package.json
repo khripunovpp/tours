@@ -14,7 +14,7 @@
     "@tours/demo-shared": "workspace:*"
   },
   "devDependencies": {
-    "vite": "^6.0.0",
-    "typescript": "~5.6.0"
+    "vite": "6.4.3",
+    "typescript": "5.6.3"
   }
 }

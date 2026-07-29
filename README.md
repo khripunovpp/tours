@@ -38,44 +38,52 @@ createPlayer({
 
 ## Install
 
-The packages are distributed straight from git — there is no npm registry
-release. `#path:` selects a package inside the monorepo, which **pnpm and yarn
-support but plain npm does not**.
+There is no npm registry release yet, so pick whichever of these fits your
+toolchain. Every package ships ESM, CJS, UMD and types, has **zero runtime
+dependencies**, and passes [publint](https://publint.dev) and
+[are-the-types-wrong](https://arethetypeswrong.github.io) clean on all four
+resolution modes (node10, node16 CJS, node16 ESM, bundler).
+
+### Tarball — works with every package manager
+
+Release tarballs are attached to each [GitHub release](https://github.com/khripunovpp/tours/releases).
+This is the most portable option: npm, pnpm, yarn and bun all handle it.
 
 ```bash
-# The visitor-facing player
-pnpm add "git+https://github.com/khripunovpp/tours.git#path:/packages/core"
-
-# The in-page tour builder (authoring)
-pnpm add "git+https://github.com/khripunovpp/tours.git#path:/packages/editor"
-
-# Types + validation only
-pnpm add "git+https://github.com/khripunovpp/tours.git#path:/packages/schema"
+npm i https://github.com/khripunovpp/tours/releases/download/v0.2.0/tours-core-0.2.0.tgz
+npm i https://github.com/khripunovpp/tours/releases/download/v0.2.0/tours-editor-0.2.0.tgz
+npm i https://github.com/khripunovpp/tours/releases/download/v0.2.0/tours-schema-0.2.0.tgz
 ```
 
-Pin a tag or commit by appending it before the fragment —
-`…/tours.git#v0.1.0&path:/packages/core`.
+### Straight from git — pnpm and yarn only
+
+`#path:` selects a package inside the monorepo.
+
+```bash
+pnpm add "git+https://github.com/khripunovpp/tours.git#v0.2.0&path:/packages/core"
+```
+
+Drop `#v0.2.0&` to track `main` instead of a tag.
 
 > **Do not use plain npm for this.** npm ignores `#path:` without erroring: it
 > reports `added 1 package` and installs the **monorepo root** into
 > `node_modules/@tours/core`, which then fails with
-> `TS2307: Cannot find module '@tours/core'`. npm consumers should use a tarball
-> or the drop-in bundles below.
+> `TS2307: Cannot find module '@tours/core'`. Use the tarball above.
 
-### npm consumers — tarball
+### CDN — no build step, no install
 
-`npm` installs a packed tarball correctly. Build one per package:
+Each package ships a minified UMD bundle, exposed as `ToursCore`,
+`ToursEditor` and `ToursSchema`:
 
-```bash
-cd packages/core && pnpm pack --pack-destination /tmp
+```html
+<script src="https://cdn.jsdelivr.net/npm/@tours/core/dist/index.umd.js"></script>
+<script>
+  ToursCore.createPlayer(tour).start();
+</script>
 ```
 
-then install it by path or from a URL (e.g. a GitHub release asset):
-
-```bash
-npm i /tmp/tours-core-0.1.0.tgz
-npm i https://github.com/khripunovpp/tours/releases/download/v0.1.0/tours-core-0.1.0.tgz
-```
+Until the packages are on npm, serve `packages/core/dist/index.umd.js` from the
+repository yourself.
 
 ### Drop-in `<script>` — no build step
 

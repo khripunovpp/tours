@@ -48,6 +48,8 @@ export interface PlayerHandle {
   stop(): void;
   next(): void;
   prev(): void;
+  /** True between a successful start() and stop(). */
+  isActive(): boolean;
 }
 
 export interface PlayerOptions {
@@ -257,6 +259,21 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
     const total = Math.max(1, tour.steps.length - skipped);
     const position = Math.max(1, Math.min(index + 1 - skipped, total));
     if (tooltip) tooltip.remove();
+
+    const isLast = index === tour.steps.length - 1;
+    const prevStep = tour.steps[index - 1];
+    // Back is offered only for a previous step on *this* page. There is no
+    // first step to go back from, and going back across pages meant
+    // `history.back()` — a guess that lands wherever the visitor happened to
+    // come from, which need not be the tour's previous page at all. Better to
+    // omit the button than to offer one that misfires.
+    const canGoBack = !!prevStep && onThisPage(prevStep);
+    // On an interactive step the visitor advances by acting on the page, so a
+    // Next button would offer a second, contradictory way forward. The last
+    // step is the exception: nothing follows it, so the button is the only way
+    // to finish.
+    const showNext = !isInteractive(step) || isLast;
+
     // i18n is deferred; for now show the default-language text.
     tooltip = renderCard({
       contentText: step.content.default,
@@ -264,12 +281,14 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
       showClose: true,
       onClose: stop,
       radius: cardRadius,
-      back: { label: step.backLabel ?? 'Back', disabled: index === 0, onClick: prev },
-      next: {
-        label: step.nextLabel ?? (index === total - 1 ? 'Done' : 'Next'),
-        primary: true,
-        onClick: next,
-      },
+      back: canGoBack ? { label: step.backLabel ?? 'Back', onClick: prev } : undefined,
+      next: showNext
+        ? {
+            label: step.nextLabel ?? (isLast ? 'Done' : 'Next'),
+            primary: true,
+            onClick: next,
+          }
+        : undefined,
     });
     root?.appendChild(tooltip);
   }
@@ -547,7 +566,7 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
     window.history.back();
   }
 
-  return { start, stop, next, prev };
+  return { start, stop, next, prev, isActive: () => active };
 }
 
 /**

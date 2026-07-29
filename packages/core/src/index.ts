@@ -33,6 +33,8 @@ export { createPlayer, resumeTour, isBuilderMounted } from './player.js';
 export type { PlayerHandle, PlayerOptions, RuntimeStep, RuntimeTour } from './player.js';
 export { matchUrl, deriveUrl } from './url.js';
 export { armTrigger } from './trigger.js';
+export { mountTours } from './mount.js';
+export type { MountOptions } from './mount.js';
 export {
   createLocalState,
   readProgress,

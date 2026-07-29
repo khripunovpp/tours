@@ -5,16 +5,7 @@
  * them to schema Tours client-side (no tour logic in PHP), enforces the
  * audience, runs auto-start triggers, and continues multi-page tours.
  */
-import {
-  createPlayer,
-  createLocalState,
-  resumeTour,
-  armTrigger,
-  matchRules,
-  detectDevice,
-  seenCount,
-  markSeen,
-} from '@tours/core';
+import { createPlayer, createLocalState, mountTours } from '@tours/core';
 import { toTour, normalizeTours, type DraftTour } from '@tours/editor';
 import type { Tour } from '@tours/schema';
 
@@ -71,33 +62,6 @@ export function run(tourId?: string): void {
   createPlayer(tour, { state }).start();
 }
 
-/** Continue a multi-page tour that is mid-flight on this page. */
-function resumeInFlight(): boolean {
-  for (const tour of compiled()) {
-    if (resumeTour(tour, { state })) return true;
-  }
-  return false;
-}
-
-/**
- * Arm auto-start triggers, gated by each tour's rules (first visit, frequency,
- * device, URL). Manual tours are never armed here. Each showing is counted so
- * frequency rules work.
- */
-function armTriggers(): void {
-  const device = detectDevice();
-  for (const tour of compiled()) {
-    if (!tour.trigger || tour.trigger.type === 'manual') continue;
-    const count = seenCount(state, tour.id);
-    const ctx = { url: window.location.href, device, firstVisit: count === 0, seenCount: count };
-    if (!matchRules(tour.rules, ctx)) continue;
-    armTrigger(tour, () => {
-      markSeen(state, tour.id);
-      run(tour.id);
-    });
-  }
-}
-
 /** Wire up any `[data-site-tour]` triggers (shortcode buttons or custom markup). */
 function bindTriggers(): void {
   for (const el of Array.from(document.querySelectorAll<HTMLElement>('[data-site-tour]'))) {
@@ -109,8 +73,10 @@ function bindTriggers(): void {
 
 function init(): void {
   bindTriggers();
-  // Resume takes priority; otherwise arm fresh auto-start triggers.
-  if (!resumeInFlight()) armTriggers();
+  // Continuing an in-flight tour, arming auto-start triggers and re-checking
+  // both after navigation all live in mountTours. The list is passed as a
+  // getter because the plugin can localize tours after this runs.
+  mountTours(compiled, { state });
 }
 
 if (document.readyState === 'loading') {

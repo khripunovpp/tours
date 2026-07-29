@@ -88,7 +88,7 @@ operate the target, not press Next.
 }
 ```
 
-Two things change for such a step:
+Three things change for such a step:
 
 - **Clicks reach the page.** The target's rectangle is clipped out of the
   backdrop, so the real button receives the click. (On a normal step the
@@ -96,11 +96,46 @@ Two things change for such a step:
 - **It advances on navigation, not on Next.** The player watches for the next
   step's `pageUrl` to start matching and moves on then. The host app keeps
   full control of its own routing — the player never navigates for it.
+- **No Next button.** Offering one would be a second, contradictory way
+  forward. The last step is the exception — nothing follows it, so its button
+  is the only way to finish.
 
 This is what makes tours work in an app whose URLs follow rules the tour knows
 nothing about: the only signal used is "the page the next step wants is now
 open". `pushState`/`replaceState` are covered, so a client-side router works the
 same as a full page load.
+
+### One call, then forget it
+
+`mountTours` registers your tours and keeps them alive across navigation, so you
+never have to remember a resume call on the next page:
+
+```ts
+import { mountTours, createLocalState } from '@tours/core';
+
+mountTours(tours, { state: createLocalState() });
+```
+
+It continues anything mid-flight, otherwise arms the tours' auto-start triggers
+(gated by their `rules`), and re-checks both whenever the URL changes. The same
+single call covers both kinds of site:
+
+- **Static multi-page** — each navigation reloads the document, so the bundle
+  re-executes and the initial pass runs on the new page.
+- **Client-side routing** — no reload, so the location watcher re-checks
+  instead. `pushState`/`replaceState` are patched, so a router that never
+  touches the hash works too.
+
+A server-rendered site with a form whose steps are tied to the URL is just the
+first case, and needs nothing extra.
+
+Pass a function instead of an array when the tours are loaded later — it is
+re-read on every navigation. Use `canRun` to gate on things the schema cannot
+express (audience, feature flags); it is re-checked each time. The return value
+unmounts: it stops any running tour and releases the watcher.
+
+The lower-level pieces below (`resumeTour`, `armTrigger`) remain available if
+you want to drive this yourself.
 
 ### Multi-page tours
 
@@ -155,6 +190,23 @@ const matches = matchRules(tour.rules, {
 if (matches) player.start();
 ```
 
+### Card buttons
+
+The footer adapts to the step rather than showing a fixed pair:
+
+| Button | Shown when |
+|---|---|
+| Back | there is a previous step **on this page** |
+| Next | the step is not interactive, or it is the last step |
+| Done | on the last step, in place of Next |
+| × | always |
+
+Back is omitted rather than disabled on the first step, and omitted across
+pages: going back over a page boundary meant `history.back()`, which lands
+wherever the visitor came from — not necessarily the tour's previous page.
+
+Override the labels per step with `backLabel` / `nextLabel`.
+
 ### Picking elements
 
 The picker underpins the builder in `@tours/editor`, and is exported for hosts
@@ -178,6 +230,7 @@ reacting to your own UI.
 |---|---|
 | `createPlayer(tour, options?)` | `PlayerHandle` — `start(index?)`, `stop()`, `next()`, `prev()` |
 | `resumeTour(tour, options?)` | Continue after navigation; `null` if nothing to resume here |
+| `mountTours(tours, opts)` | Register tours; auto-resume + auto-start across navigation |
 | `armTrigger(tour, fire)` | Wire the tour's trigger; returns a cancel function |
 | `createPicker(onPick, options?)` | Interactive element picker |
 | `buildSelectors(el)` | Ranked selector candidates for an element |

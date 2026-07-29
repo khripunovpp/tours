@@ -247,6 +247,8 @@ export interface PlayerHandle {
 	stop(): void;
 	next(): void;
 	prev(): void;
+	/** True between a successful start() and stop(). */
+	isActive(): boolean;
 }
 export interface PlayerOptions {
 	/**
@@ -308,7 +310,27 @@ export declare function matchUrl(match: UrlMatch | undefined, url: string): bool
  * then waits for the visitor to navigate instead.
  */
 export declare function deriveUrl(match: UrlMatch | undefined): string | null;
-export declare function armTrigger(tour: Tour, fire: () => void): () => void;
+export declare function armTrigger(tour: RuntimeTour, fire: () => void): () => void;
+export interface MountOptions extends PlayerOptions {
+	/**
+	 * Gate a tour on host-specific conditions the schema cannot express —
+	 * audience, feature flags, permissions. Re-checked on every navigation, so
+	 * it may return different answers as the session changes.
+	 */
+	canRun?: (tour: RuntimeTour) => boolean;
+}
+/**
+ * Register tours and keep them running across navigation. Returns an unmount
+ * function that stops any running tour and releases the watcher.
+ *
+ * Pass a function rather than an array when the set of tours is computed —
+ * it is re-read on every navigation, so tours loaded later are picked up.
+ *
+ * ```ts
+ * mountTours(tours, { state: createLocalState() });
+ * ```
+ */
+export declare function mountTours(input: readonly RuntimeTour[] | (() => readonly RuntimeTour[]), options?: MountOptions): () => void;
 export type Device = "mobile" | "tablet" | "desktop";
 export interface RuleContext {
 	url: string;

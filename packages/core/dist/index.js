@@ -672,18 +672,22 @@ function createPlayer(tour, options = {}) {
     const total = Math.max(1, tour.steps.length - skipped);
     const position = Math.max(1, Math.min(index + 1 - skipped, total));
     if (tooltip) tooltip.remove();
+    const isLast = index === tour.steps.length - 1;
+    const prevStep = tour.steps[index - 1];
+    const canGoBack = !!prevStep && onThisPage(prevStep);
+    const showNext = !isInteractive(step) || isLast;
     tooltip = renderCard({
       contentText: step.content.default,
       progress: `Step ${position} of ${total}`,
       showClose: true,
       onClose: stop,
       radius: cardRadius,
-      back: { label: step.backLabel ?? "Back", disabled: index === 0, onClick: prev },
-      next: {
-        label: step.nextLabel ?? (index === total - 1 ? "Done" : "Next"),
+      back: canGoBack ? { label: step.backLabel ?? "Back", onClick: prev } : void 0,
+      next: showNext ? {
+        label: step.nextLabel ?? (isLast ? "Done" : "Next"),
         primary: true,
         onClick: next
-      }
+      } : void 0
     });
     root?.appendChild(tooltip);
   }
@@ -897,7 +901,7 @@ function createPlayer(tour, options = {}) {
     waitForPageChange();
     window.history.back();
   }
-  return { start, stop, next, prev };
+  return { start, stop, next, prev, isActive: () => active };
 }
 function resumeTour(tour, options = {}) {
   const state = options.state;
@@ -1066,6 +1070,65 @@ function matchRules(rules, ctx) {
   if (!rules || rules.length === 0) return true;
   return rules.some((rule) => matchCondition(rule.when, ctx));
 }
+function mountTours(input, options = {}) {
+  const log = createLogger("mount");
+  const state = options.state;
+  const list = () => typeof input === "function" ? input() : input;
+  let current = null;
+  let armed = [];
+  function disarm() {
+    for (const cancel of armed) cancel();
+    armed = [];
+  }
+  function eligible(tour) {
+    return !options.canRun || options.canRun(tour);
+  }
+  function activate() {
+    if (current?.isActive()) return;
+    current = null;
+    disarm();
+    if (state) {
+      for (const tour of list()) {
+        if (!eligible(tour)) continue;
+        const player = resumeTour(tour, options);
+        if (player) {
+          log.log("resumed", tour.id);
+          current = player;
+          return;
+        }
+      }
+    }
+    const device = detectDevice();
+    for (const tour of list()) {
+      if (!eligible(tour)) continue;
+      if (!tour.trigger || tour.trigger.type === "manual") continue;
+      const count = state ? seenCount(state, tour.id) : 0;
+      const matches = matchRules(tour.rules, {
+        url: window.location.href,
+        device,
+        firstVisit: count === 0,
+        seenCount: count
+      });
+      if (!matches) continue;
+      armed.push(
+        armTrigger(tour, () => {
+          if (state) markSeen(state, tour.id);
+          const player = createPlayer(tour, options);
+          current = player;
+          player.start();
+        })
+      );
+    }
+  }
+  activate();
+  const off = onLocationChange(activate);
+  return () => {
+    off();
+    disarm();
+    current?.stop();
+    current = null;
+  };
+}
 export {
   CARD_STYLES,
   PROGRESS_KEY,
@@ -1084,6 +1147,7 @@ export {
   markSeen,
   matchRules,
   matchUrl,
+  mountTours,
   placeCard,
   readProgress,
   renderCard,

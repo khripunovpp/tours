@@ -811,18 +811,22 @@ function createPlayer(tour, options = {}) {
     const total = Math.max(1, tour.steps.length - skipped);
     const position = Math.max(1, Math.min(index + 1 - skipped, total));
     if (tooltip) tooltip.remove();
+    const isLast = index === tour.steps.length - 1;
+    const prevStep = tour.steps[index - 1];
+    const canGoBack = !!prevStep && onThisPage(prevStep);
+    const showNext = !isInteractive(step) || isLast;
     tooltip = renderCard({
       contentText: step.content.default,
       progress: `Step ${position} of ${total}`,
       showClose: true,
       onClose: stop,
       radius: cardRadius,
-      back: { label: step.backLabel ?? "Back", disabled: index === 0, onClick: prev },
-      next: {
-        label: step.nextLabel ?? (index === total - 1 ? "Done" : "Next"),
+      back: canGoBack ? { label: step.backLabel ?? "Back", onClick: prev } : void 0,
+      next: showNext ? {
+        label: step.nextLabel ?? (isLast ? "Done" : "Next"),
         primary: true,
         onClick: next
-      }
+      } : void 0
     });
     root?.appendChild(tooltip);
   }
@@ -1036,7 +1040,7 @@ function createPlayer(tour, options = {}) {
     waitForPageChange();
     window.history.back();
   }
-  return { start, stop, next, prev };
+  return { start, stop, next, prev, isActive: () => active };
 }
 const EDITOR_STYLES = `
 :host {

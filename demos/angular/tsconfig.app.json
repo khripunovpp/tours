@@ -1,4 +1,6 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["src"]
+  "compilerOptions": { "noEmit": false },
+  "files": ["src/main.ts"],
+  "include": ["src/**/*.ts"]
 }

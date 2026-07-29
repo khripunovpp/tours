@@ -335,7 +335,31 @@ export class TourBuilder {
     step.page = this.currentPage();
     this.tour.steps.splice(index + 1, 0, step);
     this.activeStepId = step.id;
-    this.render();
+
+    // A fresh step has no target yet, and picking one is always the next thing
+    // the author does — so arm the picker and bring the new card into view,
+    // instead of making them find the card and press the crosshair.
+    //
+    // Only 'step' cards frame an element; an 'action' card has no target.
+    if (type === 'step' && !this.picking) {
+      // togglePicking() renders for us. Rendering twice would be wasted work,
+      // and would drop the scroll below since render() rebuilds the panel.
+      this.togglePicking();
+    } else {
+      this.render();
+    }
+    this.revealStep(step.id);
+  }
+
+  /**
+   * Scroll the panel so a step's card is visible. Runs after render(), so the
+   * card exists; `scrollIntoView` on the card itself keeps this correct when the
+   * step was inserted in the middle rather than appended.
+   */
+  private revealStep(id: string): void {
+    const card = this.root?.querySelector<HTMLElement>(`.card[data-step-id="${CSS.escape(id)}"]`);
+    // `nearest` scrolls only the panel body, never the host page underneath.
+    card?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
   /** A URL glob for the current page (matches its query/hash variations). */
@@ -1224,6 +1248,8 @@ export class TourBuilder {
     const isActive = step.id === this.activeStepId;
     const card = h('div', {
       class: `card ${isActive ? 'card--active' : ''} ${step.included ? '' : 'card--excluded'}`.trim(),
+      // Lets revealStep() find this card after a re-render.
+      'data-step-id': step.id,
     });
     card.addEventListener('mousedown', () => this.setActive(step.id));
 

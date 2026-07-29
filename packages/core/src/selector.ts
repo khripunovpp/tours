@@ -120,8 +120,47 @@ export function buildSelectors(el: Element): string[] {
 
 const TEXT_ROLES = 'a, button, summary, label, h1, h2, h3, h4, h5, h6';
 
-/** Resolve a single candidate, honouring the `text=` pseudo-selector. */
-function resolveOne(sel: string, root: ParentNode): Element | null {
+/**
+ * A step target: either a CSS selector (or the `text=` pseudo-selector), or a
+ * live DOM node — useful when the host already holds the element, e.g. a
+ * framework template ref, and inventing a selector for it would be redundant.
+ *
+ * A getter is accepted too, for a ref that is not populated yet at the time the
+ * tour object is built (Angular `viewChild`, React `useRef`, …). It is called
+ * on every resolve attempt, so a late-mounting element is picked up by the same
+ * wait-and-retry path as a selector.
+ *
+ * Nodes are **runtime-only**: they cannot be serialised, so a stored tour still
+ * carries plain strings. See `@tours/schema`'s `Step.selectors`.
+ */
+export type SelectorLike = string | Element | (() => Element | null | undefined);
+
+/** Narrow to a live, still-attached element. */
+function fromNode(value: unknown, root: ParentNode): Element | null {
+  if (!(value instanceof Element)) return null;
+  // A detached node cannot be highlighted or scrolled to. Treat it as
+  // unresolved so the caller keeps waiting or falls through to the next
+  // candidate, rather than framing a node that is not on the page.
+  if (!value.isConnected) return null;
+  // When resolving inside a subtree, ignore nodes from outside it.
+  if (root !== document && root instanceof Node && !root.contains(value)) return null;
+  return value;
+}
+
+/** Resolve a single candidate, honouring nodes, getters and `text=`. */
+function resolveOne(sel: SelectorLike, root: ParentNode): Element | null {
+  if (typeof sel === 'function') {
+    let value: Element | null | undefined;
+    try {
+      value = sel();
+    } catch {
+      // A ref getter that throws (component torn down) is just unresolved.
+      return null;
+    }
+    return fromNode(value, root);
+  }
+  if (typeof sel !== 'string') return fromNode(sel, root);
+
   if (sel.startsWith('text=')) {
     const want = sel.slice(5).trim();
     for (const n of Array.from(root.querySelectorAll(TEXT_ROLES))) {
@@ -136,8 +175,11 @@ function resolveOne(sel: string, root: ParentNode): Element | null {
   }
 }
 
-/** Re-finder: return the first candidate selector that resolves to an element. */
-export function resolveElement(selectors: string[], root: ParentNode = document): Element | null {
+/** Re-finder: return the first candidate that resolves to an element. */
+export function resolveElement(
+  selectors: readonly SelectorLike[],
+  root: ParentNode = document,
+): Element | null {
   for (const sel of selectors) {
     const el = resolveOne(sel, root);
     if (el) return el;
@@ -155,7 +197,10 @@ export interface WaitOptions {
  * Resolve now, or wait for the element to appear (SPA / lazy). Observes the DOM
  * and resolves with the element, or null on timeout. Never rejects.
  */
-export function waitForElement(selectors: string[], options: WaitOptions = {}): Promise<Element | null> {
+export function waitForElement(
+  selectors: readonly SelectorLike[],
+  options: WaitOptions = {},
+): Promise<Element | null> {
   const root = options.root ?? document;
   const immediate = resolveElement(selectors, root);
   if (immediate) return Promise.resolve(immediate);

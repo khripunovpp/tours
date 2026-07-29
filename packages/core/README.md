@@ -44,6 +44,36 @@ player.start();
 `selectors` is a ranked list of candidates — the player tries each in order and
 waits for targets that render late, rather than skipping the step.
 
+### Passing DOM nodes instead of selectors
+
+When the host already holds the element — a framework template ref, say —
+inventing a CSS selector for it is redundant and fragile. `selectors` accepts
+live nodes, and getters for refs that are not populated yet:
+
+```ts
+const el = document.querySelector('#compose');
+
+createPlayer({
+  id: 'welcome',
+  schemaVersion: 1,
+  title: { default: 'Welcome' },
+  steps: [
+    // A node, a lazily-read ref, and a selector fallback — tried in order.
+    { id: 'a', selectors: [el], content: { default: 'Compose here.' } },
+    { id: 'b', selectors: [() => myRef.nativeElement, '#fallback'], content: { default: 'Or here.' } },
+  ],
+}).start();
+```
+
+Detached nodes are treated as unresolved, so the player falls through to the
+next candidate or keeps waiting — it never frames an element that left the page.
+A getter that throws (component torn down) is handled the same way.
+
+This is **runtime-only**: a DOM node cannot be serialised, so a *stored* tour
+still carries plain strings, and `validate()` rejects anything else. The widened
+shape is `RuntimeTour` / `RuntimeStep`; the stored one is `Tour` / `Step` from
+[`@tours/schema`](../schema), and `Tour` is assignable to `RuntimeTour`.
+
 ### Multi-page tours
 
 Pass a state backend so progress survives navigation, and call `resumeTour` on
@@ -113,7 +143,8 @@ reacting to your own UI.
 | `armTrigger(tour, fire)` | Wire the tour's trigger; returns a cancel function |
 | `createPicker(onPick, options?)` | Interactive element picker |
 | `buildSelectors(el)` | Ranked selector candidates for an element |
-| `resolveElement`, `waitForElement` | Selector resolution, incl. late-rendering targets |
+| `resolveElement`, `waitForElement` | Resolve a `SelectorLike[]`, incl. late-rendering targets |
+| `RuntimeTour`, `RuntimeStep`, `SelectorLike` | Types for the node-accepting runtime shape |
 | `matchRules`, `detectDevice` | Targeting rules and device class |
 | `matchUrl`, `deriveUrl` | Page matching for multi-page tours |
 | `createLocalState`, `readProgress`, `writeProgress`, `clearProgress` | Progress persistence |

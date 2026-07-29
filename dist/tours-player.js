@@ -1,4 +1,4 @@
-const Q = `
+const tt = `
 :host {
   all: initial;
 }
@@ -26,7 +26,7 @@ const Q = `
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   pointer-events: none;
 }
-`, tt = `
+`, et = `
 :host {
   all: initial;
 }
@@ -49,7 +49,7 @@ const Q = `
 function R(t) {
   return JSON.stringify(t);
 }
-function et(t) {
+function nt(t) {
   return /^[a-zA-Z][\w-]*$/.test(t) && t.length <= 30 && !/\d{2,}/.test(t) && !/^(css-|sc-|jsx-|emotion-|_|is-|has-)/.test(t);
 }
 function W(t) {
@@ -61,12 +61,12 @@ function W(t) {
       e.unshift(r);
       break;
     }
-    const s = Array.from(i.children).filter((l) => l.tagName === n.tagName);
+    const s = Array.from(i.children).filter((c) => c.tagName === n.tagName);
     e.unshift(s.length > 1 ? `${r}:nth-of-type(${s.indexOf(n) + 1})` : r), n = i;
   }
   return `body > ${e.join(" > ")}`;
 }
-function nt(t) {
+function rt(t) {
   let e = t.parentElement;
   for (; e && e !== document.body && !e.id; )
     e = e.parentElement;
@@ -76,13 +76,13 @@ function nt(t) {
   for (; r && r !== e; ) {
     const i = r.tagName.toLowerCase(), s = r.parentElement;
     if (!s) return null;
-    const l = Array.from(s.children).filter((c) => c.tagName === r.tagName);
-    n.unshift(l.length > 1 ? `${i}:nth-of-type(${l.indexOf(r) + 1})` : i), r = s;
+    const c = Array.from(s.children).filter((l) => l.tagName === r.tagName);
+    n.unshift(c.length > 1 ? `${i}:nth-of-type(${c.indexOf(r) + 1})` : i), r = s;
   }
   return `#${CSS.escape(e.id)} > ${n.join(" > ")}`;
 }
-const rt = ["data-testid", "data-test", "data-test-id", "data-cy", "data-qa", "data-id", "data-name"];
-function ot(t) {
+const ot = ["data-testid", "data-test", "data-test-id", "data-cy", "data-qa", "data-id", "data-name"];
+function it(t) {
   const e = [], n = /* @__PURE__ */ new Set(), r = t.tagName.toLowerCase(), i = (o) => {
     if (!(!o || n.has(o)))
       try {
@@ -91,18 +91,18 @@ function ot(t) {
       }
   };
   t.id && i(`#${CSS.escape(t.id)}`);
-  for (const o of rt) {
+  for (const o of ot) {
     const d = t.getAttribute(o);
     d && i(`${r}[${o}=${R(d)}]`);
   }
   const s = t.getAttribute("name");
   s && i(`${r}[name=${R(s)}]`);
-  const l = t.getAttribute("aria-label");
-  l && i(`[aria-label=${R(l)}]`);
-  const c = Array.from(t.classList).filter(et);
-  c.length && i(`${r}.${c.map((o) => CSS.escape(o)).join(".")}`);
-  for (const o of c) i(`${r}.${CSS.escape(o)}`);
-  i(nt(t)), i(W(t));
+  const c = t.getAttribute("aria-label");
+  c && i(`[aria-label=${R(c)}]`);
+  const l = Array.from(t.classList).filter(nt);
+  l.length && i(`${r}.${l.map((o) => CSS.escape(o)).join(".")}`);
+  for (const o of l) i(`${r}.${CSS.escape(o)}`);
+  i(rt(t)), i(W(t));
   const u = (t.textContent ?? "").replace(/\s+/g, " ").trim();
   if (u && u.length <= 50 && /^(a|button|summary|label|h[1-6])$/.test(r)) {
     const o = `text=${u}`;
@@ -110,11 +110,24 @@ function ot(t) {
   }
   return e.length === 0 && e.push(W(t)), e;
 }
-const it = "a, button, summary, label, h1, h2, h3, h4, h5, h6";
-function st(t, e) {
+const st = "a, button, summary, label, h1, h2, h3, h4, h5, h6";
+function X(t, e) {
+  return !(t instanceof Element) || !t.isConnected || e !== document && e instanceof Node && !e.contains(t) ? null : t;
+}
+function at(t, e) {
+  if (typeof t == "function") {
+    let n;
+    try {
+      n = t();
+    } catch {
+      return null;
+    }
+    return X(n, e);
+  }
+  if (typeof t != "string") return X(t, e);
   if (t.startsWith("text=")) {
     const n = t.slice(5).trim();
-    for (const r of Array.from(e.querySelectorAll(it)))
+    for (const r of Array.from(e.querySelectorAll(st)))
       if ((r.textContent ?? "").replace(/\s+/g, " ").trim() === n) return r;
     return null;
   }
@@ -126,20 +139,20 @@ function st(t, e) {
 }
 function D(t, e = document) {
   for (const n of t) {
-    const r = st(n, e);
+    const r = at(n, e);
     if (r) return r;
   }
   return null;
 }
-function j(t, e = {}) {
+function V(t, e = {}) {
   const n = e.root ?? document, r = D(t, n);
   return r ? Promise.resolve(r) : new Promise((i) => {
-    let s = !1, l;
-    const c = (d) => {
-      s || (s = !0, u.disconnect(), l && clearTimeout(l), i(d));
+    let s = !1, c;
+    const l = (d) => {
+      s || (s = !0, u.disconnect(), c && clearTimeout(c), i(d));
     }, u = new MutationObserver(() => {
       const d = D(t, n);
-      d && c(d);
+      d && l(d);
     });
     u.observe(document.documentElement, {
       childList: !0,
@@ -147,7 +160,7 @@ function j(t, e = {}) {
       attributes: !0
     });
     const o = e.timeout ?? 4e3;
-    o > 0 && Number.isFinite(o) && (l = setTimeout(() => c(null), o));
+    o > 0 && Number.isFinite(o) && (c = setTimeout(() => l(null), o));
   });
 }
 let S = null;
@@ -160,7 +173,7 @@ function P() {
   }
   return S;
 }
-function V(t) {
+function q(t) {
   const e = `[tours:${t}]`;
   return {
     log: (...n) => {
@@ -174,10 +187,10 @@ function V(t) {
     }
   };
 }
-function $t(t, e = {}) {
-  const n = V("picker");
-  let r = null, i = null, s = null, l = !1;
-  function c(g) {
+function Lt(t, e = {}) {
+  const n = q("picker");
+  let r = null, i = null, s = null, c = !1;
+  function l(g) {
     if (g === r) return !0;
     for (const m of e.ignore ?? [])
       if (m && m.contains(g)) return !0;
@@ -187,16 +200,16 @@ function $t(t, e = {}) {
     if (r) return;
     r = document.createElement("div"), r.setAttribute("data-tours-picker", ""), i = r.attachShadow({ mode: "open" });
     const g = document.createElement("style");
-    g.textContent = Q, i.appendChild(g), s = document.createElement("div"), s.className = "tours-picker-overlay", s.style.display = "none", i.appendChild(s);
+    g.textContent = tt, i.appendChild(g), s = document.createElement("div"), s.className = "tours-picker-overlay", s.style.display = "none", i.appendChild(s);
     const m = document.createElement("div");
     m.className = "tours-picker-hint", m.textContent = "Hover and click an element • Esc to cancel", i.appendChild(m), document.body.appendChild(r);
   }
   function o(g, m) {
     const x = document.elementFromPoint(g, m);
-    return !x || c(x) ? null : x;
+    return !x || l(x) ? null : x;
   }
   function d(g) {
-    if (!l || !s) return;
+    if (!c || !s) return;
     const m = o(g.clientX, g.clientY);
     if (!m) {
       s.style.display = "none";
@@ -206,25 +219,25 @@ function $t(t, e = {}) {
     s.style.display = "block", s.style.left = `${x.left}px`, s.style.top = `${x.top}px`, s.style.width = `${x.width}px`, s.style.height = `${x.height}px`;
   }
   function p(g) {
-    if (!l) return;
+    if (!c) return;
     const m = o(g.clientX, g.clientY);
     if (g.preventDefault(), g.stopPropagation(), !m) return;
-    const x = ot(m);
+    const x = it(m);
     n.log("picked", x), _(), t(x);
   }
   function h(g) {
     g.key === "Escape" && (g.preventDefault(), _());
   }
   function N() {
-    l || (l = !0, n.log("start"), u(), document.addEventListener("mousemove", d, !0), document.addEventListener("click", p, !0), document.addEventListener("keydown", h, !0));
+    c || (c = !0, n.log("start"), u(), document.addEventListener("mousemove", d, !0), document.addEventListener("click", p, !0), document.addEventListener("keydown", h, !0));
   }
   function _() {
-    l && (l = !1, document.removeEventListener("mousemove", d, !0), document.removeEventListener("click", p, !0), document.removeEventListener("keydown", h, !0), r && r.parentNode && r.parentNode.removeChild(r), r = null, i = null, s = null);
+    c && (c = !1, document.removeEventListener("mousemove", d, !0), document.removeEventListener("click", p, !0), document.removeEventListener("keydown", h, !0), r && r.parentNode && r.parentNode.removeChild(r), r = null, i = null, s = null);
   }
   return { start: N, stop: _ };
 }
-const at = 6, lt = 6, ct = 10, dt = 12;
-function ut(t, e, n) {
+const ct = 6, lt = 6, dt = 10, ut = 12;
+function ft(t, e, n) {
   const r = {
     top: t.top,
     bottom: n.height - t.bottom,
@@ -235,19 +248,19 @@ function ut(t, e, n) {
     bottom: e.height,
     left: e.width,
     right: e.width
-  }, s = ["bottom", "top", "right", "left"], l = s.find((c) => r[c] >= i[c] + 8);
-  return l || s.reduce((c, u) => r[u] > r[c] ? u : c, s[0]);
+  }, s = ["bottom", "top", "right", "left"], c = s.find((l) => r[l] >= i[l] + 8);
+  return c || s.reduce((l, u) => r[u] > r[l] ? u : l, s[0]);
 }
-function ft(t) {
-  const { target: e, card: n, offset: r, viewport: i } = t, s = t.side === "auto", l = s ? ut(e, n, i) : t.side, c = s ? "center" : t.align, u = t.alignOffset ?? 0, o = c === "start" ? u : c === "end" ? -u : 0;
+function pt(t) {
+  const { target: e, card: n, offset: r, viewport: i } = t, s = t.side === "auto", c = s ? ft(e, n, i) : t.side, l = s ? "center" : t.align, u = t.alignOffset ?? 0, o = l === "start" ? u : l === "end" ? -u : 0;
   let d = 0, p = 0;
-  return l === "top" || l === "bottom" ? (d = l === "top" ? e.top - n.height - r : e.bottom + r, p = c === "start" ? e.left : c === "end" ? e.right - n.width : e.left + e.width / 2 - n.width / 2, p += o) : (p = l === "left" ? e.left - n.width - r : e.right + r, d = c === "start" ? e.top : c === "end" ? e.bottom - n.height : e.top + e.height / 2 - n.height / 2, d += o), p = Math.max(8, Math.min(p, i.width - n.width - 8)), d = Math.max(8, Math.min(d, i.height - n.height - 8)), { top: d, left: p };
+  return c === "top" || c === "bottom" ? (d = c === "top" ? e.top - n.height - r : e.bottom + r, p = l === "start" ? e.left : l === "end" ? e.right - n.width : e.left + e.width / 2 - n.width / 2, p += o) : (p = c === "left" ? e.left - n.width - r : e.right + r, d = l === "start" ? e.top : l === "end" ? e.bottom - n.height : e.top + e.height / 2 - n.height / 2, d += o), p = Math.max(8, Math.min(p, i.width - n.width - 8)), d = Math.max(8, Math.min(d, i.height - n.height - 8)), { top: d, left: p };
 }
-function X(t) {
+function B(t) {
   const e = document.createElement("button");
   return e.type = "button", e.className = `tours-card__btn${t.primary ? " tours-card__btn--primary" : ""}${t.disabled ? " tours-card__btn--disabled" : ""}`, e.textContent = t.label, !t.disabled && t.onClick && e.addEventListener("click", t.onClick), e;
 }
-function pt(t) {
+function ht(t) {
   const e = document.createElement("div");
   if (e.className = `tours-card${t.ghost ? " tours-card--ghost" : ""}`, t.radius != null && (e.style.borderRadius = `${t.radius}px`), t.showClose) {
     const r = document.createElement("button");
@@ -256,15 +269,15 @@ function pt(t) {
   const n = document.createElement("div");
   if (n.className = "tours-card__content", t.contentHtml != null ? n.innerHTML = t.contentHtml : n.textContent = t.contentText ?? "", e.appendChild(n), t.back || t.next || t.progress) {
     const r = document.createElement("div");
-    if (r.className = "tours-card__footer", t.back && r.appendChild(X(t.back)), t.progress) {
+    if (r.className = "tours-card__footer", t.back && r.appendChild(B(t.back)), t.progress) {
       const i = document.createElement("span");
       i.className = "tours-card__progress", i.textContent = t.progress, r.appendChild(i);
     }
-    t.next && r.appendChild(X(t.next)), e.appendChild(r);
+    t.next && r.appendChild(B(t.next)), e.appendChild(r);
   }
   return e;
 }
-const ht = `
+const gt = `
 .tours-card {
   position: fixed;
   z-index: 2147483001;
@@ -332,7 +345,7 @@ const ht = `
 }
 .tours-card__close:hover { background: #f3f4f6; color: #111827; }
 `;
-function gt(t) {
+function mt(t) {
   const e = t.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*\*/g, "\0").replace(/\*/g, "[^/]*").replace(/ /g, ".*").replace(/\?/g, ".");
   return new RegExp(`^${e}$`);
 }
@@ -346,22 +359,22 @@ function U(t, e) {
     }
   if (t.glob)
     try {
-      return gt(t.glob).test(e);
+      return mt(t.glob).test(e);
     } catch {
       return !1;
     }
   return !0;
 }
-function mt(t) {
+function bt(t) {
   if (!t || !t.glob) return null;
   const e = t.glob.replace(/\*+/g, "");
   return /^https?:\/\//i.test(e) || e.startsWith("#") || e.startsWith("/") ? e : null;
 }
 const z = "tours:locationchange";
-let B = !1;
-function bt() {
-  if (!B) {
-    B = !0;
+let j = !1;
+function xt() {
+  if (!j) {
+    j = !0;
     for (const t of ["pushState", "replaceState"]) {
       const e = history[t];
       history[t] = function(...r) {
@@ -371,13 +384,13 @@ function bt() {
     }
   }
 }
-function xt(t) {
-  return bt(), window.addEventListener("popstate", t), window.addEventListener("hashchange", t), window.addEventListener(z, t), () => {
+function wt(t) {
+  return xt(), window.addEventListener("popstate", t), window.addEventListener("hashchange", t), window.addEventListener(z, t), () => {
     window.removeEventListener("popstate", t), window.removeEventListener("hashchange", t), window.removeEventListener(z, t);
   };
 }
 const I = "tours:progress";
-function Lt() {
+function Nt() {
   return {
     get(t) {
       try {
@@ -400,7 +413,7 @@ function Lt() {
     }
   };
 }
-function wt(t) {
+function yt(t) {
   const e = t.get(I);
   if (!e) return null;
   try {
@@ -410,24 +423,24 @@ function wt(t) {
   }
   return null;
 }
-function yt(t, e) {
+function vt(t, e) {
   t.set(I, JSON.stringify(e));
 }
-function q(t) {
+function K(t) {
   t.remove(I);
 }
-const K = "tours:seen:";
-function vt(t, e) {
-  const n = t.get(K + e), r = n ? parseInt(n, 10) : 0;
+const G = "tours:seen:";
+function Et(t, e) {
+  const n = t.get(G + e), r = n ? parseInt(n, 10) : 0;
   return Number.isNaN(r) ? 0 : r;
 }
-function Nt(t, e) {
-  t.set(K + e, String(vt(t, e) + 1));
+function Tt(t, e) {
+  t.set(G + e, String(Et(t, e) + 1));
 }
-function Et(t, e = {}) {
-  const n = V("player"), r = e.state;
-  let i = null, s = null, l = null, c = null, u = !1, o = 0, d = 0, p = null;
-  const h = t.display?.padding ?? at, N = t.display?.radius ?? lt, _ = t.display?.cardRadius ?? ct, g = t.display?.offset ?? dt;
+function Ct(t, e = {}) {
+  const n = q("player"), r = e.state;
+  let i = null, s = null, c = null, l = null, u = !1, o = 0, d = 0, p = null;
+  const h = t.display?.padding ?? ct, N = t.display?.radius ?? lt, _ = t.display?.cardRadius ?? dt, g = t.display?.offset ?? ut;
   function m(a) {
     return D(a.selectors);
   }
@@ -435,13 +448,13 @@ function Et(t, e = {}) {
     return U(a.pageUrl, window.location.href);
   }
   function k() {
-    r && yt(r, { tourId: t.id, index: o });
+    r && vt(r, { tourId: t.id, index: o });
   }
   function M() {
     if (i) return;
     i = document.createElement("div"), i.setAttribute("data-tours-player", ""), s = i.attachShadow({ mode: "open" });
     const a = document.createElement("style");
-    a.textContent = tt + ht, s.appendChild(a);
+    a.textContent = et + gt, s.appendChild(a);
     const f = document.createElement("div");
     f.className = "tours-backdrop", f.addEventListener("click", (b) => {
       const w = t.steps[o], y = w ? m(w) : null;
@@ -450,13 +463,13 @@ function Et(t, e = {}) {
         if (b.clientX >= E.left - h && b.clientX <= E.right + h && b.clientY >= E.top - h && b.clientY <= E.bottom + h) return;
       }
       v();
-    }), s.appendChild(f), l = document.createElement("div"), l.className = "tours-spotlight", l.style.borderRadius = `${N}px`, s.appendChild(l), document.body.appendChild(i);
+    }), s.appendChild(f), c = document.createElement("div"), c.className = "tours-spotlight", c.style.borderRadius = `${N}px`, s.appendChild(c), document.body.appendChild(i);
   }
   function O(a, f = !1) {
-    l && (l.style.transitionDuration = f ? "0ms" : "", l.style.display = "block", l.style.left = `${a.left - h}px`, l.style.top = `${a.top - h}px`, l.style.width = `${a.width + h * 2}px`, l.style.height = `${a.height + h * 2}px`);
+    c && (c.style.transitionDuration = f ? "0ms" : "", c.style.display = "block", c.style.left = `${a.left - h}px`, c.style.top = `${a.top - h}px`, c.style.width = `${a.width + h * 2}px`, c.style.height = `${a.height + h * 2}px`);
   }
   function F(a, f) {
-    if (!c) return;
+    if (!l) return;
     const b = {
       top: a.top - h,
       left: a.left - h,
@@ -464,20 +477,20 @@ function Et(t, e = {}) {
       bottom: a.bottom + h,
       width: a.width + h * 2,
       height: a.height + h * 2
-    }, { top: w, left: y } = ft({
+    }, { top: w, left: y } = pt({
       target: b,
-      card: { width: c.offsetWidth, height: c.offsetHeight },
+      card: { width: l.offsetWidth, height: l.offsetHeight },
       side: f.placement ?? "bottom",
       align: f.align ?? "center",
       offset: g,
       alignOffset: t.display?.alignOffset ?? 0,
       viewport: { width: window.innerWidth, height: window.innerHeight }
     });
-    c.style.left = `${y}px`, c.style.top = `${w}px`;
+    l.style.left = `${y}px`, l.style.top = `${w}px`;
   }
-  function G(a) {
+  function J(a) {
     const f = Math.max(1, t.steps.length - d), b = Math.max(1, Math.min(o + 1 - d, f));
-    c && c.remove(), c = pt({
+    l && l.remove(), l = ht({
       contentText: a.content.default,
       progress: `Step ${b} of ${f}`,
       showClose: !0,
@@ -489,7 +502,7 @@ function Et(t, e = {}) {
         primary: !0,
         onClick: T
       }
-    }), s?.appendChild(c);
+    }), s?.appendChild(l);
   }
   function C() {
     if (!u) return;
@@ -501,12 +514,12 @@ function Et(t, e = {}) {
     n.log("render step", o, a.id);
     const f = m(a);
     if (!f) {
-      n.log(`step "${a.id}" target not found yet — waiting`, a.selectors), j(a.selectors, { timeout: 4e3 }).then((w) => {
+      n.log(`step "${a.id}" target not found yet — waiting`, a.selectors), V(a.selectors, { timeout: 4e3 }).then((w) => {
         !u || t.steps[o] !== a || (w ? C() : (n.warn(`step "${a.id}" skipped: no element for selectors`, a.selectors), d += 1, o < t.steps.length - 1 ? (o += 1, C()) : v()));
       });
       return;
     }
-    M(), f.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" }), G(a);
+    M(), f.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" }), J(a);
     const b = f.getBoundingClientRect();
     O(b), F(b, a);
   }
@@ -522,14 +535,14 @@ function Et(t, e = {}) {
     const b = f.getBoundingClientRect();
     O(b, !0), F(b, a);
   }
-  function J(a = 0) {
+  function Z(a = 0) {
     u || t.steps.length !== 0 && (u = !0, o = Math.max(0, Math.min(a, t.steps.length - 1)), d = 0, n.log("start", t.id, `at ${o}/${t.steps.length}`), M(), window.addEventListener("keydown", Y, !0), window.addEventListener("resize", $, !0), window.addEventListener("scroll", $, !0), k(), C());
   }
-  function Z() {
-    l && (l.style.display = "none"), c && (c.remove(), c = null);
+  function Q() {
+    c && (c.style.display = "none"), l && (l.remove(), l = null);
   }
   function L() {
-    Z(), !p && (p = xt(() => {
+    Q(), !p && (p = wt(() => {
       if (!u) {
         p?.(), p = null;
         return;
@@ -539,10 +552,10 @@ function Et(t, e = {}) {
     }));
   }
   function H() {
-    p && (p(), p = null), u && (u = !1, window.removeEventListener("keydown", Y, !0), window.removeEventListener("resize", $, !0), window.removeEventListener("scroll", $, !0), i && i.parentNode && i.parentNode.removeChild(i), i = null, s = null, l = null, c = null);
+    p && (p(), p = null), u && (u = !1, window.removeEventListener("keydown", Y, !0), window.removeEventListener("resize", $, !0), window.removeEventListener("scroll", $, !0), i && i.parentNode && i.parentNode.removeChild(i), i = null, s = null, c = null, l = null);
   }
   function v() {
-    n.log("stop"), H(), r && q(r);
+    n.log("stop"), H(), r && K(r);
   }
   function T() {
     if (!u) return;
@@ -563,7 +576,7 @@ function Et(t, e = {}) {
       w.url.startsWith("#") ? (n.log("page transition (hash navigate) → resume at", o), L(), window.location.hash = w.url) : (n.log("page transition (navigate) → resume at", o), b(w.url));
       return;
     }
-    const y = mt(f.pageUrl);
+    const y = bt(f.pageUrl);
     if (y) {
       y.startsWith("#") ? (n.log("page transition (derived hash) → resume at", o), L(), window.location.hash = y) : (n.log("page transition (derived navigate) → resume at", o, y), b(y));
       return;
@@ -581,21 +594,21 @@ function Et(t, e = {}) {
       o -= 1, k(), n.log("page transition back → resume at", o), L(), window.history.back();
     }
   }
-  return { start: J, stop: v, next: T, prev: A };
+  return { start: Z, stop: v, next: T, prev: A };
 }
-function Tt(t, e = {}) {
+function At(t, e = {}) {
   const n = e.state;
   if (!n) return null;
-  const r = wt(n);
+  const r = yt(n);
   if (!r || r.tourId !== t.id) return null;
   const i = t.steps[r.index];
   if (!i)
-    return q(n), null;
+    return K(n), null;
   if (!U(i.pageUrl, window.location.href)) return null;
-  const s = Et(t, { state: n });
+  const s = Ct(t, { state: n });
   return s.start(r.index), s;
 }
-const Ct = `
+const _t = `
 :host { all: initial; }
 .cta {
   position: fixed;
@@ -638,15 +651,15 @@ const Ct = `
 }
 .cta__close:hover { color: #111827; background: #f3f4f6; }
 `;
-function _t(t) {
+function kt(t) {
   const e = t.corner ?? "bottom-right", n = t.offset ?? 24, r = document.createElement("div");
   r.setAttribute("data-tours-cta", "");
   const i = r.attachShadow({ mode: "open" }), s = document.createElement("style");
-  s.textContent = Ct, i.appendChild(s);
-  const l = document.createElement("div");
-  l.className = "cta";
-  const [c, u] = e.split("-");
-  l.style[c] = `${n}px`, l.style[u] = `${n}px`;
+  s.textContent = _t, i.appendChild(s);
+  const c = document.createElement("div");
+  c.className = "cta";
+  const [l, u] = e.split("-");
+  c.style[l] = `${n}px`, c.style[u] = `${n}px`;
   const o = () => {
     r.parentNode && r.parentNode.removeChild(r);
   }, d = document.createElement("button");
@@ -656,9 +669,9 @@ function _t(t) {
   const h = document.createElement("button");
   return h.className = "cta__btn", h.type = "button", h.textContent = t.button, h.addEventListener("click", () => {
     o(), t.onStart();
-  }), l.append(d, p, h), i.appendChild(l), document.body.appendChild(r), o;
+  }), c.append(d, p, h), i.appendChild(c), document.body.appendChild(r), o;
 }
-function At(t, e) {
+function Rt(t, e) {
   const n = t.trigger ?? { type: "manual" };
   let r = !1;
   const i = () => {
@@ -675,8 +688,8 @@ function At(t, e) {
     }
     case "selector": {
       let s = !1;
-      return j([n.selector], { timeout: 0 }).then((l) => {
-        l && !s && i();
+      return V([n.selector], { timeout: 0 }).then((c) => {
+        c && !s && i();
       }), () => {
         s = !0;
       };
@@ -684,7 +697,7 @@ function At(t, e) {
     case "cta": {
       let s = () => {
       };
-      return s = _t({
+      return s = kt({
         text: n.text,
         button: n.button,
         corner: n.corner,
@@ -698,38 +711,38 @@ function At(t, e) {
       };
   }
 }
-function Rt(t = window.innerWidth) {
+function Pt(t = window.innerWidth) {
   return t <= 640 ? "mobile" : t <= 1024 ? "tablet" : "desktop";
 }
-function kt(t, e) {
+function St(t, e) {
   return !(t.url && !U(t.url, e.url) || t.role !== void 0 && t.role !== e.role || t.firstVisitOnly && !e.firstVisit || t.device && t.device !== e.device || t.unlessSeen && e.seenCount > 0 || t.maxShows !== void 0 && e.seenCount >= t.maxShows);
 }
-function Pt(t, e) {
-  return !t || t.length === 0 ? !0 : t.some((n) => kt(n.when, e));
+function Dt(t, e) {
+  return !t || t.length === 0 ? !0 : t.some((n) => St(n.when, e));
 }
 export {
-  ht as CARD_STYLES,
+  gt as CARD_STYLES,
   I as PROGRESS_KEY,
-  At as armTrigger,
-  ut as autoSide,
-  ot as buildSelectors,
-  q as clearProgress,
-  Lt as createLocalState,
-  V as createLogger,
-  $t as createPicker,
-  Et as createPlayer,
-  mt as deriveUrl,
-  Rt as detectDevice,
+  Rt as armTrigger,
+  ft as autoSide,
+  it as buildSelectors,
+  K as clearProgress,
+  Nt as createLocalState,
+  q as createLogger,
+  Lt as createPicker,
+  Ct as createPlayer,
+  bt as deriveUrl,
+  Pt as detectDevice,
   P as isLoggingEnabled,
-  Nt as markSeen,
-  Pt as matchRules,
+  Tt as markSeen,
+  Dt as matchRules,
   U as matchUrl,
-  ft as placeCard,
-  wt as readProgress,
-  pt as renderCard,
+  pt as placeCard,
+  yt as readProgress,
+  ht as renderCard,
   D as resolveElement,
-  Tt as resumeTour,
-  vt as seenCount,
-  j as waitForElement,
-  yt as writeProgress
+  At as resumeTour,
+  Et as seenCount,
+  V as waitForElement,
+  vt as writeProgress
 };

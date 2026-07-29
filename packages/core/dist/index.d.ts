@@ -48,6 +48,15 @@ interface Action {
 }
 interface Step {
 	id: string;
+	/**
+	 * Ranked candidates for the step's target, most stable first. The player
+	 * tries each in turn, so a redeploy that breaks one still resolves.
+	 *
+	 * Strings only, deliberately: this is the **stored** format, and a DOM node
+	 * cannot be serialised. A host that already holds the element can pass it
+	 * directly at runtime — see `RuntimeStep` in `@tours/core`, which widens this
+	 * to accept nodes and ref getters. `validate` rejects anything but strings.
+	 */
 	selectors: string[];
 	content: LocalizedText;
 	/** Which side of the target the card sits on, or 'auto'. Defaults to 'bottom'. */
@@ -123,6 +132,44 @@ interface Tour {
 	display?: DisplaySettings;
 }
 /**
+ * Selector engine — the project's main technical risk. Instead of one brittle
+ * selector per step, we build a ranked list of candidates (most stable first),
+ * resolve a step by trying them in order (re-finder), and wait for elements
+ * that are not in the DOM yet (SPA / lazy rendering).
+ */
+/**
+ * Build a ranked list of candidate selectors for an element, best (most
+ * stable / unique) first. Only candidates that actually resolve back to the
+ * element are kept, so every entry is verified at capture time.
+ */
+export declare function buildSelectors(el: Element): string[];
+/**
+ * A step target: either a CSS selector (or the `text=` pseudo-selector), or a
+ * live DOM node — useful when the host already holds the element, e.g. a
+ * framework template ref, and inventing a selector for it would be redundant.
+ *
+ * A getter is accepted too, for a ref that is not populated yet at the time the
+ * tour object is built (Angular `viewChild`, React `useRef`, …). It is called
+ * on every resolve attempt, so a late-mounting element is picked up by the same
+ * wait-and-retry path as a selector.
+ *
+ * Nodes are **runtime-only**: they cannot be serialised, so a stored tour still
+ * carries plain strings. See `@tours/schema`'s `Step.selectors`.
+ */
+export type SelectorLike = string | Element | (() => Element | null | undefined);
+/** Re-finder: return the first candidate that resolves to an element. */
+export declare function resolveElement(selectors: readonly SelectorLike[], root?: ParentNode): Element | null;
+export interface WaitOptions {
+	/** Give up after this many ms (default 4000). Use 0 to wait indefinitely. */
+	timeout?: number;
+	root?: ParentNode;
+}
+/**
+ * Resolve now, or wait for the element to appear (SPA / lazy). Observes the DOM
+ * and resolves with the element, or null on timeout. Never rejects.
+ */
+export declare function waitForElement(selectors: readonly SelectorLike[], options?: WaitOptions): Promise<Element | null>;
+/**
  * Visitor state backend — where the player remembers its progress so a tour can
  * continue after the visitor navigates to another page. Within one site this is
  * localStorage (survives navigation and reloads). Cross-domain (M2) will plug a
@@ -150,6 +197,25 @@ export declare function clearProgress(state: StateBackend): void;
 export declare function seenCount(state: StateBackend, tourId: string): number;
 /** Record one more showing of a tour. */
 export declare function markSeen(state: StateBackend, tourId: string): void;
+/**
+ * A step as the player accepts it: identical to the stored `Step`, except that
+ * `selectors` may also carry live DOM nodes or ref getters.
+ *
+ * The distinction is deliberate. A node cannot be serialised, so the *stored*
+ * format — `Step` in `@tours/schema`, what `validate`/`migrate` accept and what
+ * the builder writes — stays strings only. Nodes exist purely at runtime, for a
+ * host that already holds the element and would otherwise have to invent a
+ * selector for it.
+ *
+ * `Step` is assignable to this, so a plain validated tour needs no change.
+ */
+export type RuntimeStep = Omit<Step, "selectors"> & {
+	selectors: readonly SelectorLike[];
+};
+/** A tour as the player accepts it — see {@link RuntimeStep}. */
+export type RuntimeTour = Omit<Tour, "steps"> & {
+	steps: readonly RuntimeStep[];
+};
 export interface PlayerHandle {
 	/** Start the tour, optionally at a given step index (default 0). */
 	start(startIndex?: number): void;
@@ -176,14 +242,14 @@ export interface PlayerOptions {
  * Create a player for a tour. Returns handles to drive it: start/stop and
  * next/prev. The player owns its own shadow-DOM UI and cleans it up on stop().
  */
-export declare function createPlayer(tour: Tour, options?: PlayerOptions): PlayerHandle;
+export declare function createPlayer(tour: RuntimeTour, options?: PlayerOptions): PlayerHandle;
 /**
  * Resume an in-progress tour after navigation. Reads saved progress; if it is
  * for this tour and the pending step belongs to the current page, starts the
  * player there. Returns the player, or null when there is nothing to resume
  * here yet. Call on every page load for multi-page tours.
  */
-export declare function resumeTour(tour: Tour, options?: PlayerOptions): PlayerHandle | null;
+export declare function resumeTour(tour: RuntimeTour, options?: PlayerOptions): PlayerHandle | null;
 /**
  * True if `url` satisfies the match. `regex` wins when present; otherwise the
  * `glob` is used. A match with neither field matches any page.
@@ -317,29 +383,5 @@ export interface CardOptions {
 export declare function renderCard(opts: CardOptions): HTMLElement;
 /** Styles for the step card. Injected into any shadow root that renders one. */
 export declare const CARD_STYLES = "\n.tours-card {\n  position: fixed;\n  z-index: 2147483001;\n  box-sizing: border-box;\n  max-width: 320px;\n  min-width: 220px;\n  padding: 16px;\n  font: 14px/1.5 system-ui, sans-serif;\n  color: #111827;\n  background: #ffffff;\n  border: 1px solid #e5e7eb;\n  border-radius: 10px;\n  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);\n}\n.tours-card--ghost { pointer-events: none; }\n.tours-card--ghost .tours-card__btn,\n.tours-card--ghost .tours-card__close { pointer-events: auto; }\n.tours-card__content {\n  white-space: pre-wrap;\n  word-break: break-word;\n}\n.tours-card__footer {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 8px;\n  margin-top: 14px;\n}\n.tours-card__progress {\n  flex: 1;\n  text-align: center;\n  font-size: 12px;\n  color: #6b7280;\n}\n.tours-card__btn {\n  box-sizing: border-box;\n  padding: 6px 12px;\n  font: inherit;\n  font-size: 13px;\n  font-weight: 600;\n  line-height: 1;\n  color: #111827;\n  background: #f3f4f6;\n  border: 1px solid #e5e7eb;\n  border-radius: 7px;\n  cursor: pointer;\n}\n.tours-card__btn:hover { background: #e5e7eb; }\n.tours-card__btn--primary { color: #fff; background: #2563eb; border-color: #2563eb; }\n.tours-card__btn--primary:hover { background: #1d4ed8; }\n.tours-card__btn--disabled { opacity: 0.45; pointer-events: none; cursor: default; }\n.tours-card__close {\n  position: absolute;\n  top: 8px;\n  right: 8px;\n  width: 24px;\n  height: 24px;\n  padding: 0;\n  font: 16px/1 system-ui, sans-serif;\n  color: #6b7280;\n  background: transparent;\n  border: none;\n  border-radius: 4px;\n  cursor: pointer;\n}\n.tours-card__close:hover { background: #f3f4f6; color: #111827; }\n";
-/**
- * Selector engine — the project's main technical risk. Instead of one brittle
- * selector per step, we build a ranked list of candidates (most stable first),
- * resolve a step by trying them in order (re-finder), and wait for elements
- * that are not in the DOM yet (SPA / lazy rendering).
- */
-/**
- * Build a ranked list of candidate selectors for an element, best (most
- * stable / unique) first. Only candidates that actually resolve back to the
- * element are kept, so every entry is verified at capture time.
- */
-export declare function buildSelectors(el: Element): string[];
-/** Re-finder: return the first candidate selector that resolves to an element. */
-export declare function resolveElement(selectors: string[], root?: ParentNode): Element | null;
-export interface WaitOptions {
-	/** Give up after this many ms (default 4000). Use 0 to wait indefinitely. */
-	timeout?: number;
-	root?: ParentNode;
-}
-/**
- * Resolve now, or wait for the element to appear (SPA / lazy). Observes the DOM
- * and resolves with the element, or null on timeout. Never rejects.
- */
-export declare function waitForElement(selectors: string[], options?: WaitOptions): Promise<Element | null>;
 
 export {};

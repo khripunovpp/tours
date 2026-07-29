@@ -14,7 +14,7 @@ import {
 import { PLAYER_STYLES } from './styles.js';
 import { placeCard } from './position.js';
 import { renderCard, CARD_STYLES } from './card.js';
-import { resolveElement, waitForElement } from './selector.js';
+import { resolveElement, waitForElement, type SelectorLike } from './selector.js';
 import { matchUrl, deriveUrl } from './url.js';
 import { onLocationChange } from './history.js';
 import {
@@ -24,6 +24,23 @@ import {
   clearProgress,
 } from './state.js';
 import { createLogger } from './logger.js';
+
+/**
+ * A step as the player accepts it: identical to the stored `Step`, except that
+ * `selectors` may also carry live DOM nodes or ref getters.
+ *
+ * The distinction is deliberate. A node cannot be serialised, so the *stored*
+ * format — `Step` in `@tours/schema`, what `validate`/`migrate` accept and what
+ * the builder writes — stays strings only. Nodes exist purely at runtime, for a
+ * host that already holds the element and would otherwise have to invent a
+ * selector for it.
+ *
+ * `Step` is assignable to this, so a plain validated tour needs no change.
+ */
+export type RuntimeStep = Omit<Step, 'selectors'> & { selectors: readonly SelectorLike[] };
+
+/** A tour as the player accepts it — see {@link RuntimeStep}. */
+export type RuntimeTour = Omit<Tour, 'steps'> & { steps: readonly RuntimeStep[] };
 
 export interface PlayerHandle {
   /** Start the tour, optionally at a given step index (default 0). */
@@ -53,7 +70,7 @@ export interface PlayerOptions {
  * Create a player for a tour. Returns handles to drive it: start/stop and
  * next/prev. The player owns its own shadow-DOM UI and cleans it up on stop().
  */
-export function createPlayer(tour: Tour, options: PlayerOptions = {}): PlayerHandle {
+export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): PlayerHandle {
   const log = createLogger('player');
   const state = options.state;
   let host: HTMLElement | null = null;
@@ -73,12 +90,12 @@ export function createPlayer(tour: Tour, options: PlayerOptions = {}): PlayerHan
   const offset = tour.display?.offset ?? DEFAULT_OFFSET;
 
   /** Resolve a step's target via the re-finder (tries every candidate). */
-  function findTarget(step: Step): Element | null {
+  function findTarget(step: RuntimeStep): Element | null {
     return resolveElement(step.selectors);
   }
 
   /** True if a step belongs to the current page (no pageUrl ⇒ any page). */
-  function onThisPage(step: Step): boolean {
+  function onThisPage(step: RuntimeStep): boolean {
     return matchUrl(step.pageUrl, window.location.href);
   }
 
@@ -138,7 +155,7 @@ export function createPlayer(tour: Tour, options: PlayerOptions = {}): PlayerHan
   }
 
   /** Place the tooltip per the step's side/alignment/offset, clamped on screen. */
-  function positionTooltip(rect: DOMRect, step: Step): void {
+  function positionTooltip(rect: DOMRect, step: RuntimeStep): void {
     if (!tooltip) return;
     // Measure from the outline (target inflated by the spotlight padding), so
     // 0 distance sits flush against the visible frame.
@@ -164,7 +181,7 @@ export function createPlayer(tour: Tour, options: PlayerOptions = {}): PlayerHan
   }
 
   /** (Re)build the tooltip card for the given step via the shared renderer. */
-  function renderTooltip(step: Step): void {
+  function renderTooltip(step: RuntimeStep): void {
     // Exclude skipped (unfindable) steps from the progress counter.
     const total = Math.max(1, tour.steps.length - skipped);
     const position = Math.max(1, Math.min(index + 1 - skipped, total));
@@ -417,7 +434,7 @@ export function createPlayer(tour: Tour, options: PlayerOptions = {}): PlayerHan
  * player there. Returns the player, or null when there is nothing to resume
  * here yet. Call on every page load for multi-page tours.
  */
-export function resumeTour(tour: Tour, options: PlayerOptions = {}): PlayerHandle | null {
+export function resumeTour(tour: RuntimeTour, options: PlayerOptions = {}): PlayerHandle | null {
   const state = options.state;
   if (!state) return null;
   const progress = readProgress(state);

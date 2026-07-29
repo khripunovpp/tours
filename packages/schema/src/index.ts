@@ -52,6 +52,15 @@ export interface Action {
 
 export interface Step {
   id: string;
+  /**
+   * Ranked candidates for the step's target, most stable first. The player
+   * tries each in turn, so a redeploy that breaks one still resolves.
+   *
+   * Strings only, deliberately: this is the **stored** format, and a DOM node
+   * cannot be serialised. A host that already holds the element can pass it
+   * directly at runtime — see `RuntimeStep` in `@tours/core`, which widens this
+   * to accept nodes and ref getters. `validate` rejects anything but strings.
+   */
   selectors: string[];
   content: LocalizedText;
   /** Which side of the target the card sits on, or 'auto'. Defaults to 'bottom'. */

@@ -129,7 +129,23 @@ function buildSelectors(el) {
   return out;
 }
 const TEXT_ROLES = "a, button, summary, label, h1, h2, h3, h4, h5, h6";
+function fromNode(value, root) {
+  if (!(value instanceof Element)) return null;
+  if (!value.isConnected) return null;
+  if (root !== document && root instanceof Node && !root.contains(value)) return null;
+  return value;
+}
 function resolveOne(sel, root) {
+  if (typeof sel === "function") {
+    let value;
+    try {
+      value = sel();
+    } catch {
+      return null;
+    }
+    return fromNode(value, root);
+  }
+  if (typeof sel !== "string") return fromNode(sel, root);
   if (sel.startsWith("text=")) {
     const want = sel.slice(5).trim();
     for (const n of Array.from(root.querySelectorAll(TEXT_ROLES))) {

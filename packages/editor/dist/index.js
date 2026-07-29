@@ -129,7 +129,23 @@ function buildSelectors(el) {
   return out;
 }
 const TEXT_ROLES = "a, button, summary, label, h1, h2, h3, h4, h5, h6";
+function fromNode(value, root) {
+  if (!(value instanceof Element)) return null;
+  if (!value.isConnected) return null;
+  if (root !== document && root instanceof Node && !root.contains(value)) return null;
+  return value;
+}
 function resolveOne(sel, root) {
+  if (typeof sel === "function") {
+    let value;
+    try {
+      value = sel();
+    } catch {
+      return null;
+    }
+    return fromNode(value, root);
+  }
+  if (typeof sel !== "string") return fromNode(sel, root);
   if (sel.startsWith("text=")) {
     const want = sel.slice(5).trim();
     for (const n of Array.from(root.querySelectorAll(TEXT_ROLES))) {
@@ -2030,7 +2046,21 @@ class TourBuilder {
     step.page = this.currentPage();
     this.tour.steps.splice(index + 1, 0, step);
     this.activeStepId = step.id;
-    this.render();
+    if (type === "step" && !this.picking) {
+      this.togglePicking();
+    } else {
+      this.render();
+    }
+    this.revealStep(step.id);
+  }
+  /**
+   * Scroll the panel so a step's card is visible. Runs after render(), so the
+   * card exists; `scrollIntoView` on the card itself keeps this correct when the
+   * step was inserted in the middle rather than appended.
+   */
+  revealStep(id) {
+    const card = this.root?.querySelector(`.card[data-step-id="${CSS.escape(id)}"]`);
+    card?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
   /** A URL glob for the current page (matches its query/hash variations). */
   currentPage() {
@@ -2797,7 +2827,9 @@ ${result.errors.join("\n")}`);
   renderCard(step, index) {
     const isActive = step.id === this.activeStepId;
     const card = h("div", {
-      class: `card ${isActive ? "card--active" : ""} ${step.included ? "" : "card--excluded"}`.trim()
+      class: `card ${isActive ? "card--active" : ""} ${step.included ? "" : "card--excluded"}`.trim(),
+      // Lets revealStep() find this card after a re-render.
+      "data-step-id": step.id
     });
     card.addEventListener("mousedown", () => this.setActive(step.id));
     if (step.page && !matchUrl({ glob: step.page }, window.location.href)) {

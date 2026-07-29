@@ -587,6 +587,28 @@ export declare function placeCard(input: PlaceInput): {
 	top: number;
 	left: number;
 };
+/** A rectangle, in viewport coordinates. */
+export interface Box {
+	top: number;
+	left: number;
+	right: number;
+	bottom: number;
+	width: number;
+	height: number;
+}
+/**
+ * The part of an element actually visible through its scrollable ancestors.
+ *
+ * A target inside a scrolling panel keeps reporting its full rectangle from
+ * `getBoundingClientRect()` even when the panel has scrolled it out of sight —
+ * so a highlight drawn from that rectangle floats over unrelated content, or
+ * over nothing at all. Intersecting with every clipping ancestor gives the part
+ * a visitor can really see.
+ *
+ * Returns null when nothing of it is visible; callers should hide rather than
+ * draw a zero-sized frame.
+ */
+export declare function visibleRect(el: Element): Box | null;
 /**
  * The step card — the single source of truth for the tooltip markup and styles,
  * shared by the player (live tour) and the editor (on-page preview) so they can

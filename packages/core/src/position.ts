@@ -97,3 +97,59 @@ export function placeCard(input: PlaceInput): { top: number; left: number } {
   top = Math.max(8, Math.min(top, v.height - c.height - 8));
   return { top, left };
 }
+
+/** A rectangle, in viewport coordinates. */
+export interface Box {
+  top: number;
+  left: number;
+  right: number;
+  bottom: number;
+  width: number;
+  height: number;
+}
+
+/** True when the element scrolls its own content on either axis. */
+function scrolls(el: Element): boolean {
+  const style = getComputedStyle(el);
+  const value = `${style.overflowX} ${style.overflowY}`;
+  return /auto|scroll|overlay|hidden/.test(value);
+}
+
+/**
+ * The part of an element actually visible through its scrollable ancestors.
+ *
+ * A target inside a scrolling panel keeps reporting its full rectangle from
+ * `getBoundingClientRect()` even when the panel has scrolled it out of sight —
+ * so a highlight drawn from that rectangle floats over unrelated content, or
+ * over nothing at all. Intersecting with every clipping ancestor gives the part
+ * a visitor can really see.
+ *
+ * Returns null when nothing of it is visible; callers should hide rather than
+ * draw a zero-sized frame.
+ */
+export function visibleRect(el: Element): Box | null {
+  const r = el.getBoundingClientRect();
+  let top = r.top;
+  let left = r.left;
+  let right = r.right;
+  let bottom = r.bottom;
+
+  for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+    if (!scrolls(p)) continue;
+    const c = p.getBoundingClientRect();
+    top = Math.max(top, c.top);
+    left = Math.max(left, c.left);
+    right = Math.min(right, c.right);
+    bottom = Math.min(bottom, c.bottom);
+  }
+
+  // The viewport clips too — a target scrolled off the page is no more visible
+  // than one scrolled out of a panel.
+  top = Math.max(top, 0);
+  left = Math.max(left, 0);
+  right = Math.min(right, window.innerWidth);
+  bottom = Math.min(bottom, window.innerHeight);
+
+  if (right <= left || bottom <= top) return null;
+  return { top, left, right, bottom, width: right - left, height: bottom - top };
+}

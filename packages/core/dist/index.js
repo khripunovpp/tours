@@ -359,6 +359,32 @@ function placeCard(input) {
   top = Math.max(8, Math.min(top, v.height - c.height - 8));
   return { top, left };
 }
+function scrolls(el) {
+  const style = getComputedStyle(el);
+  const value = `${style.overflowX} ${style.overflowY}`;
+  return /auto|scroll|overlay|hidden/.test(value);
+}
+function visibleRect(el) {
+  const r = el.getBoundingClientRect();
+  let top = r.top;
+  let left = r.left;
+  let right = r.right;
+  let bottom = r.bottom;
+  for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+    if (!scrolls(p)) continue;
+    const c = p.getBoundingClientRect();
+    top = Math.max(top, c.top);
+    left = Math.max(left, c.left);
+    right = Math.min(right, c.right);
+    bottom = Math.min(bottom, c.bottom);
+  }
+  top = Math.max(top, 0);
+  left = Math.max(left, 0);
+  right = Math.min(right, window.innerWidth);
+  bottom = Math.min(bottom, window.innerHeight);
+  if (right <= left || bottom <= top) return null;
+  return { top, left, right, bottom, width: right - left, height: bottom - top };
+}
 function makeButton(spec) {
   const btn = document.createElement("button");
   btn.type = "button";
@@ -908,7 +934,7 @@ function createPlayer(tour, options = {}) {
     ensureUi();
     target.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
     renderTooltip(step);
-    const rect = target.getBoundingClientRect();
+    const rect = visibleRect(target) ?? target.getBoundingClientRect();
     positionSpotlight(rect);
     positionTooltip(rect, step);
     applyOverlay(step);
@@ -952,9 +978,20 @@ function createPlayer(tour, options = {}) {
     if (!step) return;
     const target = findTarget(step);
     if (!target) return;
-    const rect = target.getBoundingClientRect();
+    const rect = visibleRect(target);
+    if (!rect) {
+      hideFrame();
+      return;
+    }
     positionSpotlight(rect, true);
     positionTooltip(rect, step);
+    cutHole(dims(step) && isInteractive(step) ? rect : null);
+    if (tooltip) tooltip.style.visibility = "";
+  }
+  function hideFrame() {
+    if (spotlight) spotlight.style.display = "none";
+    if (tooltip) tooltip.style.visibility = "hidden";
+    cutHole(null);
   }
   function start(startIndex = 0) {
     if (active) return;
@@ -1353,6 +1390,7 @@ export {
   resolveElement,
   resumeTour,
   seenCount,
+  visibleRect,
   waitForElement,
   writeProgress
 };

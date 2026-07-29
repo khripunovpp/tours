@@ -12,7 +12,7 @@ import {
   DEFAULT_OFFSET,
 } from '@tours/schema';
 import { PLAYER_STYLES } from './styles.js';
-import { placeCard } from './position.js';
+import { placeCard, visibleRect, type Box } from './position.js';
 import { renderCard, CARD_STYLES } from './card.js';
 import { resolveElement, waitForElement, type SelectorLike } from './selector.js';
 import { matchUrl, deriveUrl } from './url.js';
@@ -252,7 +252,7 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
    * `polygon(evenodd, …)`: the fill-rule argument is not supported everywhere,
    * and this shape needs no fill rule at all.
    */
-  function cutHole(rect: DOMRect | null): void {
+  function cutHole(rect: Box | null): void {
     if (!backdrop) return;
     if (!rect) {
       backdrop.style.clipPath = '';
@@ -287,7 +287,7 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
   }
 
   /** Size and place the spotlight cut-out around the target (with padding). */
-  function positionSpotlight(rect: DOMRect, fast = false): void {
+  function positionSpotlight(rect: Box, fast = false): void {
     if (!spotlight) return;
     // Animate between steps; track the target instantly on scroll/resize.
     spotlight.style.transitionDuration = fast ? '0ms' : '';
@@ -299,7 +299,7 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
   }
 
   /** Place the tooltip per the step's side/alignment/offset, clamped on screen. */
-  function positionTooltip(rect: DOMRect, step: RuntimeStep): void {
+  function positionTooltip(rect: Box, step: RuntimeStep): void {
     if (!tooltip) return;
     // Measure from the outline (target inflated by the spotlight padding), so
     // 0 distance sits flush against the visible frame.
@@ -422,7 +422,9 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
 
     // Render tooltip content first so its size is measurable for positioning.
     renderTooltip(step);
-    const rect = target.getBoundingClientRect();
+    // Clipped by any scrolling ancestor; scrollIntoView above has already
+    // brought the target into its container, so this is normally the full rect.
+    const rect = visibleRect(target) ?? target.getBoundingClientRect();
     positionSpotlight(rect);
     positionTooltip(rect, step);
     // Only interactive steps let the click through; elsewhere the backdrop
@@ -492,9 +494,27 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
     if (!step) return;
     const target = findTarget(step);
     if (!target) return;
-    const rect = target.getBoundingClientRect();
+    // Clipped, not raw: a target inside a scrolling panel still reports its
+    // full rectangle after the panel has scrolled it away, and framing that
+    // draws a highlight over unrelated content.
+    const rect = visibleRect(target);
+    if (!rect) {
+      // Scrolled out of view. Hide rather than frame nothing — the step is
+      // still current, and it comes back as soon as it is scrolled into sight.
+      hideFrame();
+      return;
+    }
     positionSpotlight(rect, true); // instant while scrolling/resizing
     positionTooltip(rect, step);
+    cutHole(dims(step) && isInteractive(step) ? rect : null);
+    if (tooltip) tooltip.style.visibility = '';
+  }
+
+  /** Keep the step current, but stop drawing a frame around nothing. */
+  function hideFrame(): void {
+    if (spotlight) spotlight.style.display = 'none';
+    if (tooltip) tooltip.style.visibility = 'hidden';
+    cutHole(null);
   }
 
   function start(startIndex = 0): void {

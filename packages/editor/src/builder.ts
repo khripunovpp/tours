@@ -8,7 +8,8 @@
  * Enable in code:   new TourBuilder({ mode: 'edit' }).mount();
  * Enable via URL:   TourBuilder.fromUrl();   // when ?tours-edit=1 is present
  */
-import { createPicker, createPlayer, createLogger, placeCard, renderCard, resolveElement, matchUrl, deriveUrl, CARD_STYLES } from '@tours/core';
+import { createPicker, createPlayer, createLogger, placeCard, renderCard, resolveElement, matchUrl, deriveUrl, visibleRect, CARD_STYLES } from '@tours/core';
+import type { Box } from '@tours/core';
 import type { PickerHandle, PlayerHandle } from '@tours/core';
 import { EDITOR_STYLES } from './styles.js';
 import { ICONS } from './icons.js';
@@ -582,7 +583,11 @@ export class TourBuilder {
     const target = step && step.selectors.length > 0 ? this.resolveTarget(step) : null;
     if (!step || !target) return hideAll();
 
-    const rect = target.getBoundingClientRect();
+    // Clipped by any scrolling ancestor: a target scrolled out of its panel
+    // still reports a full rectangle, and outlining that puts the highlight
+    // over unrelated content.
+    const rect = visibleRect(target);
+    if (!rect) return hideAll();
     const { padding, radius, cardRadius } = this.tour.display;
 
     // Outline. In the Display tab it turns amber to signal "tuning" mode.
@@ -613,7 +618,7 @@ export class TourBuilder {
    * the exact markup the player uses. Shown when the step has content; in the
    * Card sub-tab a muted placeholder shows so the radius stays visible first.
    */
-  private drawStepCard(step: DraftStep, rect: DOMRect, cardRadius: number): void {
+  private drawStepCard(step: DraftStep, rect: Box, cardRadius: number): void {
     const content = step.content.trim();
     const tuningCard = this.tab === 'styles' && this.displaySub === 'card';
     if (!content && !tuningCard) {

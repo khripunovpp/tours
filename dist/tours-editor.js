@@ -1,4 +1,4 @@
-const He = `
+const Xe = `
 :host {
   all: initial;
 }
@@ -26,7 +26,7 @@ const He = `
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   pointer-events: none;
 }
-`, We = `
+`, Ye = `
 :host {
   all: initial;
 }
@@ -54,10 +54,10 @@ const He = `
 function K(r) {
   return JSON.stringify(r);
 }
-function Je(r) {
+function Ge(r) {
   return /^[a-zA-Z][\w-]*$/.test(r) && r.length <= 30 && !/\d{2,}/.test(r) && !/^(css-|sc-|jsx-|emotion-|_|is-|has-)/.test(r);
 }
-function he(r) {
+function fe(r) {
   const e = [];
   let t = r;
   for (; t && t !== document.body && t.nodeType === 1; ) {
@@ -71,7 +71,7 @@ function he(r) {
   }
   return `body > ${e.join(" > ")}`;
 }
-function qe(r) {
+function Ke(r) {
   let e = r.parentElement;
   for (; e && e !== document.body && !e.id; )
     e = e.parentElement;
@@ -81,13 +81,13 @@ function qe(r) {
   for (; n && n !== e; ) {
     const i = n.tagName.toLowerCase(), o = n.parentElement;
     if (!o) return null;
-    const s = Array.from(o.children).filter((l) => l.tagName === n.tagName);
+    const s = Array.from(o.children).filter((d) => d.tagName === n.tagName);
     t.unshift(s.length > 1 ? `${i}:nth-of-type(${s.indexOf(n) + 1})` : i), n = o;
   }
   return `#${CSS.escape(e.id)} > ${t.join(" > ")}`;
 }
-const Ye = ["data-testid", "data-test", "data-test-id", "data-cy", "data-qa", "data-id", "data-name"];
-function Xe(r) {
+const Qe = ["data-testid", "data-test", "data-test-id", "data-cy", "data-qa", "data-id", "data-name"];
+function Ze(r) {
   const e = [], t = /* @__PURE__ */ new Set(), n = r.tagName.toLowerCase(), i = (c) => {
     if (!(!c || t.has(c)))
       try {
@@ -96,30 +96,30 @@ function Xe(r) {
       }
   };
   r.id && i(`#${CSS.escape(r.id)}`);
-  for (const c of Ye) {
-    const f = r.getAttribute(c);
-    f && i(`${n}[${c}=${K(f)}]`);
+  for (const c of Qe) {
+    const h = r.getAttribute(c);
+    h && i(`${n}[${c}=${K(h)}]`);
   }
   const o = r.getAttribute("name");
   o && i(`${n}[name=${K(o)}]`);
   const s = r.getAttribute("aria-label");
   s && i(`[aria-label=${K(s)}]`);
-  const l = Array.from(r.classList).filter(Je);
-  l.length && i(`${n}.${l.map((c) => CSS.escape(c)).join(".")}`);
-  for (const c of l) i(`${n}.${CSS.escape(c)}`);
-  i(qe(r)), i(he(r));
+  const d = Array.from(r.classList).filter(Ge);
+  d.length && i(`${n}.${d.map((c) => CSS.escape(c)).join(".")}`);
+  for (const c of d) i(`${n}.${CSS.escape(c)}`);
+  i(Ke(r)), i(fe(r));
   const p = (r.textContent ?? "").replace(/\s+/g, " ").trim();
   if (p && p.length <= 50 && /^(a|button|summary|label|h[1-6])$/.test(n)) {
     const c = `text=${p}`;
     t.has(c) || (t.add(c), e.push(c));
   }
-  return e.length === 0 && e.push(he(r)), e;
+  return e.length === 0 && e.push(fe(r)), e;
 }
-const Ge = "a, button, summary, label, h1, h2, h3, h4, h5, h6";
-function fe(r, e) {
+const et = "a, button, summary, label, h1, h2, h3, h4, h5, h6";
+function ge(r, e) {
   return !(r instanceof Element) || !r.isConnected || e !== document && e instanceof Node && !e.contains(r) ? null : r;
 }
-function Ke(r, e) {
+function tt(r, e) {
   if (typeof r == "function") {
     let t;
     try {
@@ -127,12 +127,12 @@ function Ke(r, e) {
     } catch {
       return null;
     }
-    return fe(t, e);
+    return ge(t, e);
   }
-  if (typeof r != "string") return fe(r, e);
+  if (typeof r != "string") return ge(r, e);
   if (r.startsWith("text=")) {
     const t = r.slice(5).trim();
-    for (const n of Array.from(e.querySelectorAll(Ge)))
+    for (const n of Array.from(e.querySelectorAll(et)))
       if ((n.textContent ?? "").replace(/\s+/g, " ").trim() === t) return n;
     return null;
   }
@@ -144,20 +144,20 @@ function Ke(r, e) {
 }
 function D(r, e = document) {
   for (const t of r) {
-    const n = Ke(t, e);
+    const n = tt(t, e);
     if (n) return n;
   }
   return null;
 }
-function Ze(r, e = {}) {
+function rt(r, e = {}) {
   const t = e.root ?? document, n = D(r, t);
   return n ? Promise.resolve(n) : new Promise((i) => {
     let o = !1, s;
-    const l = (f) => {
-      o || (o = !0, p.disconnect(), s && clearTimeout(s), i(f));
+    const d = (h) => {
+      o || (o = !0, p.disconnect(), s && clearTimeout(s), i(h));
     }, p = new MutationObserver(() => {
-      const f = D(r, t);
-      f && l(f);
+      const h = D(r, t);
+      h && d(h);
     });
     p.observe(document.documentElement, {
       childList: !0,
@@ -165,37 +165,37 @@ function Ze(r, e = {}) {
       attributes: !0
     });
     const c = e.timeout ?? 4e3;
-    c > 0 && Number.isFinite(c) && (s = setTimeout(() => l(null), c));
+    c > 0 && Number.isFinite(c) && (s = setTimeout(() => d(null), c));
   });
 }
-let I = null;
-function Z() {
-  if (I !== null) return I;
+let F = null;
+function Q() {
+  if (F !== null) return F;
   try {
-    I = new URLSearchParams(window.location.search).has("use_logs");
+    F = new URLSearchParams(window.location.search).has("use_logs");
   } catch {
-    I = !1;
+    F = !1;
   }
-  return I;
+  return F;
 }
-function ie(r) {
+function oe(r) {
   const e = `[tours:${r}]`;
   return {
     log: (...t) => {
-      Z() && console.log(e, ...t);
+      Q() && console.log(e, ...t);
     },
     warn: (...t) => {
-      Z() && console.warn(e, ...t);
+      Q() && console.warn(e, ...t);
     },
     error: (...t) => {
-      Z() && console.error(e, ...t);
+      Q() && console.error(e, ...t);
     }
   };
 }
-function Qe(r, e = {}) {
-  const t = ie("picker");
+function nt(r, e = {}) {
+  const t = oe("picker");
   let n = null, i = null, o = null, s = !1;
-  function l(b) {
+  function d(b) {
     if (b === n) return !0;
     for (const v of e.ignore ?? [])
       if (v && v.contains(b)) return !0;
@@ -205,52 +205,52 @@ function Qe(r, e = {}) {
     if (n) return;
     n = document.createElement("div"), n.setAttribute("data-tours-picker", ""), i = n.attachShadow({ mode: "open" });
     const b = document.createElement("style");
-    b.textContent = He, i.appendChild(b), o = document.createElement("div"), o.className = "tours-picker-overlay", o.style.display = "none", i.appendChild(o);
+    b.textContent = Xe, i.appendChild(b), o = document.createElement("div"), o.className = "tours-picker-overlay", o.style.display = "none", i.appendChild(o);
     const v = document.createElement("div");
     v.className = "tours-picker-hint", v.textContent = "Hover and click an element • Esc to cancel", i.appendChild(v), document.body.appendChild(n);
   }
   function c(b, v) {
-    const S = document.elementFromPoint(b, v);
-    return !S || l(S) ? null : S;
+    const E = document.elementFromPoint(b, v);
+    return !E || d(E) ? null : E;
   }
-  function f(b) {
+  function h(b) {
     if (!s || !o) return;
     const v = c(b.clientX, b.clientY);
     if (!v) {
       o.style.display = "none";
       return;
     }
-    const S = v.getBoundingClientRect();
-    o.style.display = "block", o.style.left = `${S.left}px`, o.style.top = `${S.top}px`, o.style.width = `${S.width}px`, o.style.height = `${S.height}px`;
+    const E = v.getBoundingClientRect();
+    o.style.display = "block", o.style.left = `${E.left}px`, o.style.top = `${E.top}px`, o.style.width = `${E.width}px`, o.style.height = `${E.height}px`;
   }
   function g(b) {
     if (!s) return;
     const v = c(b.clientX, b.clientY);
     if (b.preventDefault(), b.stopPropagation(), !v) return;
-    const S = Xe(v);
-    t.log("picked", S), y(), r(S);
+    const E = Ze(v);
+    t.log("picked", E), y(), r(E);
   }
   function u(b) {
     b.key === "Escape" && (b.preventDefault(), y());
   }
-  function _() {
-    s || (s = !0, t.log("start"), p(), document.addEventListener("mousemove", f, !0), document.addEventListener("click", g, !0), document.addEventListener("keydown", u, !0));
+  function k() {
+    s || (s = !0, t.log("start"), p(), document.addEventListener("mousemove", h, !0), document.addEventListener("click", g, !0), document.addEventListener("keydown", u, !0));
   }
   function y() {
-    s && (s = !1, document.removeEventListener("mousemove", f, !0), document.removeEventListener("click", g, !0), document.removeEventListener("keydown", u, !0), n && n.parentNode && n.parentNode.removeChild(n), n = null, i = null, o = null);
+    s && (s = !1, document.removeEventListener("mousemove", h, !0), document.removeEventListener("click", g, !0), document.removeEventListener("keydown", u, !0), n && n.parentNode && n.parentNode.removeChild(n), n = null, i = null, o = null);
   }
-  return { start: _, stop: y };
+  return { start: k, stop: y };
 }
-const M = 6, B = 6, U = 10, j = 12, et = 1;
-function $(r) {
+const M = 6, B = 6, U = 10, j = 12, it = 1;
+function L(r) {
   return typeof r == "object" && r !== null && !Array.isArray(r);
 }
-function ge(r) {
-  return $(r) && typeof r.default == "string";
+function be(r) {
+  return L(r) && typeof r.default == "string";
 }
-const be = ["top", "bottom", "left", "right", "auto"], me = ["start", "center", "end"], ve = ["mobile", "tablet", "desktop"], xe = ["click", "input", "navigate", "none"];
-function Ee(r, e, t) {
-  if (!$(r)) {
+const me = ["top", "bottom", "left", "right", "auto"], ve = ["start", "center", "end"], xe = ["mobile", "tablet", "desktop"], ye = ["click", "input", "navigate", "none"];
+function Te(r, e, t) {
+  if (!L(r)) {
     t.push(`${e} must be an object`);
     return;
   }
@@ -262,42 +262,42 @@ function Ee(r, e, t) {
       t.push(`${e}.regex is not a valid regular expression`);
     }
 }
-function ye(r, e, t) {
-  if (!$(r)) {
+function we(r, e, t) {
+  if (!L(r)) {
     t.push(`${e} must be an object`);
     return;
   }
-  if (r.url !== void 0 && Ee(r.url, `${e}.url`, t), r.traits !== void 0)
-    if (!$(r.traits))
+  if (r.url !== void 0 && Te(r.url, `${e}.url`, t), r.traits !== void 0)
+    if (!L(r.traits))
       t.push(`${e}.traits must be an object`);
     else
       for (const [n, i] of Object.entries(r.traits))
         typeof i != "string" && typeof i != "number" && t.push(`${e}.traits.${n} must be a string or number`);
-  r.firstVisitOnly !== void 0 && typeof r.firstVisitOnly != "boolean" && t.push(`${e}.firstVisitOnly must be a boolean`), r.device !== void 0 && !ve.includes(r.device) && t.push(`${e}.device must be one of ${ve.join("|")}`), r.unlessSeen !== void 0 && typeof r.unlessSeen != "boolean" && t.push(`${e}.unlessSeen must be a boolean`), r.maxShows !== void 0 && (typeof r.maxShows != "number" || r.maxShows < 0) && t.push(`${e}.maxShows must be a non-negative number`);
+  r.firstVisitOnly !== void 0 && typeof r.firstVisitOnly != "boolean" && t.push(`${e}.firstVisitOnly must be a boolean`), r.device !== void 0 && !xe.includes(r.device) && t.push(`${e}.device must be one of ${xe.join("|")}`), r.unlessSeen !== void 0 && typeof r.unlessSeen != "boolean" && t.push(`${e}.unlessSeen must be a boolean`), r.maxShows !== void 0 && (typeof r.maxShows != "number" || r.maxShows < 0) && t.push(`${e}.maxShows must be a non-negative number`);
 }
-function tt(r, e, t) {
-  if (!$(r)) {
+function ot(r, e, t) {
+  if (!L(r)) {
     t.push(`${e} must be an object`);
     return;
   }
-  xe.includes(r.type) || t.push(`${e}.type must be one of ${xe.join("|")}`), r.url !== void 0 && typeof r.url != "string" && t.push(`${e}.url must be a string`), r.value !== void 0 && typeof r.value != "string" && t.push(`${e}.value must be a string`);
+  ye.includes(r.type) || t.push(`${e}.type must be one of ${ye.join("|")}`), r.url !== void 0 && typeof r.url != "string" && t.push(`${e}.url must be a string`), r.value !== void 0 && typeof r.value != "string" && t.push(`${e}.value must be a string`);
 }
-function rt(r) {
+function st(r) {
   const e = [];
-  if (!$(r))
+  if (!L(r))
     return { ok: !1, errors: ["tour must be an object"] };
-  if ((typeof r.id != "string" || r.id.length === 0) && e.push("tour.id must be a non-empty string"), typeof r.schemaVersion != "number" && e.push("tour.schemaVersion must be a number"), ge(r.title) || e.push('tour.title must be a localized text with a string "default"'), Array.isArray(r.steps) ? r.steps.length === 0 ? e.push("tour.steps must contain at least one step") : r.steps.forEach((t, n) => {
-    if (!$(t)) {
+  if ((typeof r.id != "string" || r.id.length === 0) && e.push("tour.id must be a non-empty string"), typeof r.schemaVersion != "number" && e.push("tour.schemaVersion must be a number"), be(r.title) || e.push('tour.title must be a localized text with a string "default"'), Array.isArray(r.steps) ? r.steps.length === 0 ? e.push("tour.steps must contain at least one step") : r.steps.forEach((t, n) => {
+    if (!L(t)) {
       e.push(`steps[${n}] must be an object`);
       return;
     }
-    (typeof t.id != "string" || t.id.length === 0) && e.push(`steps[${n}].id must be a non-empty string`), (!Array.isArray(t.selectors) || t.selectors.length === 0 || !t.selectors.every((i) => typeof i == "string" && i.length > 0)) && e.push(`steps[${n}].selectors must be a non-empty array of non-empty strings`), ge(t.content) || e.push(`steps[${n}].content must be a localized text with a string "default"`), t.placement !== void 0 && !be.includes(t.placement) && e.push(`steps[${n}].placement must be one of ${be.join("|")}`), t.align !== void 0 && !me.includes(t.align) && e.push(`steps[${n}].align must be one of ${me.join("|")}`), t.backLabel !== void 0 && typeof t.backLabel != "string" && e.push(`steps[${n}].backLabel must be a string`), t.nextLabel !== void 0 && typeof t.nextLabel != "string" && e.push(`steps[${n}].nextLabel must be a string`), t.pageUrl !== void 0 && Ee(t.pageUrl, `steps[${n}].pageUrl`, e), t.condition !== void 0 && ye(t.condition, `steps[${n}].condition`, e), t.action !== void 0 && tt(t.action, `steps[${n}].action`, e), t.overlay !== void 0 && typeof t.overlay != "boolean" && e.push(`steps[${n}].overlay must be a boolean`);
+    (typeof t.id != "string" || t.id.length === 0) && e.push(`steps[${n}].id must be a non-empty string`), (!Array.isArray(t.selectors) || t.selectors.length === 0 || !t.selectors.every((i) => typeof i == "string" && i.length > 0)) && e.push(`steps[${n}].selectors must be a non-empty array of non-empty strings`), be(t.content) || e.push(`steps[${n}].content must be a localized text with a string "default"`), t.placement !== void 0 && !me.includes(t.placement) && e.push(`steps[${n}].placement must be one of ${me.join("|")}`), t.align !== void 0 && !ve.includes(t.align) && e.push(`steps[${n}].align must be one of ${ve.join("|")}`), t.backLabel !== void 0 && typeof t.backLabel != "string" && e.push(`steps[${n}].backLabel must be a string`), t.nextLabel !== void 0 && typeof t.nextLabel != "string" && e.push(`steps[${n}].nextLabel must be a string`), t.pageUrl !== void 0 && Te(t.pageUrl, `steps[${n}].pageUrl`, e), t.condition !== void 0 && we(t.condition, `steps[${n}].condition`, e), t.action !== void 0 && ot(t.action, `steps[${n}].action`, e), t.overlay !== void 0 && typeof t.overlay != "boolean" && e.push(`steps[${n}].overlay must be a boolean`);
   }) : e.push("tour.steps must be an array"), r.trigger !== void 0) {
     const t = r.trigger, n = ["manual", "load", "selector", "timer", "cta"], i = ["bottom-right", "bottom-left", "top-right", "top-left"];
-    !$(t) || typeof t.type != "string" || !n.includes(t.type) ? e.push(`tour.trigger.type must be one of ${n.join("|")}`) : t.type === "selector" && (typeof t.selector != "string" || t.selector.length === 0) ? e.push("tour.trigger.selector must be a non-empty string") : t.type === "timer" && (typeof t.delay != "number" || t.delay < 0) ? e.push("tour.trigger.delay must be a non-negative number") : t.type === "cta" && (typeof t.text != "string" && e.push("tour.trigger.text must be a string"), typeof t.button != "string" && e.push("tour.trigger.button must be a string"), i.includes(t.corner) || e.push(`tour.trigger.corner must be one of ${i.join("|")}`), t.offset !== void 0 && (typeof t.offset != "number" || t.offset < 0) && e.push("tour.trigger.offset must be a non-negative number"));
+    !L(t) || typeof t.type != "string" || !n.includes(t.type) ? e.push(`tour.trigger.type must be one of ${n.join("|")}`) : t.type === "selector" && (typeof t.selector != "string" || t.selector.length === 0) ? e.push("tour.trigger.selector must be a non-empty string") : t.type === "timer" && (typeof t.delay != "number" || t.delay < 0) ? e.push("tour.trigger.delay must be a non-negative number") : t.type === "cta" && (typeof t.text != "string" && e.push("tour.trigger.text must be a string"), typeof t.button != "string" && e.push("tour.trigger.button must be a string"), i.includes(t.corner) || e.push(`tour.trigger.corner must be one of ${i.join("|")}`), t.offset !== void 0 && (typeof t.offset != "number" || t.offset < 0) && e.push("tour.trigger.offset must be a non-negative number"));
   }
   if (r.audience !== void 0 && !["all", "auth", "guest"].includes(r.audience) && e.push("tour.audience must be one of all|auth|guest"), r.display !== void 0)
-    if (!$(r.display))
+    if (!L(r.display))
       e.push("tour.display must be an object");
     else
       for (const t of ["padding", "radius", "cardRadius", "offset", "alignOffset"]) {
@@ -305,14 +305,14 @@ function rt(r) {
         n !== void 0 && (typeof n != "number" || n < 0) && e.push(`tour.display.${t} must be a non-negative number`);
       }
   return r.rules !== void 0 && (Array.isArray(r.rules) ? r.rules.forEach((t, n) => {
-    if (!$(t)) {
+    if (!L(t)) {
       e.push(`rules[${n}] must be an object`);
       return;
     }
-    t.tourId !== void 0 && typeof t.tourId != "string" && e.push(`rules[${n}].tourId must be a string`), t.when === void 0 ? e.push(`rules[${n}].when is required`) : ye(t.when, `rules[${n}].when`, e);
+    t.tourId !== void 0 && typeof t.tourId != "string" && e.push(`rules[${n}].tourId must be a string`), t.when === void 0 ? e.push(`rules[${n}].when is required`) : we(t.when, `rules[${n}].when`, e);
   }) : e.push("tour.rules must be an array")), e.length > 0 ? { ok: !1, errors: e } : { ok: !0, tour: r };
 }
-function nt(r, e, t) {
+function at(r, e, t) {
   const n = {
     top: r.top,
     bottom: t.height - r.bottom,
@@ -323,19 +323,19 @@ function nt(r, e, t) {
     bottom: e.height,
     left: e.width,
     right: e.width
-  }, o = ["bottom", "top", "right", "left"], s = o.find((l) => n[l] >= i[l] + 8);
-  return s || o.reduce((l, p) => n[p] > n[l] ? p : l, o[0]);
+  }, o = ["bottom", "top", "right", "left"], s = o.find((d) => n[d] >= i[d] + 8);
+  return s || o.reduce((d, p) => n[p] > n[d] ? p : d, o[0]);
 }
-function Ce(r) {
-  const { target: e, card: t, offset: n, viewport: i } = r, o = r.side === "auto", s = o ? nt(e, t, i) : r.side, l = o ? "center" : r.align, p = r.alignOffset ?? 0, c = l === "start" ? p : l === "end" ? -p : 0;
-  let f = 0, g = 0;
-  return s === "top" || s === "bottom" ? (f = s === "top" ? e.top - t.height - n : e.bottom + n, g = l === "start" ? e.left : l === "end" ? e.right - t.width : e.left + e.width / 2 - t.width / 2, g += c) : (g = s === "left" ? e.left - t.width - n : e.right + n, f = l === "start" ? e.top : l === "end" ? e.bottom - t.height : e.top + e.height / 2 - t.height / 2, f += c), g = Math.max(8, Math.min(g, i.width - t.width - 8)), f = Math.max(8, Math.min(f, i.height - t.height - 8)), { top: f, left: g };
+function Ae(r) {
+  const { target: e, card: t, offset: n, viewport: i } = r, o = r.side === "auto", s = o ? at(e, t, i) : r.side, d = o ? "center" : r.align, p = r.alignOffset ?? 0, c = d === "start" ? p : d === "end" ? -p : 0;
+  let h = 0, g = 0;
+  return s === "top" || s === "bottom" ? (h = s === "top" ? e.top - t.height - n : e.bottom + n, g = d === "start" ? e.left : d === "end" ? e.right - t.width : e.left + e.width / 2 - t.width / 2, g += c) : (g = s === "left" ? e.left - t.width - n : e.right + n, h = d === "start" ? e.top : d === "end" ? e.bottom - t.height : e.top + e.height / 2 - t.height / 2, h += c), g = Math.max(8, Math.min(g, i.width - t.width - 8)), h = Math.max(8, Math.min(h, i.height - t.height - 8)), { top: h, left: g };
 }
-function we(r) {
+function _e(r) {
   const e = document.createElement("button");
   return e.type = "button", e.className = `tours-card__btn${r.primary ? " tours-card__btn--primary" : ""}${r.disabled ? " tours-card__btn--disabled" : ""}`, e.textContent = r.label, !r.disabled && r.onClick && e.addEventListener("click", r.onClick), e;
 }
-function $e(r) {
+function Pe(r) {
   const e = document.createElement("div");
   if (e.className = `tours-card${r.ghost ? " tours-card--ghost" : ""}${r.showClose ? " tours-card--closable" : ""}`, r.radius != null && (e.style.borderRadius = `${r.radius}px`), r.showClose) {
     const n = document.createElement("button");
@@ -344,15 +344,15 @@ function $e(r) {
   const t = document.createElement("div");
   if (t.className = "tours-card__content", r.contentHtml != null ? t.innerHTML = r.contentHtml : t.textContent = r.contentText ?? "", e.appendChild(t), r.back || r.next || r.progress) {
     const n = document.createElement("div");
-    if (n.className = "tours-card__footer", r.back && n.appendChild(we(r.back)), r.progress) {
+    if (n.className = "tours-card__footer", r.back && n.appendChild(_e(r.back)), r.progress) {
       const i = document.createElement("span");
       i.className = "tours-card__progress", i.textContent = r.progress, n.appendChild(i);
     }
-    r.next && n.appendChild(we(r.next)), e.appendChild(n);
+    r.next && n.appendChild(_e(r.next)), e.appendChild(n);
   }
   return e;
 }
-const Le = `
+const Ne = `
 .tours-card {
   position: fixed;
   z-index: 2147483001;
@@ -423,11 +423,11 @@ const Le = `
 }
 .tours-card__close:hover { background: #f3f4f6; color: #111827; }
 `;
-function it(r) {
+function lt(r) {
   const e = r.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*\*/g, "\0").replace(/\*/g, "[^/]*").replace(/ /g, ".*").replace(/\?/g, ".");
   return new RegExp(`^${e}$`);
 }
-function N(r, e) {
+function P(r, e) {
   if (!r) return !0;
   if (r.regex)
     try {
@@ -437,63 +437,63 @@ function N(r, e) {
     }
   if (r.glob)
     try {
-      return it(r.glob).test(e);
+      return lt(r.glob).test(e);
     } catch {
       return !1;
     }
   return !0;
 }
-function Te(r) {
+function Re(r) {
   if (!r || !r.glob) return null;
   const e = r.glob.replace(/\*+/g, "");
   return /^https?:\/\//i.test(e) || e.startsWith("#") || e.startsWith("/") ? e : null;
 }
-function ot(r = window.innerWidth) {
+function dt(r = window.innerWidth) {
   return r <= 640 ? "mobile" : r <= 1024 ? "tablet" : "desktop";
 }
-function st(r, e) {
-  if (r.url && !N(r.url, e.url)) return !1;
+function ct(r, e) {
+  if (r.url && !P(r.url, e.url)) return !1;
   if (r.traits) {
     for (const [t, n] of Object.entries(r.traits))
       if (e.traits?.[t] !== n) return !1;
   }
   return !(r.firstVisitOnly && !e.firstVisit || r.device && r.device !== e.device || r.unlessSeen && e.seenCount > 0 || r.maxShows !== void 0 && e.seenCount >= r.maxShows);
 }
-function at(r, e) {
-  return !r || st(r, e);
+function pt(r, e) {
+  return !r || ct(r, e);
 }
-const re = "tours:locationchange";
-let _e = !1;
-function dt() {
-  if (!_e) {
-    _e = !0;
+const ne = "tours:locationchange";
+let ke = !1;
+function ut() {
+  if (!ke) {
+    ke = !0;
     for (const r of ["pushState", "replaceState"]) {
       const e = history[r];
       history[r] = function(...n) {
         const i = e.apply(this, n);
-        return window.dispatchEvent(new Event(re)), i;
+        return window.dispatchEvent(new Event(ne)), i;
       };
     }
   }
 }
-function ke(r) {
-  return dt(), window.addEventListener("popstate", r), window.addEventListener("hashchange", r), window.addEventListener(re, r), () => {
-    window.removeEventListener("popstate", r), window.removeEventListener("hashchange", r), window.removeEventListener(re, r);
+function Ee(r) {
+  return ut(), window.addEventListener("popstate", r), window.addEventListener("hashchange", r), window.addEventListener(ne, r), () => {
+    window.removeEventListener("popstate", r), window.removeEventListener("hashchange", r), window.removeEventListener(ne, r);
   };
 }
-const Ae = "tours:progress";
-function Q(r, e) {
-  r.set(Ae, JSON.stringify(e));
+const Oe = "tours:progress";
+function Z(r, e) {
+  r.set(Oe, JSON.stringify(e));
 }
-function lt(r) {
-  r.remove(Ae);
+function ht(r) {
+  r.remove(Oe);
 }
-const ct = "tours:seen:";
-function pt(r, e) {
-  const t = r.get(ct + e), n = t ? parseInt(t, 10) : 0;
+const ft = "tours:seen:";
+function gt(r, e) {
+  const t = r.get(ft + e), n = t ? parseInt(t, 10) : 0;
   return Number.isNaN(n) ? 0 : n;
 }
-const ut = `
+const bt = `
 :host { all: initial; }
 /* Host-page custom properties still cascade in, so a site can restyle the
    popover without a custom renderer. */
@@ -538,8 +538,8 @@ const ut = `
 }
 .cta__close:hover { color: #111827; background: #f3f4f6; }
 `;
-function ht(r, e) {
-  return e ? e(r) : ft({
+function mt(r, e) {
+  return e ? e(r) : vt({
     text: r.text,
     button: r.button,
     corner: r.corner,
@@ -547,32 +547,32 @@ function ht(r, e) {
     onStart: r.onResume
   });
 }
-function ft(r) {
+function vt(r) {
   const e = r.corner ?? "bottom-right", t = r.offset ?? 24, n = document.createElement("div");
   n.setAttribute("data-tours-cta", "");
   const i = n.attachShadow({ mode: "open" }), o = document.createElement("style");
-  o.textContent = ut, i.appendChild(o);
+  o.textContent = bt, i.appendChild(o);
   const s = document.createElement("div");
   s.className = "cta";
-  const [l, p] = e.split("-");
-  s.style[l] = `${t}px`, s.style[p] = `${t}px`;
+  const [d, p] = e.split("-");
+  s.style[d] = `${t}px`, s.style[p] = `${t}px`;
   const c = () => {
     n.parentNode && n.parentNode.removeChild(n);
-  }, f = document.createElement("button");
-  f.className = "cta__close", f.type = "button", f.textContent = "×", f.setAttribute("aria-label", "Dismiss"), f.addEventListener("click", c);
+  }, h = document.createElement("button");
+  h.className = "cta__close", h.type = "button", h.textContent = "×", h.setAttribute("aria-label", "Dismiss"), h.addEventListener("click", c);
   const g = document.createElement("p");
   g.className = "cta__text", g.textContent = r.text;
   const u = document.createElement("button");
   return u.className = "cta__btn", u.type = "button", u.textContent = r.button, u.addEventListener("click", () => {
     c(), r.onStart();
-  }), s.append(f, g, u), i.appendChild(s), document.body.appendChild(n), c;
+  }), s.append(h, g, u), i.appendChild(s), document.body.appendChild(n), c;
 }
-const gt = /* @__PURE__ */ new Set([
+const xt = /* @__PURE__ */ new Set([
   "tourStarting",
   "stepChanging"
 ]);
 function C(r, e, t) {
-  const n = gt.has(e);
+  const n = xt.has(e);
   let i = !0;
   const o = r?.[e];
   if (o)
@@ -590,260 +590,260 @@ function C(r, e, t) {
     }
   return i;
 }
-const bt = "[data-tours-editor]";
-function mt() {
-  return typeof document < "u" && document.querySelector(bt) !== null;
+const yt = "[data-tours-editor]";
+function wt() {
+  return typeof document < "u" && document.querySelector(yt) !== null;
 }
-function vt(r, e = {}) {
-  const t = ie("player"), n = e.state;
-  let i = null, o = null, s = null, l = null, p = null, c = null, f = null, g = !1, u = 0, _ = 0, y = null;
-  const b = r.display?.padding ?? M, v = r.display?.radius ?? B, S = r.display?.cardRadius ?? U, Re = r.display?.offset ?? j;
-  function H(d) {
-    return D(d.selectors);
+function _t(r, e = {}) {
+  const t = oe("player"), n = e.state;
+  let i = null, o = null, s = null, d = null, p = null, c = null, h = null, g = !1, u = 0, k = 0, y = null;
+  const b = r.display?.padding ?? M, v = r.display?.radius ?? B, E = r.display?.cardRadius ?? U, De = r.display?.offset ?? j;
+  function H(l) {
+    return D(l.selectors);
   }
-  function W(d) {
-    return d.action?.type === "click";
+  function W(l) {
+    return l.action?.type === "click";
   }
-  function Ie(d) {
-    if (!d.condition) return !0;
-    const h = n ? pt(n, r.id) : 0;
-    return at(d.condition, {
+  function Me(l) {
+    if (!l.condition) return !0;
+    const f = n ? gt(n, r.id) : 0;
+    return pt(l.condition, {
       url: window.location.href,
       traits: e.viewer?.(),
-      device: ot(),
-      firstVisit: h === 0,
-      seenCount: h
+      device: dt(),
+      firstVisit: f === 0,
+      seenCount: f
     });
   }
-  function O(d) {
-    return N(d.pageUrl, window.location.href);
+  function R(l) {
+    return P(l.pageUrl, window.location.href);
   }
   function A() {
-    n && Q(n, { tourId: r.id, index: u });
+    n && Z(n, { tourId: r.id, index: u });
   }
-  function se() {
+  function ae() {
     if (i) return;
     i = document.createElement("div"), i.setAttribute("data-tours-player", ""), o = i.attachShadow({ mode: "open" });
-    const d = document.createElement("style");
-    d.textContent = We + Le, o.appendChild(d), p = document.createElement("div"), p.className = "tours-backdrop", p.addEventListener("click", (h) => {
+    const l = document.createElement("style");
+    l.textContent = Ye + Ne, o.appendChild(l), p = document.createElement("div"), p.className = "tours-backdrop", p.addEventListener("click", (f) => {
       const m = r.steps[u], x = m ? H(m) : null;
       if (x) {
         const w = x.getBoundingClientRect();
-        if (h.clientX >= w.left - b && h.clientX <= w.right + b && h.clientY >= w.top - b && h.clientY <= w.bottom + b) return;
+        if (f.clientX >= w.left - b && f.clientX <= w.right + b && f.clientY >= w.top - b && f.clientY <= w.bottom + b) return;
       }
       T();
     }), o.appendChild(p), s = document.createElement("div"), s.className = "tours-spotlight", s.style.borderRadius = `${v}px`, o.appendChild(s), document.body.appendChild(i);
   }
-  function ze(d) {
+  function Be(l) {
     if (!p) return;
-    if (!d) {
+    if (!l) {
       p.style.clipPath = "";
       return;
     }
-    const h = d.left - b, m = d.top - b, x = d.right + b, w = d.bottom + b;
-    p.style.clipPath = `polygon(0 0, 0 100%, ${h}px 100%, ${h}px ${m}px, ${x}px ${m}px, ${x}px ${w}px, ${h}px ${w}px, ${h}px 100%, 100% 100%, 100% 0)`;
+    const f = l.left - b, m = l.top - b, x = l.right + b, w = l.bottom + b;
+    p.style.clipPath = `polygon(0 0, 0 100%, ${f}px 100%, ${f}px ${m}px, ${x}px ${m}px, ${x}px ${w}px, ${f}px ${w}px, ${f}px 100%, 100% 100%, 100% 0)`;
   }
-  function ae(d) {
-    return d.overlay !== !1;
+  function le(l) {
+    return l.overlay !== !1;
   }
-  function Fe(d) {
-    const h = ae(d);
-    p && (p.style.display = h ? "" : "none"), s?.classList.toggle("tours-spotlight--plain", !h);
+  function Ue(l) {
+    const f = le(l);
+    p && (p.style.display = f ? "" : "none"), s?.classList.toggle("tours-spotlight--plain", !f);
   }
-  function de(d, h = !1) {
-    s && (s.style.transitionDuration = h ? "0ms" : "", s.style.display = "block", s.style.left = `${d.left - b}px`, s.style.top = `${d.top - b}px`, s.style.width = `${d.width + b * 2}px`, s.style.height = `${d.height + b * 2}px`);
+  function de(l, f = !1) {
+    s && (s.style.transitionDuration = f ? "0ms" : "", s.style.display = "block", s.style.left = `${l.left - b}px`, s.style.top = `${l.top - b}px`, s.style.width = `${l.width + b * 2}px`, s.style.height = `${l.height + b * 2}px`);
   }
-  function le(d, h) {
-    if (!l) return;
+  function ce(l, f) {
+    if (!d) return;
     const m = {
-      top: d.top - b,
-      left: d.left - b,
-      right: d.right + b,
-      bottom: d.bottom + b,
-      width: d.width + b * 2,
-      height: d.height + b * 2
-    }, { top: x, left: w } = Ce({
+      top: l.top - b,
+      left: l.left - b,
+      right: l.right + b,
+      bottom: l.bottom + b,
+      width: l.width + b * 2,
+      height: l.height + b * 2
+    }, { top: x, left: w } = Ae({
       target: m,
-      card: { width: l.offsetWidth, height: l.offsetHeight },
-      side: h.placement ?? "bottom",
-      align: h.align ?? "center",
-      offset: Re,
+      card: { width: d.offsetWidth, height: d.offsetHeight },
+      side: f.placement ?? "bottom",
+      align: f.align ?? "center",
+      offset: De,
       alignOffset: r.display?.alignOffset ?? 0,
       viewport: { width: window.innerWidth, height: window.innerHeight }
     });
-    l.style.left = `${w}px`, l.style.top = `${x}px`;
+    d.style.left = `${w}px`, d.style.top = `${x}px`;
   }
-  function De(d) {
-    const h = Math.max(1, r.steps.length - _), m = Math.max(1, Math.min(u + 1 - _, h));
-    l && l.remove();
-    const x = u === r.steps.length - 1, w = r.steps[u - 1], R = !!w && O(w), Ve = !W(d) || x;
-    l = $e({
-      contentText: d.content.default,
-      progress: `Step ${m} of ${h}`,
+  function je(l) {
+    const f = Math.max(1, r.steps.length - k), m = Math.max(1, Math.min(u + 1 - k, f));
+    d && d.remove();
+    const x = u === r.steps.length - 1, w = r.steps[u - 1], O = !!w && R(w), qe = !W(l) || x;
+    d = Pe({
+      contentText: l.content.default,
+      progress: `Step ${m} of ${f}`,
       showClose: !0,
-      onClose: Ue,
-      radius: S,
-      back: R ? { label: d.backLabel ?? "Back", onClick: G } : void 0,
-      next: Ve ? {
-        label: d.nextLabel ?? (x ? "Done" : "Next"),
+      onClose: We,
+      radius: E,
+      back: O ? { label: l.backLabel ?? "Back", onClick: G } : void 0,
+      next: qe ? {
+        label: l.nextLabel ?? (x ? "Done" : "Next"),
         primary: !0,
-        onClick: X
+        onClick: Y
       } : void 0
-    }), o?.appendChild(l);
+    }), o?.appendChild(d);
   }
-  function L() {
+  function $() {
     if (!g) return;
-    const d = r.steps[u];
-    if (!d) {
+    const l = r.steps[u];
+    if (!l) {
       T();
       return;
     }
-    if (t.log("render step", u, d.id), !Ie(d)) {
-      t.log(`step "${d.id}" skipped: condition not met`), C(e.on, "stepSkipped", { tour: r, index: u, step: d, reason: "condition" }), _ += 1, u < r.steps.length - 1 ? (u += 1, L()) : T(_ >= r.steps.length ? "dismissed" : "completed");
+    if (t.log("render step", u, l.id), !Me(l)) {
+      t.log(`step "${l.id}" skipped: condition not met`), C(e.on, "stepSkipped", { tour: r, index: u, step: l, reason: "condition" }), k += 1, u < r.steps.length - 1 ? (u += 1, $()) : T(k >= r.steps.length ? "dismissed" : "completed");
       return;
     }
-    const h = H(d);
-    if (!h) {
-      t.log(`step "${d.id}" target not found yet — waiting`, d.selectors), Ze(d.selectors, { timeout: 4e3 }).then((x) => {
-        !g || r.steps[u] !== d || (x ? L() : (t.warn(`step "${d.id}" skipped: no element for selectors`, d.selectors), C(e.on, "stepSkipped", { tour: r, index: u, step: d, reason: "no-element" }), _ += 1, u < r.steps.length - 1 ? (u += 1, L()) : T()));
+    const f = H(l);
+    if (!f) {
+      t.log(`step "${l.id}" target not found yet — waiting`, l.selectors), rt(l.selectors, { timeout: 4e3 }).then((x) => {
+        !g || r.steps[u] !== l || (x ? $() : (t.warn(`step "${l.id}" skipped: no element for selectors`, l.selectors), C(e.on, "stepSkipped", { tour: r, index: u, step: l, reason: "no-element" }), k += 1, u < r.steps.length - 1 ? (u += 1, $()) : T()));
       });
       return;
     }
-    se(), h.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" }), De(d);
-    const m = h.getBoundingClientRect();
-    de(m), le(m, d), Fe(d), ze(ae(d) && W(d) ? m : null), Me(d), C(e.on, "stepActivated", { tour: r, index: u, step: d, target: h });
+    ae(), f.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" }), je(l);
+    const m = f.getBoundingClientRect();
+    de(m), ce(m, l), Ue(l), Be(le(l) && W(l) ? m : null), Ve(l), C(e.on, "stepActivated", { tour: r, index: u, step: l, target: f });
   }
-  function Me(d) {
-    if (c?.(), c = null, !W(d)) return;
-    const h = u + 1, m = r.steps[h];
-    !m || O(m) || (c = ke(() => {
-      !g || r.steps[u] !== d || N(m.pageUrl, window.location.href) && Y(h) && (c?.(), c = null, t.log("visitor navigated → advancing to", m.id), u = h, A(), L());
+  function Ve(l) {
+    if (c?.(), c = null, !W(l)) return;
+    const f = u + 1, m = r.steps[f];
+    !m || R(m) || (c = Ee(() => {
+      !g || r.steps[u] !== l || P(m.pageUrl, window.location.href) && X(f) && (c?.(), c = null, t.log("visitor navigated → advancing to", m.id), u = f, A(), $());
     }));
   }
-  function ce(d) {
-    g && (d.key === "Escape" ? (d.preventDefault(), T()) : d.key === "ArrowRight" ? X() : d.key === "ArrowLeft" && G());
+  function pe(l) {
+    g && (l.key === "Escape" ? (l.preventDefault(), T()) : l.key === "ArrowRight" ? Y() : l.key === "ArrowLeft" && G());
   }
-  function z() {
+  function I() {
     if (!g) return;
-    const d = r.steps[u];
-    if (!d) return;
-    const h = H(d);
-    if (!h) return;
-    const m = h.getBoundingClientRect();
-    de(m, !0), le(m, d);
+    const l = r.steps[u];
+    if (!l) return;
+    const f = H(l);
+    if (!f) return;
+    const m = f.getBoundingClientRect();
+    de(m, !0), ce(m, l);
   }
-  function pe(d = 0) {
+  function ue(l = 0) {
     if (g || r.steps.length === 0) return;
-    if (!e.allowWhileEditing && mt()) {
+    if (!e.allowWhileEditing && wt()) {
       t.log(`start suppressed for "${r.id}" — the builder is mounted`);
       return;
     }
-    const h = Math.max(0, Math.min(d, r.steps.length - 1));
-    if (!C(e.on, "tourStarting", { tour: r, index: h })) {
+    const f = Math.max(0, Math.min(l, r.steps.length - 1));
+    if (!C(e.on, "tourStarting", { tour: r, index: f })) {
       t.log("start vetoed by handler");
       return;
     }
-    q(), g = !0, u = h, _ = 0, t.log("start", r.id, `at ${u}/${r.steps.length}`), se(), window.addEventListener("keydown", ce, !0), window.addEventListener("resize", z, !0), window.addEventListener("scroll", z, !0), A(), C(e.on, "tourStarted", { tour: r, index: u }), L();
+    q(), g = !0, u = f, k = 0, t.log("start", r.id, `at ${u}/${r.steps.length}`), ae(), window.addEventListener("keydown", pe, !0), window.addEventListener("resize", I, !0), window.addEventListener("scroll", I, !0), A(), C(e.on, "tourStarted", { tour: r, index: u }), $();
   }
-  function Be() {
-    s && (s.style.display = "none"), l && (l.remove(), l = null);
+  function He() {
+    s && (s.style.display = "none"), d && (d.remove(), d = null);
   }
-  function F() {
-    Be(), !y && (y = ke(() => {
+  function z() {
+    He(), !y && (y = Ee(() => {
       if (!g) {
         y?.(), y = null;
         return;
       }
-      const d = r.steps[u];
-      d && O(d) && (y?.(), y = null, L());
+      const l = r.steps[u];
+      l && R(l) && (y?.(), y = null, $());
     }));
   }
   function J() {
-    y && (y(), y = null), c && (c(), c = null), g && (g = !1, window.removeEventListener("keydown", ce, !0), window.removeEventListener("resize", z, !0), window.removeEventListener("scroll", z, !0), i && i.parentNode && i.parentNode.removeChild(i), i = null, o = null, s = null, l = null, p = null);
+    y && (y(), y = null), c && (c(), c = null), g && (g = !1, window.removeEventListener("keydown", pe, !0), window.removeEventListener("resize", I, !0), window.removeEventListener("scroll", I, !0), i && i.parentNode && i.parentNode.removeChild(i), i = null, o = null, s = null, d = null, p = null);
   }
-  function T(d = "dismissed") {
-    t.log("stop", d);
-    const h = g, m = u;
-    q(), J(), n && lt(n), h && (d === "completed" ? C(e.on, "tourCompleted", { tour: r }) : C(e.on, "tourDismissed", { tour: r, index: m }));
+  function T(l = "dismissed") {
+    t.log("stop", l);
+    const f = g, m = u;
+    q(), J(), n && ht(n), f && (l === "completed" ? C(e.on, "tourCompleted", { tour: r }) : C(e.on, "tourDismissed", { tour: r, index: m }));
   }
   function q() {
-    f?.(), f = null;
+    h?.(), h = null;
   }
-  function Ue() {
-    r.dismiss?.mode === "minimize" ? ue() : T();
+  function We() {
+    r.dismiss?.mode === "minimize" ? he() : T();
   }
-  function ue() {
-    g && (t.log("minimized", r.id, `at ${u}`), J(), n && Q(n, { tourId: r.id, index: u, minimized: !0 }), C(e.on, "tourMinimized", { tour: r, index: u }), je());
+  function he() {
+    g && (t.log("minimized", r.id, `at ${u}`), J(), n && Z(n, { tourId: r.id, index: u, minimized: !0 }), C(e.on, "tourMinimized", { tour: r, index: u }), Je());
   }
-  function je() {
+  function Je() {
     q();
-    const d = r.dismiss?.resume;
-    f = ht(
+    const l = r.dismiss?.resume;
+    h = mt(
       {
         tourId: r.id,
-        text: d?.text ?? "Carry on with the tour?",
-        button: d?.button ?? "Resume",
-        corner: d?.corner,
-        offset: d?.offset,
+        text: l?.text ?? "Carry on with the tour?",
+        button: l?.button ?? "Resume",
+        corner: l?.corner,
+        offset: l?.offset,
         onResume: () => {
-          f = null, n && Q(n, { tourId: r.id, index: u }), C(e.on, "tourResumed", { tour: r, index: u }), pe(u);
+          h = null, n && Z(n, { tourId: r.id, index: u }), C(e.on, "tourResumed", { tour: r, index: u }), ue(u);
         }
       },
       e.renderResume
     );
   }
-  function Y(d) {
-    const h = r.steps[d];
-    return h ? C(e.on, "stepChanging", { tour: r, from: u, to: d, step: h }) : !0;
+  function X(l) {
+    const f = r.steps[l];
+    return f ? C(e.on, "stepChanging", { tour: r, from: u, to: l, step: f }) : !0;
   }
-  function X() {
+  function Y() {
     if (!g) return;
-    const d = u + 1, h = r.steps[d];
-    if (!h) {
+    const l = u + 1, f = r.steps[l];
+    if (!f) {
       T("completed");
       return;
     }
-    if (!Y(d)) {
+    if (!X(l)) {
       t.log("step change vetoed by handler");
       return;
     }
-    if (O(h)) {
-      u = d, A(), L();
+    if (R(f)) {
+      u = l, A(), $();
       return;
     }
-    u = d, A();
-    const m = (R) => {
-      J(), e.onNavigate ? e.onNavigate(R, h.id) : window.location.assign(R);
+    u = l, A();
+    const m = (O) => {
+      J(), e.onNavigate ? e.onNavigate(O, f.id) : window.location.assign(O);
     }, x = r.steps[u - 1]?.action;
     if (x && x.type === "navigate" && x.url) {
-      x.url.startsWith("#") ? (t.log("page transition (hash navigate) → resume at", u), F(), window.location.hash = x.url) : (t.log("page transition (navigate) → resume at", u), m(x.url));
+      x.url.startsWith("#") ? (t.log("page transition (hash navigate) → resume at", u), z(), window.location.hash = x.url) : (t.log("page transition (navigate) → resume at", u), m(x.url));
       return;
     }
-    const w = Te(h.pageUrl);
+    const w = Re(f.pageUrl);
     if (w) {
-      w.startsWith("#") ? (t.log("page transition (derived hash) → resume at", u), F(), window.location.hash = w) : (t.log("page transition (derived navigate) → resume at", u, w), m(w));
+      w.startsWith("#") ? (t.log("page transition (derived hash) → resume at", u), z(), window.location.hash = w) : (t.log("page transition (derived navigate) → resume at", u, w), m(w));
       return;
     }
-    t.log("page transition (wait) → resume at", u), F();
+    t.log("page transition (wait) → resume at", u), z();
   }
   function G() {
     if (!g) return;
-    const d = r.steps[u - 1];
-    if (d) {
-      if (!Y(u - 1)) {
+    const l = r.steps[u - 1];
+    if (l) {
+      if (!X(u - 1)) {
         t.log("step change vetoed by handler");
         return;
       }
-      if (O(d)) {
-        u -= 1, A(), L();
+      if (R(l)) {
+        u -= 1, A(), $();
         return;
       }
-      u -= 1, A(), t.log("page transition back → resume at", u), F(), window.history.back();
+      u -= 1, A(), t.log("page transition back → resume at", u), z(), window.history.back();
     }
   }
-  return { start: pe, stop: T, next: X, prev: G, minimize: ue, isActive: () => g };
+  return { start: ue, stop: T, next: Y, prev: G, minimize: he, isActive: () => g };
 }
-const xt = `
+const kt = `
 :host {
   all: initial;
   --e-bg: #ffffff;
@@ -1274,6 +1274,24 @@ button { font: inherit; cursor: pointer; }
   cursor: pointer;
 }
 .selpop__add:hover { border-color: var(--e-accent); }
+.selpop__add + .selpop__add { margin-top: 6px; }
+.selpop__page {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--e-fg);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 6px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.selpop__page:hover { background: var(--e-surface); }
 .selpop__add--on { color: #fff; background: var(--e-accent); border-style: solid; border-color: var(--e-accent); }
 
 .card__content {
@@ -1510,7 +1528,7 @@ button { font: inherit; cursor: pointer; }
   line-height: 1.5;
   color: var(--e-muted);
 }
-`, ne = {
+`, ie = {
   cursor: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 4 7 17 2.5-7L21 11.5 4 4Z"/></svg>',
   back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
   chevron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>',
@@ -1526,14 +1544,14 @@ button { font: inherit; cursor: pointer; }
   download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>',
   upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>'
 };
-let yt = 0;
-function P(r) {
-  const e = typeof crypto < "u" && "randomUUID" in crypto ? crypto.randomUUID() : `${yt++}`;
+let Et = 0;
+function N(r) {
+  const e = typeof crypto < "u" && "randomUUID" in crypto ? crypto.randomUUID() : `${Et++}`;
   return `${r}-${e}`;
 }
 function V(r = "step") {
   return {
-    id: P("step"),
+    id: N("step"),
     type: r,
     included: !0,
     selectors: [],
@@ -1548,7 +1566,7 @@ function V(r = "step") {
 }
 function ee(r = "tour") {
   return {
-    id: P(r),
+    id: N(r),
     kind: r,
     name: r === "template" ? "Untitled template" : "Untitled tour",
     status: "draft",
@@ -1567,18 +1585,18 @@ function ee(r = "tour") {
 }
 function Se(r, e, t) {
   return {
-    id: P(e),
+    id: N(e),
     kind: e,
     name: t ?? r.name,
     status: "draft",
     trigger: { ...r.trigger },
     audience: r.audience,
     conditions: { ...r.conditions },
-    steps: r.steps.map((n) => ({ ...n, id: P("step"), selectors: [...n.selectors] })),
+    steps: r.steps.map((n) => ({ ...n, id: N("step"), selectors: [...n.selectors] })),
     display: { ...r.display }
   };
 }
-function Ne(r) {
+function Fe(r) {
   if (r && typeof r == "object") {
     const e = r;
     if (e.type === "load") return { type: "load" };
@@ -1597,7 +1615,7 @@ function Ne(r) {
   }
   return { type: "manual" };
 }
-function oe(r) {
+function se(r) {
   if (!Array.isArray(r)) return [];
   const e = [];
   for (const t of r) {
@@ -1608,19 +1626,19 @@ function oe(r) {
       kind: n.kind === "template" ? "template" : "tour",
       name: typeof n.name == "string" ? n.name : "Untitled tour",
       status: n.status === "published" ? "published" : "draft",
-      trigger: Ne(n.trigger),
+      trigger: Fe(n.trigger),
       audience: n.audience === "auth" || n.audience === "guest" ? n.audience : "all",
       conditions: {
         firstVisitOnly: (n.conditions?.firstVisitOnly ?? !0) === !0,
-        maxShows: E(n.conditions?.maxShows, 0),
+        maxShows: S(n.conditions?.maxShows, 0),
         device: ["mobile", "tablet", "desktop"].includes(n.conditions?.device) ? n.conditions.device : "any"
       },
       display: {
-        padding: E(n.display?.padding, M),
-        radius: E(n.display?.radius, B),
-        cardRadius: E(n.display?.cardRadius, U),
-        offset: E(n.display?.offset, j),
-        alignOffset: E(n.display?.alignOffset, 0)
+        padding: S(n.display?.padding, M),
+        radius: S(n.display?.radius, B),
+        cardRadius: S(n.display?.cardRadius, U),
+        offset: S(n.display?.offset, j),
+        alignOffset: S(n.display?.alignOffset, 0)
       },
       steps: n.steps.filter((i) => !!i && typeof i == "object").map((i) => ({
         ...V(i.type === "action" ? "action" : "step"),
@@ -1630,10 +1648,10 @@ function oe(r) {
   }
   return e;
 }
-function E(r, e) {
+function S(r, e) {
   return typeof r == "number" && r >= 0 ? r : e;
 }
-function Pe(r) {
+function Ie(r) {
   const e = r.steps.filter((i) => i.included && i.selectors.length > 0).map((i) => ({
     id: i.id,
     selectors: i.selectors,
@@ -1651,7 +1669,7 @@ function Pe(r) {
   const n = Object.keys(t).length > 0 ? [{ when: t }] : void 0;
   return {
     id: r.id,
-    schemaVersion: et,
+    schemaVersion: it,
     title: { default: r.name },
     steps: e,
     trigger: r.trigger,
@@ -1666,38 +1684,38 @@ function Pe(r) {
     }
   };
 }
-function wt(r) {
-  return rt(Pe(r));
+function St(r) {
+  return st(Ie(r));
 }
-function _t(r) {
+function Ct(r) {
   if (!r || typeof r != "object") return !1;
   const e = r;
   return "schemaVersion" in e || typeof e.title == "object" && e.title !== null;
 }
-function kt(r) {
+function Lt(r) {
   const e = r.rules && r.rules[0]?.when || {}, t = e.device;
   return {
-    id: typeof r.id == "string" && r.id ? r.id : P("tour"),
+    id: typeof r.id == "string" && r.id ? r.id : N("tour"),
     kind: "tour",
     name: r.title?.default ?? "Imported tour",
     status: "draft",
-    trigger: Ne(r.trigger),
+    trigger: Fe(r.trigger),
     audience: r.audience === "auth" || r.audience === "guest" ? r.audience : "all",
     conditions: {
       firstVisitOnly: e.firstVisitOnly === !0,
-      maxShows: E(e.maxShows, 0),
+      maxShows: S(e.maxShows, 0),
       device: t === "mobile" || t === "tablet" || t === "desktop" ? t : "any"
     },
     display: {
-      padding: E(r.display?.padding, M),
-      radius: E(r.display?.radius, B),
-      cardRadius: E(r.display?.cardRadius, U),
-      offset: E(r.display?.offset, j),
-      alignOffset: E(r.display?.alignOffset, 0)
+      padding: S(r.display?.padding, M),
+      radius: S(r.display?.radius, B),
+      cardRadius: S(r.display?.cardRadius, U),
+      offset: S(r.display?.offset, j),
+      alignOffset: S(r.display?.alignOffset, 0)
     },
     steps: (Array.isArray(r.steps) ? r.steps : []).map((n) => ({
       ...V("step"),
-      id: typeof n.id == "string" && n.id ? n.id : P("step"),
+      id: typeof n.id == "string" && n.id ? n.id : N("step"),
       selectors: Array.isArray(n.selectors) ? n.selectors.filter((i) => typeof i == "string") : [],
       content: typeof n.content?.default == "string" ? n.content.default : "",
       page: n.pageUrl?.glob ?? "",
@@ -1712,23 +1730,23 @@ function kt(r) {
     }))
   };
 }
-function St(r) {
+function $t(r) {
   const e = Array.isArray(r) ? r : [r], t = [];
   for (const n of e)
-    if (_t(n))
-      t.push(kt(n));
+    if (Ct(n))
+      t.push(Lt(n));
     else {
-      const [i] = oe([n]);
+      const [i] = se([n]);
       i && t.push(i);
     }
   return t;
 }
-function Et(r = "tours:drafts") {
+function Tt(r = "tours:drafts") {
   return {
     async load() {
       try {
         const e = localStorage.getItem(r);
-        return e ? oe(JSON.parse(e)) : null;
+        return e ? se(JSON.parse(e)) : null;
       } catch {
         return null;
       }
@@ -1741,13 +1759,13 @@ function Et(r = "tours:drafts") {
     }
   };
 }
-function Lt(r) {
+function zt(r) {
   const e = { "Content-Type": "application/json" };
   return r.nonce && (e["X-WP-Nonce"] = r.nonce), {
     async load() {
       const t = await fetch(r.url, { headers: e, credentials: "same-origin" });
       if (!t.ok) throw new Error(`WordPress load failed: ${t.status}`);
-      return oe(await t.json());
+      return se(await t.json());
     },
     async save(t) {
       const n = await fetch(r.url, {
@@ -1760,18 +1778,61 @@ function Lt(r) {
     }
   };
 }
-const te = "tours-resume";
+const At = ["/sitemap.xml", "/sitemap_index.xml", "/wp-sitemap.xml", "/sitemap-index.xml"], Pt = 5, te = 2e3;
+let Ce = null;
+function Le(r) {
+  const e = [], t = /<loc>\s*([^<\s]+)\s*<\/loc>/gi;
+  let n;
+  for (; (n = t.exec(r)) !== null; ) e.push(n[1]);
+  return e;
+}
+async function $e(r) {
+  try {
+    const e = await fetch(r, { credentials: "same-origin" });
+    if (!e.ok) return null;
+    const t = await e.text();
+    return t.includes("<loc>") ? t : null;
+  } catch {
+    return null;
+  }
+}
+function Nt() {
+  return Ce ?? (Ce = (async () => {
+    for (const r of At) {
+      const e = await $e(new URL(r, window.location.origin).href);
+      if (!e) continue;
+      const t = Le(e);
+      if (!/<sitemapindex/i.test(e)) return t.slice(0, te);
+      const i = [];
+      for (const o of t.slice(0, Pt)) {
+        const s = await $e(o);
+        if (s && i.push(...Le(s)), i.length >= te) break;
+      }
+      return i.slice(0, te);
+    }
+    return [];
+  })()), Ce;
+}
+function Rt(r, e, t = 8) {
+  const n = e.trim().toLowerCase();
+  return n ? r.filter((i) => i.toLowerCase().includes(n)).sort((i, o) => i.length - o.length).slice(0, t) : [...r].sort((i, o) => i.length - o.length).slice(0, t);
+}
+function Ot(r) {
+  const e = r.trim().replace(/[*\s]+$/, "");
+  return e ? `${e}*` : "";
+}
+const re = "tours-resume";
 function a(r, e = {}, t = []) {
   const n = document.createElement(r);
   for (const [i, o] of Object.entries(e)) n.setAttribute(i, o);
   for (const i of t) n.append(typeof i == "string" ? document.createTextNode(i) : i);
   return n;
 }
-function k(r, e, t = "") {
+function _(r, e, t = "") {
   const n = a("button", { class: `iconbtn ${t}`.trim(), title: e, type: "button" });
-  return n.innerHTML = ne[r] ?? "", n;
+  return n.innerHTML = ie[r] ?? "", n;
 }
-function Ct(r) {
+function Ft(r) {
   switch (r) {
     case "load":
       return "Starts automatically as soon as a matching page loads.";
@@ -1786,7 +1847,7 @@ function Ct(r) {
       return 'Starts from the [site_tour] shortcode or any element with a data-site-tour="<id>" attribute.';
   }
 }
-function $t(r) {
+function It(r) {
   switch (r) {
     case "load":
       return { type: "load" };
@@ -1800,9 +1861,9 @@ function $t(r) {
       return { type: "manual" };
   }
 }
-class Oe {
+class ze {
   constructor(e = {}) {
-    this.options = e, this.log = ie("editor"), this.host = null, this.root = null, this.tours = [ee()], this.openTourId = this.tours[0].id, this.view = "edit", this.listFilter = "tour", this.menuOpen = !1, this.activeStepId = this.tours[0].steps[0]?.id ?? null, this.tab = "steps", this.displaySub = "tour", this.openSections = /* @__PURE__ */ new Set(), this.mode = "build", this.picker = null, this.picking = !1, this.pickAppend = !1, this.selectorEditorFor = null, this.dragFrom = null, this.player = null, this.highlight = null, this.cardPreview = null, this.focusStepId = null, this.onViewportChange = () => this.updateOverlays(!0), this.saveTimer = null, this.navPosition = e.navPosition ?? "bottom", this.panelPosition = e.panelPosition ?? "right", this.topOffset = Math.max(0, e.topOffset ?? 0), this.local = e.store ?? Et(e.storageKey), this.secondary = e.storage ?? null;
+    this.options = e, this.log = oe("editor"), this.host = null, this.root = null, this.tours = [ee()], this.openTourId = this.tours[0].id, this.view = "edit", this.listFilter = "tour", this.menuOpen = !1, this.activeStepId = this.tours[0].steps[0]?.id ?? null, this.tab = "steps", this.displaySub = "tour", this.openSections = /* @__PURE__ */ new Set(), this.mode = "build", this.picker = null, this.picking = !1, this.pickAppend = !1, this.selectorEditorFor = null, this.pageEditorFor = null, this.pages = null, this.pageQuery = "", this.dragFrom = null, this.player = null, this.highlight = null, this.cardPreview = null, this.focusStepId = null, this.onViewportChange = () => this.updateOverlays(!0), this.saveTimer = null, this.navPosition = e.navPosition ?? "bottom", this.panelPosition = e.panelPosition ?? "right", this.topOffset = Math.max(0, e.topOffset ?? 0), this.local = e.store ?? Tt(e.storageKey), this.secondary = e.storage ?? null;
   }
   /**
    * Auto-mount when the page URL carries the flag (default `?tours-edit=1`), so
@@ -1812,7 +1873,7 @@ class Oe {
   static fromUrl(e = {}) {
     const t = e.urlFlag ?? "tours-edit", n = new URLSearchParams(window.location.search).get(t);
     if (n === null || n === "0" || n === "false") return null;
-    const i = new Oe(e);
+    const i = new ze(e);
     return i.mount(), i;
   }
   /** Render the UI onto the page. Idempotent. */
@@ -1820,7 +1881,7 @@ class Oe {
     if (this.host || this.options.mode === "off") return;
     this.host = a("div", { "data-tours-editor": "" }), this.host.style.setProperty("--e-top", `${this.topOffset}px`), this.root = this.host.attachShadow({ mode: "open" });
     const e = document.createElement("style");
-    e.textContent = xt + Le, this.root.appendChild(e), this.highlight = a("div", { class: "highlight" }), this.root.append(this.highlight), document.body.appendChild(this.host), window.addEventListener("scroll", this.onViewportChange, !0), window.addEventListener("resize", this.onViewportChange, !0), this.log.log("mounted"), this.render(), this.hydrate();
+    e.textContent = kt + Ne, this.root.appendChild(e), this.highlight = a("div", { class: "highlight" }), this.root.append(this.highlight), document.body.appendChild(this.host), window.addEventListener("scroll", this.onViewportChange, !0), window.addEventListener("resize", this.onViewportChange, !0), this.log.log("mounted"), this.render(), this.hydrate();
   }
   /** Load stored drafts (localStorage by default) and show them. */
   async hydrate() {
@@ -1849,7 +1910,7 @@ class Oe {
   }
   /** The current draft as a validated tour (or validation errors). */
   export() {
-    return wt(this.tour);
+    return St(this.tour);
   }
   // ---------- state mutations ----------
   /** The currently open tour (falls back to the first if the id is stale). */
@@ -1917,7 +1978,7 @@ class Oe {
       return;
     }
     const t = this.activeStep;
-    t && (this.picking = !0, this.pickAppend = e, this.picker = Qe(
+    t && (this.picking = !0, this.pickAppend = e, this.picker = nt(
       (n) => {
         if (this.pickAppend)
           for (const i of n) t.selectors.includes(i) || t.selectors.push(i);
@@ -1952,7 +2013,7 @@ class Oe {
 
 ${t.errors.join(`
 `)}`), !1;
-    this.mode = "preview", this.render(), this.player = vt(t.tour, {
+    this.mode = "preview", this.render(), this.player = _t(t.tour, {
       onNavigate: (i, o) => this.navigateForResume(i, o, "preview"),
       // The player refuses to start while the builder is mounted, so that a
       // host app's own tours do not stack under it. This preview *is* the
@@ -1970,7 +2031,7 @@ ${t.errors.join(`
   async navigateForResume(e, t, n) {
     this.saveTimer !== null && (clearTimeout(this.saveTimer), this.saveTimer = null), await this.persist();
     const i = new URL(e, window.location.href);
-    i.searchParams.set(te, `${n}~${this.openTourId}~${t}`), this.log.log("navigating for resume", i.toString()), window.location.assign(i.toString());
+    i.searchParams.set(re, `${n}~${this.openTourId}~${t}`), this.log.log("navigating for resume", i.toString()), window.location.assign(i.toString());
   }
   /**
    * Consume a resume token from the URL (see RESUME_PARAM): reopen the tour on
@@ -1979,13 +2040,13 @@ ${t.errors.join(`
    * handled a resume (and rendered), false to let the caller render normally.
    */
   applyResume() {
-    const e = new URLSearchParams(window.location.search), t = e.get(te);
+    const e = new URLSearchParams(window.location.search), t = e.get(re);
     if (!t) return !1;
-    e.delete(te);
+    e.delete(re);
     const n = e.toString(), i = window.location.pathname + (n ? `?${n}` : "") + window.location.hash;
     window.history.replaceState(window.history.state, "", i);
-    const [o, s, l] = t.split("~"), p = this.tours.find((c) => c.id === s);
-    return p ? (this.openTourId = p.id, this.view = "edit", this.activeStepId = l, o === "preview" && this.startPreview(l) || (this.tab = "steps", this.render()), !0) : !1;
+    const [o, s, d] = t.split("~"), p = this.tours.find((c) => c.id === s);
+    return p ? (this.openTourId = p.id, this.view = "edit", this.activeStepId = d, o === "preview" && this.startPreview(d) || (this.tab = "steps", this.render()), !0) : !1;
   }
   // ---------- rendering ----------
   render() {
@@ -2014,8 +2075,8 @@ ${t.errors.join(`
     if (this.view !== "edit" || this.mode !== "build" || this.picking) return n();
     const i = this.activeStep, o = i && i.selectors.length > 0 ? this.resolveTarget(i) : null;
     if (!i || !o) return n();
-    const s = o.getBoundingClientRect(), { padding: l, radius: p, cardRadius: c } = this.tour.display;
-    t.className = `highlight ${this.tab === "styles" ? "highlight--settings" : ""}`.trim(), t.style.transitionDuration = e ? "0ms" : "", t.style.display = "block", t.style.left = `${s.left - l}px`, t.style.top = `${s.top - l}px`, t.style.width = `${s.width + l * 2}px`, t.style.height = `${s.height + l * 2}px`, t.style.borderRadius = `${p}px`, this.drawStepCard(i, s, c);
+    const s = o.getBoundingClientRect(), { padding: d, radius: p, cardRadius: c } = this.tour.display;
+    t.className = `highlight ${this.tab === "styles" ? "highlight--settings" : ""}`.trim(), t.style.transitionDuration = e ? "0ms" : "", t.style.display = "block", t.style.left = `${s.left - d}px`, t.style.top = `${s.top - d}px`, t.style.width = `${s.width + d * 2}px`, t.style.height = `${s.height + d * 2}px`, t.style.borderRadius = `${p}px`, this.drawStepCard(i, s, c);
   }
   removeCardPreview() {
     this.cardPreview && (this.cardPreview.remove(), this.cardPreview = null);
@@ -2031,11 +2092,11 @@ ${t.errors.join(`
       this.removeCardPreview();
       return;
     }
-    const s = this.tour.steps, l = s.indexOf(e), p = (y) => () => {
+    const s = this.tour.steps, d = s.indexOf(e), p = (y) => () => {
       const b = s[y];
       if (b) {
-        if (b.page && !N({ glob: b.page }, window.location.href)) {
-          const v = Te({ glob: b.page });
+        if (b.page && !P({ glob: b.page }, window.location.href)) {
+          const v = Re({ glob: b.page });
           if (v) {
             this.navigateForResume(v, b.id, "build");
             return;
@@ -2043,31 +2104,31 @@ ${t.errors.join(`
         }
         this.setActive(b.id);
       }
-    }, c = $e({
+    }, c = Pe({
       ghost: !0,
       contentText: i || "Step tooltip preview",
-      progress: `Step ${l + 1} of ${s.length}`,
+      progress: `Step ${d + 1} of ${s.length}`,
       showClose: !0,
       onClose: () => {
         this.activeStepId = null, this.render();
       },
       radius: n,
-      back: { label: e.backLabel, disabled: l <= 0, onClick: p(l - 1) },
-      next: { label: e.nextLabel, primary: !0, disabled: l >= s.length - 1, onClick: p(l + 1) }
+      back: { label: e.backLabel, disabled: d <= 0, onClick: p(d - 1) },
+      next: { label: e.nextLabel, primary: !0, disabled: d >= s.length - 1, onClick: p(d + 1) }
     });
     if (!i) {
       const y = c.querySelector(".tours-card__content");
       y && (y.style.opacity = "0.55");
     }
     this.removeCardPreview(), this.cardPreview = c, this.root?.appendChild(c);
-    const f = this.tour.display.padding, g = {
-      top: t.top - f,
-      left: t.left - f,
-      right: t.right + f,
-      bottom: t.bottom + f,
-      width: t.width + f * 2,
-      height: t.height + f * 2
-    }, { top: u, left: _ } = Ce({
+    const h = this.tour.display.padding, g = {
+      top: t.top - h,
+      left: t.left - h,
+      right: t.right + h,
+      bottom: t.bottom + h,
+      width: t.width + h * 2,
+      height: t.height + h * 2
+    }, { top: u, left: k } = Ae({
       target: g,
       card: { width: c.offsetWidth, height: c.offsetHeight },
       side: e.placement,
@@ -2076,20 +2137,20 @@ ${t.errors.join(`
       alignOffset: this.tour.display.alignOffset,
       viewport: { width: window.innerWidth, height: window.innerHeight }
     });
-    c.style.left = `${_}px`, c.style.top = `${u}px`;
+    c.style.left = `${k}px`, c.style.top = `${u}px`;
   }
   renderNav() {
-    const e = a("div", { class: `nav nav--${this.navPosition}` }), t = k("build", "Build", this.mode === "build" ? "iconbtn--active" : "");
+    const e = a("div", { class: `nav nav--${this.navPosition}` }), t = _("build", "Build", this.mode === "build" ? "iconbtn--active" : "");
     t.addEventListener("click", () => {
       this.mode === "preview" && this.togglePreview();
     });
-    const n = k("preview", "Preview", this.mode === "preview" ? "iconbtn--active" : "");
+    const n = _("preview", "Preview", this.mode === "preview" ? "iconbtn--active" : "");
     n.addEventListener("click", () => this.togglePreview());
-    const i = k("navFlip", "Move bar (top/bottom)");
+    const i = _("navFlip", "Move bar (top/bottom)");
     i.addEventListener("click", () => {
       this.navPosition = this.navPosition === "bottom" ? "top" : "bottom", this.render();
     });
-    const o = k("close", "Close builder");
+    const o = _("close", "Close builder");
     return o.addEventListener("click", () => this.destroy()), e.append(t, n, a("div", { class: "nav__sep" }), i, o), e;
   }
   renderPanel() {
@@ -2098,18 +2159,18 @@ ${t.errors.join(`
   }
   renderListHeader() {
     const e = a("div", { class: "panel__header" }), t = a("div", { class: "listtabs" });
-    for (const [s, l] of [["tour", "Tours"], ["template", "Templates"]]) {
+    for (const [s, d] of [["tour", "Tours"], ["template", "Templates"]]) {
       const p = a("button", {
         class: `listtab ${this.listFilter === s ? "listtab--active" : ""}`.trim(),
         type: "button"
-      }, [l]);
+      }, [d]);
       p.addEventListener("click", () => {
         this.listFilter = s, this.render();
       }), t.append(p);
     }
-    const n = k("download", `Download all ${this.listFilter === "template" ? "templates" : "tours"} as JSON`);
+    const n = _("download", `Download all ${this.listFilter === "template" ? "templates" : "tours"} as JSON`);
     n.addEventListener("click", () => this.downloadAll());
-    const i = k("upload", "Import tours from JSON");
+    const i = _("upload", "Import tours from JSON");
     i.addEventListener("click", () => this.importJson());
     const o = a("button", { class: "newtour", type: "button", title: "New" }, ["+ New"]);
     return o.addEventListener("click", () => this.createEntity()), e.append(t, n, i, o), e;
@@ -2136,10 +2197,10 @@ ${t.errors.join(`
         }), o.append(p);
       } else
         o.append(a("span", { class: `status status--${i.status}` }, [i.status]));
-      const l = k("trash", "Delete");
-      l.addEventListener("click", (p) => {
+      const d = _("trash", "Delete");
+      d.addEventListener("click", (p) => {
         p.stopPropagation(), this.deleteEntity(i.id);
-      }), o.append(l), t.append(o);
+      }), o.append(d), t.append(o);
     }), e.append(t), e);
   }
   renderHeader() {
@@ -2151,7 +2212,7 @@ ${t.errors.join(`
     n.addEventListener("click", () => {
       this.tour.status = this.tour.status === "draft" ? "published" : "draft", this.render();
     }), n.setAttribute("title", "Toggle status"), n.style.cursor = "pointer";
-    const i = k("menu", "Menu", this.menuOpen ? "iconbtn--active" : "");
+    const i = _("menu", "Menu", this.menuOpen ? "iconbtn--active" : "");
     return i.addEventListener("click", () => {
       this.menuOpen = !this.menuOpen, this.render();
     }), e.append(t, n, i), this.menuOpen && e.append(this.renderMenu()), e;
@@ -2168,7 +2229,7 @@ ${t.errors.join(`
   }
   /** Download the given drafts as a schema Tour[] JSON file. */
   downloadJson(e, t) {
-    const n = e.map((l) => Pe(l)), i = new Blob([JSON.stringify(n, null, 2)], { type: "application/json" }), o = URL.createObjectURL(i), s = document.createElement("a");
+    const n = e.map((d) => Ie(d)), i = new Blob([JSON.stringify(n, null, 2)], { type: "application/json" }), o = URL.createObjectURL(i), s = document.createElement("a");
     s.href = o, s.download = t, s.click(), URL.revokeObjectURL(o), this.log.log("downloaded", t, `${n.length} tour(s)`);
   }
   /** Slugify a name into a safe file base (fallback to a generic name). */
@@ -2201,7 +2262,7 @@ ${t.errors.join(`
           window.alert("Could not read that file — it is not valid JSON.");
           return;
         }
-        const o = St(i);
+        const o = $t(i);
         if (o.length === 0) {
           window.alert("No tours found in that file.");
           return;
@@ -2219,15 +2280,15 @@ ${t.errors.join(`
     this.tours.some((t) => t.id === this.openTourId) || (this.openTourId = this.tours[0].id, this.activeStepId = this.tour.steps[0]?.id ?? null), this.log.log("imported", `${e.length} tour(s)`), this.render(), this.persist();
   }
   renderToolbar() {
-    const e = a("div", { class: "panel__toolbar" }), t = k("back", "Back to tours");
+    const e = a("div", { class: "panel__toolbar" }), t = _("back", "Back to tours");
     t.addEventListener("click", () => {
       this.stopPicking(), this.view = "list", this.render();
     });
-    const n = k("panelSide", "Move panel (left/right)");
+    const n = _("panelSide", "Move panel (left/right)");
     n.addEventListener("click", () => {
       this.panelPosition = this.panelPosition === "right" ? "left" : "right", this.render();
     });
-    const i = k(
+    const i = _(
       "cursor",
       this.picking ? "Cancel picking" : "Pick element for active step",
       this.picking ? "iconbtn--active" : ""
@@ -2290,7 +2351,7 @@ ${t.errors.join(`
   /** A labelled range slider that writes through `set` and re-draws overlays live. */
   slider(e, t, n, i, o) {
     let s = t;
-    const l = a("span", { class: "settings__value", title: "Click to type a value" }, [`${s}px`]), p = a("input", {
+    const d = a("span", { class: "settings__value", title: "Click to type a value" }, [`${s}px`]), p = a("input", {
       class: "settings__slider",
       type: "range",
       min: String(n),
@@ -2299,13 +2360,13 @@ ${t.errors.join(`
     });
     p.value = String(s);
     const c = (u) => {
-      s = Math.max(n, Math.min(i, Math.round(u))), p.value = String(s), l.textContent = `${s}px`, o(s), this.updateOverlays(), this.markDirty();
+      s = Math.max(n, Math.min(i, Math.round(u))), p.value = String(s), d.textContent = `${s}px`, o(s), this.updateOverlays(), this.markDirty();
     };
-    p.addEventListener("input", () => c(Number(p.value))), l.addEventListener("click", () => this.editNumber(l, s, c));
-    const f = a("div", { class: "settings__row" });
-    f.append(p, l);
+    p.addEventListener("input", () => c(Number(p.value))), d.addEventListener("click", () => this.editNumber(d, s, c));
+    const h = a("div", { class: "settings__row" });
+    h.append(p, d);
     const g = a("div", { class: "settings__field" });
-    return g.append(a("label", { class: "settings__label" }, [e]), f), g;
+    return g.append(a("label", { class: "settings__label" }, [e]), h), g;
   }
   /** Swap a value label for a digits-only input; commit on blur/Enter. */
   editNumber(e, t, n) {
@@ -2331,12 +2392,14 @@ ${t.errors.join(`
       return e.append(this.renderDisplaySettings()), e;
     if (this.tab === "rules")
       return e.append(this.renderRulesBody()), e;
-    const t = this.selectorEditorFor ? this.tour.steps.find((i) => i.id === this.selectorEditorFor) : void 0;
+    const t = this.selectorEditorFor ? this.tour.steps.find((o) => o.id === this.selectorEditorFor) : void 0;
     t ? e.append(this.renderSelectorEditor(t)) : this.selectorEditorFor && (this.selectorEditorFor = null);
-    const n = a("div", { class: "steps" });
-    return n.append(this.renderConnector(-1)), this.tour.steps.forEach((i, o) => {
-      n.append(this.renderCard(i, o)), n.append(this.renderConnector(o));
-    }), e.append(n), e;
+    const n = this.pageEditorFor ? this.tour.steps.find((o) => o.id === this.pageEditorFor) : void 0;
+    n ? e.append(this.renderPageEditor(n)) : this.pageEditorFor && (this.pageEditorFor = null);
+    const i = a("div", { class: "steps" });
+    return i.append(this.renderConnector(-1)), this.tour.steps.forEach((o, s) => {
+      i.append(this.renderCard(o, s)), i.append(this.renderConnector(s));
+    }), e.append(i), e;
   }
   /** Rules tab: start trigger, audience, and auto-start conditions. */
   renderRulesBody() {
@@ -2365,7 +2428,7 @@ ${t.errors.join(`
           ["cta", "Corner invitation (popover)"]
         ],
         (n) => {
-          t.trigger = $t(n), this.markDirty(), this.render();
+          t.trigger = It(n), this.markDirty(), this.render();
         }
       )
     ), t.trigger.type === "selector")
@@ -2407,7 +2470,7 @@ ${t.errors.join(`
         })
       );
     }
-    if (e.append(a("div", { class: "settings__hint" }, [Ct(t.trigger.type)])), t.trigger.type !== "manual") {
+    if (e.append(a("div", { class: "settings__hint" }, [Ft(t.trigger.type)])), t.trigger.type !== "manual") {
       const n = t.conditions;
       e.append(
         a("div", { class: "settings__divider" }),
@@ -2447,9 +2510,9 @@ ${t.errors.join(`
   selectField(e, t, n, i) {
     const o = document.createElement("select");
     o.className = "tsel";
-    for (const [l, p] of n) {
+    for (const [d, p] of n) {
       const c = document.createElement("option");
-      c.value = l, c.textContent = p, l === t && (c.selected = !0), o.append(c);
+      c.value = d, c.textContent = p, d === t && (c.selected = !0), o.append(c);
     }
     o.addEventListener("change", () => i(o.value));
     const s = a("div", { class: "settings__field" });
@@ -2475,15 +2538,85 @@ ${t.errors.join(`
    * first one and offered no way to drop a bad entry or add a fallback — the
    * picker could only replace the lot. This is that missing editor.
    */
+  /** Open the page editor, kicking off the sitemap fetch the first time. */
+  openPageEditor(e) {
+    this.setActive(e.id), this.pageEditorFor = this.pageEditorFor === e.id ? null : e.id, this.pageQuery = "", this.pageEditorFor && this.pages === null && Nt().then((t) => {
+      this.pages = t, this.pageEditorFor && this.render();
+    }), this.render();
+  }
+  /**
+   * Page matcher editor: type to search the site's own pages, or paste a URL.
+   *
+   * Authors know their pages by name, not by URL glob. The sitemap is the one
+   * list of pages a site already publishes about itself, so suggestions come
+   * from there — matched against the whole URL, so both the host and a path
+   * fragment find the same page. Free text always wins, which is how a URL on
+   * someone else's site gets in.
+   */
+  renderPageEditor(e) {
+    const t = a("div", { class: "selpop" }), n = a("div", { class: "selpop__head" });
+    n.append(a("span", { class: "selpop__title" }, ["Page"]));
+    const i = _("close", "Close");
+    i.addEventListener("click", () => {
+      this.pageEditorFor = null, this.render();
+    }), n.append(a("div", { class: "spacer" }), i);
+    const o = a("input", {
+      class: "pagecfg__input",
+      placeholder: "Any page — or type to search, or paste a URL"
+    });
+    o.value = this.pageQuery || e.page;
+    const s = (h) => {
+      e.page = h.trim(), this.markDirty(), this.pageEditorFor = null, this.render();
+    };
+    o.addEventListener("input", () => {
+      this.pageQuery = o.value, this.renderPageSuggestions(e, d);
+    }), o.addEventListener("keydown", (h) => {
+      h.key === "Enter" && s(o.value);
+    });
+    const d = a("div", { class: "selpop__list" });
+    t.append(n, o, d), this.renderPageSuggestions(e, d);
+    const p = a("button", { class: "selpop__add", type: "button" }, ["⌖ Use the current page"]);
+    p.addEventListener("click", () => s(this.currentPage()));
+    const c = a("button", { class: "selpop__add", type: "button" }, ["✳ Any page"]);
+    return c.addEventListener("click", () => s("")), t.append(p, c), t;
+  }
+  /** (Re)fill the suggestion rows without rebuilding the whole popover. */
+  renderPageSuggestions(e, t) {
+    if (t.textContent = "", this.pages === null) {
+      t.append(a("p", { class: "selpop__empty" }, ["Reading the site map…"]));
+      return;
+    }
+    if (this.pages.length === 0) {
+      t.append(
+        a("p", { class: "selpop__empty" }, [
+          "No sitemap found — type a URL or glob directly, and press Enter."
+        ])
+      );
+      return;
+    }
+    const n = Rt(this.pages, this.pageQuery);
+    if (n.length === 0) {
+      t.append(a("p", { class: "selpop__empty" }, ["Nothing matches — press Enter to use it as typed."]));
+      return;
+    }
+    for (const i of n) {
+      const o = a("button", { class: "selpop__page", type: "button", title: i }, [
+        i.replace(/^https?:\/\//, "")
+      ]);
+      o.addEventListener("click", () => {
+        e.page = Ot(i), this.markDirty(), this.pageEditorFor = null, this.render();
+      }), t.append(o);
+    }
+  }
   renderSelectorEditor(e) {
     const t = a("div", { class: "selpop" }), n = a("div", { class: "selpop__head" });
     n.append(a("span", { class: "selpop__title" }, ["Selectors"]));
-    const i = k("close", "Close");
+    const i = _("close", "Close");
     i.addEventListener("click", () => {
       this.selectorEditorFor = null, this.render();
     }), n.append(a("div", { class: "spacer" }), i);
     const o = a("div", { class: "selpop__list" });
-    e.selectors.length === 0 && o.append(a("p", { class: "selpop__empty" }, ["No selectors yet. Add one with the crosshair below."])), e.selectors.forEach((l, p) => {
+    e.selectors.length === 0 && o.append(a("p", { class: "selpop__empty" }, ["No selectors yet. Add one with the crosshair below."])), e.selectors.forEach((d, p) => {
       const c = a("div", { class: "selpop__row", draggable: "true" });
       c.addEventListener("dragstart", (g) => {
         this.dragFrom = p, c.classList.add("selpop__row--dragging"), g.dataTransfer?.setData("text/plain", String(p));
@@ -2495,14 +2628,14 @@ ${t.errors.join(`
         g.preventDefault();
         const u = this.dragFrom;
         if (this.dragFrom = null, u === null || u === p) return;
-        const [_] = e.selectors.splice(u, 1);
-        e.selectors.splice(p, 0, _), this.markDirty(), this.render();
-      }), c.append(a("span", { class: "selpop__grip", title: "Drag to reorder" }, ["⠿"])), c.append(a("span", { class: "selpop__rank" }, [String(p + 1)])), c.append(a("code", { class: "selpop__code", title: l }, [l]));
-      const f = k("trash", "Remove this selector");
-      f.addEventListener("click", () => {
+        const [k] = e.selectors.splice(u, 1);
+        e.selectors.splice(p, 0, k), this.markDirty(), this.render();
+      }), c.append(a("span", { class: "selpop__grip", title: "Drag to reorder" }, ["⠿"])), c.append(a("span", { class: "selpop__rank" }, [String(p + 1)])), c.append(a("code", { class: "selpop__code", title: d }, [d]));
+      const h = _("trash", "Remove this selector");
+      h.addEventListener("click", () => {
         e.selectors.splice(p, 1), this.markDirty(), this.render();
-      }), c.append(f), o.append(c);
-    }), e.selectors.length > 1 && o.append(a("p", { class: "selpop__hint" }, ["Tried top to bottom — drag to reorder."]));
+      }), c.append(h), o.append(c);
+    });
     const s = a("button", { class: `selpop__add ${this.picking ? "selpop__add--on" : ""}`.trim(), type: "button" }, [
       this.picking ? "◎ Picking — click an element, or press Esc" : "⌖ Add by picking an element"
     ]);
@@ -2514,7 +2647,7 @@ ${t.errors.join(`
       // Lets revealStep() find this card after a re-render.
       "data-step-id": e.id
     });
-    return i.addEventListener("mousedown", () => this.setActive(e.id)), e.page && !N({ glob: e.page }, window.location.href) && i.classList.add("card--offpage"), i.append(this.renderCardControl(e, t), this.renderCardContent(e), this.renderCardFooter(e)), n && (i.append(this.section("placement", "Card position", () => this.renderPlacementBody(e))), i.append(this.section("behaviour", "Behaviour", () => this.renderBehaviourBody(e))), i.append(this.section("page", "Page", () => this.renderPageBody(e)))), i;
+    return i.addEventListener("mousedown", () => this.setActive(e.id)), e.page && !P({ glob: e.page }, window.location.href) && i.classList.add("card--offpage"), i.append(this.renderCardControl(e, t), this.renderCardContent(e), this.renderCardFooter(e)), n && (i.append(this.section("placement", "Card position", () => this.renderPlacementBody(e))), i.append(this.section("behaviour", "Behaviour", () => this.renderBehaviourBody(e))), i.append(this.section("page", "Page", () => this.renderPageBody(e)))), i;
   }
   /**
    * Per-step behaviour toggles.
@@ -2558,8 +2691,8 @@ ${t.errors.join(`
    * renders (keyed) so switching steps keeps the same sections expanded.
    */
   section(e, t, n) {
-    const i = this.openSections.has(e), o = a("div", { class: `acc ${i ? "acc--open" : ""}`.trim() }), s = a("button", { class: "acc__head", type: "button" }), l = a("span", { class: "acc__caret" });
-    return l.innerHTML = ne.chevron, s.append(l, a("span", { class: "acc__title" }, [t])), s.addEventListener("click", () => {
+    const i = this.openSections.has(e), o = a("div", { class: `acc ${i ? "acc--open" : ""}`.trim() }), s = a("button", { class: "acc__head", type: "button" }), d = a("span", { class: "acc__caret" });
+    return d.innerHTML = ie.chevron, s.append(d, a("span", { class: "acc__title" }, [t])), s.addEventListener("click", () => {
       i ? this.openSections.delete(e) : this.openSections.add(e), this.render();
     }), o.append(s), i && o.append(a("div", { class: "acc__body" }, [n()])), o;
   }
@@ -2586,8 +2719,8 @@ ${t.errors.join(`
       { side: "right", align: "end", x: 108, y: 64 }
     ];
     for (const s of i) {
-      const l = e.placement === s.side && e.align === s.align, p = a("button", {
-        class: `place__dot ${l ? "place__dot--active" : ""}`.trim(),
+      const d = e.placement === s.side && e.align === s.align, p = a("button", {
+        class: `place__dot ${d ? "place__dot--active" : ""}`.trim(),
         type: "button",
         title: `${s.side} · ${s.align}`
       });
@@ -2611,28 +2744,28 @@ ${t.errors.join(`
       e.included = i.checked, this.render();
     });
     const o = a("span", { class: "card__index" }, [String(t + 1)]), s = a("span", { class: "card__type" });
-    s.innerHTML = ne[e.type === "action" ? "bolt" : "step"], s.append(document.createTextNode(e.type === "action" ? "Action" : "Step"));
-    const l = e.selectors[0], p = e.selectors.length, c = a(
+    s.innerHTML = ie[e.type === "action" ? "bolt" : "step"], s.append(document.createTextNode(e.type === "action" ? "Action" : "Step"));
+    const d = e.selectors[0], p = e.selectors.length, c = a(
       "button",
       {
-        class: `card__sel ${l ? "" : "card__sel--empty"}`.trim(),
+        class: `card__sel ${d ? "" : "card__sel--empty"}`.trim(),
         type: "button",
         title: e.selectors.join(`
 `) || "No selector yet — click to add one"
       },
-      [l ?? "no selector"]
+      [d ?? "no selector"]
     );
     p > 1 && c.append(a("span", { class: "card__selcount" }, [`+${p - 1}`])), c.addEventListener("click", (g) => {
       g.stopPropagation(), this.setActive(e.id), this.selectorEditorFor = this.selectorEditorFor === e.id ? null : e.id, this.render();
     });
-    const f = k("trash", "Delete step");
-    if (f.addEventListener("click", () => this.removeStep(e.id)), n.append(i, o, s, a("div", { class: "spacer" })), e.page && !N({ glob: e.page }, window.location.href)) {
+    const h = _("trash", "Delete step");
+    if (h.addEventListener("click", () => this.removeStep(e.id)), n.append(i, o, s, a("div", { class: "spacer" })), e.page && !P({ glob: e.page }, window.location.href)) {
       const g = e.page.replace(/^https?:\/\/[^/]+/, "").replace(/\*$/, "") || "/", u = a("button", { class: "card__page", type: "button", title: e.page }, [`⧉ ${g}`]);
-      u.addEventListener("click", (_) => {
-        _.stopPropagation(), this.setActive(e.id), this.openSections.add("page"), this.render();
+      u.addEventListener("click", (k) => {
+        k.stopPropagation(), this.openPageEditor(e);
       }), n.append(u);
     }
-    return n.append(c, f), n;
+    return n.append(c, h), n;
   }
   renderCardContent(e) {
     const t = a("div", {
@@ -2664,8 +2797,8 @@ ${t.errors.join(`
       const s = () => {
         e[t] = o.value.trim() || (t === "backLabel" ? "Back" : "Next"), o.replaceWith(this.renderEditableButton(e, t)), this.markDirty();
       };
-      o.addEventListener("blur", s), o.addEventListener("keydown", (l) => {
-        l.key === "Enter" && o.blur(), l.key === "Escape" && (o.value = e[t], o.blur());
+      o.addEventListener("blur", s), o.addEventListener("keydown", (d) => {
+        d.key === "Enter" && o.blur(), d.key === "Escape" && (o.value = e[t], o.blur());
       });
     }), n;
   }
@@ -2682,12 +2815,12 @@ ${t.errors.join(`
   }
 }
 export {
-  Oe as TourBuilder,
+  ze as TourBuilder,
   Se as cloneDraft,
   V as createDraftStep,
   ee as createDraftTour,
-  Et as createLocalStore,
-  Lt as createWordPressStore,
-  oe as normalizeTours,
-  wt as toTour
+  Tt as createLocalStore,
+  zt as createWordPressStore,
+  se as normalizeTours,
+  St as toTour
 };

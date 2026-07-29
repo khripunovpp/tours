@@ -434,6 +434,24 @@ button { font: inherit; cursor: pointer; }
   cursor: pointer;
 }
 .selpop__add:hover { border-color: var(--e-accent); }
+.selpop__add + .selpop__add { margin-top: 6px; }
+.selpop__page {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--e-fg);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 6px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.selpop__page:hover { background: var(--e-surface); }
 .selpop__add--on { color: #fff; background: var(--e-accent); border-style: solid; border-color: var(--e-accent); }
 
 .card__content {

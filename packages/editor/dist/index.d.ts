@@ -346,6 +346,12 @@ export declare class TourBuilder {
 	private pickAppend;
 	/** Step whose selector list is open in the editor popover, if any. */
 	private selectorEditorFor;
+	/** Step whose page matcher is open in the editor popover, if any. */
+	private pageEditorFor;
+	/** Pages advertised by the site's sitemap; null until the fetch resolves. */
+	private pages;
+	/** What the author has typed into the page autocomplete. */
+	private pageQuery;
 	/** Index being dragged in the selector list, while a drag is in progress. */
 	private dragFrom;
 	private player;
@@ -492,6 +498,20 @@ export declare class TourBuilder {
 	 * first one and offered no way to drop a bad entry or add a fallback — the
 	 * picker could only replace the lot. This is that missing editor.
 	 */
+	/** Open the page editor, kicking off the sitemap fetch the first time. */
+	private openPageEditor;
+	/**
+	 * Page matcher editor: type to search the site's own pages, or paste a URL.
+	 *
+	 * Authors know their pages by name, not by URL glob. The sitemap is the one
+	 * list of pages a site already publishes about itself, so suggestions come
+	 * from there — matched against the whole URL, so both the host and a path
+	 * fragment find the same page. Free text always wins, which is how a URL on
+	 * someone else's site gets in.
+	 */
+	private renderPageEditor;
+	/** (Re)fill the suggestion rows without rebuilding the whole popover. */
+	private renderPageSuggestions;
 	private renderSelectorEditor;
 	private renderCard;
 	/**

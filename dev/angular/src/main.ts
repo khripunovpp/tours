@@ -18,6 +18,6 @@ TourBuilder.fromUrl();
 void bootstrapApplication(AppComponent, {
   providers: [
     provideExperimentalZonelessChangeDetection(),
-    provideRouter(routes, withHashLocation()),
+    provideRouter(routes),
   ],
 });

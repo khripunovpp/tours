@@ -1737,6 +1737,24 @@ button { font: inherit; cursor: pointer; }
   cursor: pointer;
 }
 .selpop__add:hover { border-color: var(--e-accent); }
+.selpop__add + .selpop__add { margin-top: 6px; }
+.selpop__page {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--e-fg);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 6px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.selpop__page:hover { background: var(--e-surface); }
 .selpop__add--on { color: #fff; background: var(--e-accent); border-style: solid; border-color: var(--e-accent); }
 
 .card__content {
@@ -2233,6 +2251,56 @@ function createWordPressStore(config) {
     }
   };
 }
+const CANDIDATES = ["/sitemap.xml", "/sitemap_index.xml", "/wp-sitemap.xml", "/sitemap-index.xml"];
+const MAX_NESTED = 5;
+const MAX_URLS = 2e3;
+let cache = null;
+function locations(xml) {
+  const out = [];
+  const re = /<loc>\s*([^<\s]+)\s*<\/loc>/gi;
+  let m;
+  while ((m = re.exec(xml)) !== null) out.push(m[1]);
+  return out;
+}
+async function fetchText(url) {
+  try {
+    const res = await fetch(url, { credentials: "same-origin" });
+    if (!res.ok) return null;
+    const text = await res.text();
+    return text.includes("<loc>") ? text : null;
+  } catch {
+    return null;
+  }
+}
+function sitePages() {
+  cache ?? (cache = (async () => {
+    for (const path of CANDIDATES) {
+      const xml = await fetchText(new URL(path, window.location.origin).href);
+      if (!xml) continue;
+      const locs = locations(xml);
+      const isIndex = /<sitemapindex/i.test(xml);
+      if (!isIndex) return locs.slice(0, MAX_URLS);
+      const pages = [];
+      for (const child of locs.slice(0, MAX_NESTED)) {
+        const childXml = await fetchText(child);
+        if (childXml) pages.push(...locations(childXml));
+        if (pages.length >= MAX_URLS) break;
+      }
+      return pages.slice(0, MAX_URLS);
+    }
+    return [];
+  })());
+  return cache;
+}
+function matchPages(pages, query, limit = 8) {
+  const q = query.trim().toLowerCase();
+  if (!q) return [...pages].sort((a, b) => a.length - b.length).slice(0, limit);
+  return pages.filter((p) => p.toLowerCase().includes(q)).sort((a, b) => a.length - b.length).slice(0, limit);
+}
+function toPageGlob(url) {
+  const trimmed = url.trim().replace(/[*\s]+$/, "");
+  return trimmed ? `${trimmed}*` : "";
+}
 const RESUME_PARAM = "tours-resume";
 function h(tag, attrs = {}, children = []) {
   const el = document.createElement(tag);
@@ -2294,6 +2362,9 @@ class TourBuilder {
     this.picking = false;
     this.pickAppend = false;
     this.selectorEditorFor = null;
+    this.pageEditorFor = null;
+    this.pages = null;
+    this.pageQuery = "";
     this.dragFrom = null;
     this.player = null;
     this.highlight = null;
@@ -3086,6 +3157,9 @@ ${result.errors.join("\n")}`);
     const editing = this.selectorEditorFor ? this.tour.steps.find((s) => s.id === this.selectorEditorFor) : void 0;
     if (editing) body.append(this.renderSelectorEditor(editing));
     else if (this.selectorEditorFor) this.selectorEditorFor = null;
+    const pageEditing = this.pageEditorFor ? this.tour.steps.find((s) => s.id === this.pageEditorFor) : void 0;
+    if (pageEditing) body.append(this.renderPageEditor(pageEditing));
+    else if (this.pageEditorFor) this.pageEditorFor = null;
     const list = h("div", { class: "steps" });
     list.append(this.renderConnector(-1));
     this.tour.steps.forEach((step, i) => {
@@ -3254,6 +3328,99 @@ ${result.errors.join("\n")}`);
    * first one and offered no way to drop a bad entry or add a fallback — the
    * picker could only replace the lot. This is that missing editor.
    */
+  /** Open the page editor, kicking off the sitemap fetch the first time. */
+  openPageEditor(step) {
+    this.setActive(step.id);
+    this.pageEditorFor = this.pageEditorFor === step.id ? null : step.id;
+    this.pageQuery = "";
+    if (this.pageEditorFor && this.pages === null) {
+      void sitePages().then((pages) => {
+        this.pages = pages;
+        if (this.pageEditorFor) this.render();
+      });
+    }
+    this.render();
+  }
+  /**
+   * Page matcher editor: type to search the site's own pages, or paste a URL.
+   *
+   * Authors know their pages by name, not by URL glob. The sitemap is the one
+   * list of pages a site already publishes about itself, so suggestions come
+   * from there — matched against the whole URL, so both the host and a path
+   * fragment find the same page. Free text always wins, which is how a URL on
+   * someone else's site gets in.
+   */
+  renderPageEditor(step) {
+    const pop = h("div", { class: "selpop" });
+    const head = h("div", { class: "selpop__head" });
+    head.append(h("span", { class: "selpop__title" }, ["Page"]));
+    const close = iconButton("close", "Close");
+    close.addEventListener("click", () => {
+      this.pageEditorFor = null;
+      this.render();
+    });
+    head.append(h("div", { class: "spacer" }), close);
+    const input = h("input", {
+      class: "pagecfg__input",
+      placeholder: "Any page — or type to search, or paste a URL"
+    });
+    input.value = this.pageQuery || step.page;
+    const commit = (value) => {
+      step.page = value.trim();
+      this.markDirty();
+      this.pageEditorFor = null;
+      this.render();
+    };
+    input.addEventListener("input", () => {
+      this.pageQuery = input.value;
+      this.renderPageSuggestions(step, list);
+    });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") commit(input.value);
+    });
+    const list = h("div", { class: "selpop__list" });
+    pop.append(head, input, list);
+    this.renderPageSuggestions(step, list);
+    const useCurrent = h("button", { class: "selpop__add", type: "button" }, ["⌖ Use the current page"]);
+    useCurrent.addEventListener("click", () => commit(this.currentPage()));
+    const anyPage = h("button", { class: "selpop__add", type: "button" }, ["✳ Any page"]);
+    anyPage.addEventListener("click", () => commit(""));
+    pop.append(useCurrent, anyPage);
+    return pop;
+  }
+  /** (Re)fill the suggestion rows without rebuilding the whole popover. */
+  renderPageSuggestions(step, list) {
+    list.textContent = "";
+    if (this.pages === null) {
+      list.append(h("p", { class: "selpop__empty" }, ["Reading the site map…"]));
+      return;
+    }
+    if (this.pages.length === 0) {
+      list.append(
+        h("p", { class: "selpop__empty" }, [
+          "No sitemap found — type a URL or glob directly, and press Enter."
+        ])
+      );
+      return;
+    }
+    const hits = matchPages(this.pages, this.pageQuery);
+    if (hits.length === 0) {
+      list.append(h("p", { class: "selpop__empty" }, ["Nothing matches — press Enter to use it as typed."]));
+      return;
+    }
+    for (const url of hits) {
+      const row = h("button", { class: "selpop__page", type: "button", title: url }, [
+        url.replace(/^https?:\/\//, "")
+      ]);
+      row.addEventListener("click", () => {
+        step.page = toPageGlob(url);
+        this.markDirty();
+        this.pageEditorFor = null;
+        this.render();
+      });
+      list.append(row);
+    }
+  }
   renderSelectorEditor(step) {
     const pop = h("div", { class: "selpop" });
     const head = h("div", { class: "selpop__head" });
@@ -3489,9 +3656,7 @@ ${result.errors.join("\n")}`);
       const pageEl = h("button", { class: "card__page", type: "button", title: step.page }, [`⧉ ${path}`]);
       pageEl.addEventListener("click", (e) => {
         e.stopPropagation();
-        this.setActive(step.id);
-        this.openSections.add("page");
-        this.render();
+        this.openPageEditor(step);
       });
       row.append(pageEl);
     }

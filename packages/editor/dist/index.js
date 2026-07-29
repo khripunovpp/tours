@@ -704,6 +704,10 @@ function writeProgress(state, progress) {
 function clearProgress(state) {
   state.remove(PROGRESS_KEY);
 }
+const EDITOR_HOST = "[data-tours-editor]";
+function isBuilderMounted() {
+  return typeof document !== "undefined" && document.querySelector(EDITOR_HOST) !== null;
+}
 function createPlayer(tour, options = {}) {
   const log = createLogger("player");
   const state = options.state;
@@ -864,6 +868,10 @@ function createPlayer(tour, options = {}) {
   function start(startIndex = 0) {
     if (active) return;
     if (tour.steps.length === 0) return;
+    if (!options.allowWhileEditing && isBuilderMounted()) {
+      log.log(`start suppressed for "${tour.id}" — the builder is mounted`);
+      return;
+    }
     active = true;
     index = Math.max(0, Math.min(startIndex, tour.steps.length - 1));
     skipped = 0;
@@ -2053,14 +2061,16 @@ class TourBuilder {
     }
     this.revealStep(step.id);
   }
-  /**
-   * Scroll the panel so a step's card is visible. Runs after render(), so the
-   * card exists; `scrollIntoView` on the card itself keeps this correct when the
-   * step was inserted in the middle rather than appended.
-   */
+  /** Scroll the panel so a step's card is visible. Runs after render(). */
   revealStep(id) {
     const card = this.root?.querySelector(`.card[data-step-id="${CSS.escape(id)}"]`);
-    card?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    if (!card) return;
+    const body = card.closest(".panel__body");
+    if (body && this.tour.steps[this.tour.steps.length - 1]?.id === id) {
+      body.scrollTo({ top: body.scrollHeight, behavior: "smooth" });
+      return;
+    }
+    card.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
   /** A URL glob for the current page (matches its query/hash variations). */
   currentPage() {
@@ -2134,7 +2144,11 @@ ${result.errors.join("\n")}`);
     this.mode = "preview";
     this.render();
     this.player = createPlayer(result.tour, {
-      onNavigate: (url, stepId) => this.navigateForResume(url, stepId, "preview")
+      onNavigate: (url, stepId) => this.navigateForResume(url, stepId, "preview"),
+      // The player refuses to start while the builder is mounted, so that a
+      // host app's own tours do not stack under it. This preview *is* the
+      // builder, so it opts out.
+      allowWhileEditing: true
     });
     const start = startStepId ? result.tour.steps.findIndex((s) => s.id === startStepId) : 0;
     this.player.start(Math.max(0, start));
@@ -2184,9 +2198,12 @@ ${result.errors.join("\n")}`);
   // ---------- rendering ----------
   render() {
     if (!this.root) return;
+    const scrollTop = this.root.querySelector(".panel__body")?.scrollTop ?? 0;
     this.root.querySelectorAll(".panel, .nav").forEach((n) => n.remove());
     if (this.mode === "build") this.root.appendChild(this.renderPanel());
     this.root.appendChild(this.renderNav());
+    const body = this.root.querySelector(".panel__body");
+    if (body && scrollTop) body.scrollTop = scrollTop;
     if (this.focusStepId) {
       this.focusContent(this.focusStepId);
       this.focusStepId = null;

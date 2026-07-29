@@ -565,6 +565,10 @@ function seenCount(state, tourId) {
 function markSeen(state, tourId) {
   state.set(SEEN_PREFIX + tourId, String(seenCount(state, tourId) + 1));
 }
+const EDITOR_HOST = "[data-tours-editor]";
+function isBuilderMounted() {
+  return typeof document !== "undefined" && document.querySelector(EDITOR_HOST) !== null;
+}
 function createPlayer(tour, options = {}) {
   const log = createLogger("player");
   const state = options.state;
@@ -725,6 +729,10 @@ function createPlayer(tour, options = {}) {
   function start(startIndex = 0) {
     if (active) return;
     if (tour.steps.length === 0) return;
+    if (!options.allowWhileEditing && isBuilderMounted()) {
+      log.log(`start suppressed for "${tour.id}" — the builder is mounted`);
+      return;
+    }
     active = true;
     index = Math.max(0, Math.min(startIndex, tour.steps.length - 1));
     skipped = 0;
@@ -947,6 +955,8 @@ function showCta(options) {
   return remove;
 }
 function armTrigger(tour, fire) {
+  if (isBuilderMounted()) return () => {
+  };
   const trigger = tour.trigger ?? { type: "manual" };
   let fired = false;
   const once = () => {
@@ -1021,6 +1031,7 @@ export {
   createPlayer,
   deriveUrl,
   detectDevice,
+  isBuilderMounted,
   isLoggingEnabled,
   markSeen,
   matchRules,

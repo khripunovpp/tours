@@ -351,15 +351,24 @@ export class TourBuilder {
     this.revealStep(step.id);
   }
 
-  /**
-   * Scroll the panel so a step's card is visible. Runs after render(), so the
-   * card exists; `scrollIntoView` on the card itself keeps this correct when the
-   * step was inserted in the middle rather than appended.
-   */
+  /** Scroll the panel so a step's card is visible. Runs after render(). */
   private revealStep(id: string): void {
     const card = this.root?.querySelector<HTMLElement>(`.card[data-step-id="${CSS.escape(id)}"]`);
-    // `nearest` scrolls only the panel body, never the host page underneath.
-    card?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    if (!card) return;
+    const body = card.closest<HTMLElement>('.panel__body');
+
+    // Appended at the end: scroll the container to its true bottom. Every card
+    // is followed by a connector, and the body has bottom padding, so
+    // `scrollIntoView` stops as soon as the card's edge is in view and leaves
+    // both of those below the fold — which reads as "it didn't scroll all the
+    // way".
+    if (body && this.tour.steps[this.tour.steps.length - 1]?.id === id) {
+      body.scrollTo({ top: body.scrollHeight, behavior: 'smooth' });
+      return;
+    }
+    // Inserted in the middle — move as little as possible. `nearest` scrolls
+    // only the panel body, never the host page underneath.
+    card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
   /** A URL glob for the current page (matches its query/hash variations). */
@@ -443,6 +452,10 @@ export class TourBuilder {
     // so the builder re-mounts and resumes preview at the right step.
     this.player = createPlayer(result.tour, {
       onNavigate: (url, stepId) => this.navigateForResume(url, stepId, 'preview'),
+      // The player refuses to start while the builder is mounted, so that a
+      // host app's own tours do not stack under it. This preview *is* the
+      // builder, so it opts out.
+      allowWhileEditing: true,
     });
     const start = startStepId ? result.tour.steps.findIndex((s) => s.id === startStepId) : 0;
     this.player.start(Math.max(0, start));
@@ -497,10 +510,21 @@ export class TourBuilder {
 
   private render(): void {
     if (!this.root) return;
+    // The panel is rebuilt wholesale below, and `.panel__body` is the scroll
+    // container — so without this every re-render silently jumps the list back
+    // to the top. That bites hardest right after picking an element, which
+    // re-renders while the author is reading a card halfway down the list.
+    const scrollTop = this.root.querySelector('.panel__body')?.scrollTop ?? 0;
+
     // Clear everything except the <style> element.
     this.root.querySelectorAll('.panel, .nav').forEach((n) => n.remove());
     if (this.mode === 'build') this.root.appendChild(this.renderPanel());
     this.root.appendChild(this.renderNav());
+
+    const body = this.root.querySelector('.panel__body');
+    // Restore instantly: this is meant to look like the list never moved.
+    if (body && scrollTop) body.scrollTop = scrollTop;
+
     if (this.focusStepId) {
       this.focusContent(this.focusStepId);
       this.focusStepId = null;

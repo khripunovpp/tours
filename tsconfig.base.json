@@ -9,6 +9,18 @@
     "skipLibCheck": true,
     "noEmit": true,
     "declaration": false,
-    "verbatimModuleSyntax": false
+    "verbatimModuleSyntax": false,
+
+    // Typecheck against package *source*, mirroring the Vite aliases in
+    // scripts/dev-aliases.mjs. The packages' `exports` point only at built
+    // `dist` (that is all an installed copy has), so without this `tsc` would
+    // read a stale `dist/index.d.ts` and `pnpm typecheck` would depend on
+    // `pnpm build:packages` having run first.
+    "baseUrl": ".",
+    "paths": {
+      "@tours/schema": ["packages/schema/src/index.ts"],
+      "@tours/core": ["packages/core/src/index.ts"],
+      "@tours/editor": ["packages/editor/src/index.ts"]
+    }
   }
 }

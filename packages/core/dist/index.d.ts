@@ -262,7 +262,27 @@ export interface PlayerOptions {
 	 * after the reload. Hash (SPA) navigation is unaffected.
 	 */
 	onNavigate?: (url: string, stepId: string) => void;
+	/**
+	 * Start even while the tour builder is mounted on the page. Default false.
+	 *
+	 * The builder is itself an overlay with its own preview, so a player started
+	 * underneath it stacks two overlays on the same page — always a mistake,
+	 * except for the builder's own preview, which sets this.
+	 *
+	 * Guarding here rather than at each call site means a host does not have to
+	 * remember the check in every place it starts a tour: `?tours-edit=1` alone
+	 * is enough to suppress them all.
+	 */
+	allowWhileEditing?: boolean;
 }
+/**
+ * True while the tour builder is mounted.
+ *
+ * Detected through the DOM rather than by importing the editor: core must not
+ * depend on it (the dependency runs the other way), and this keeps the player
+ * usable without the editor in the bundle.
+ */
+export declare function isBuilderMounted(): boolean;
 /**
  * Create a player for a tour. Returns handles to drive it: start/stop and
  * next/prev. The player owns its own shadow-DOM UI and cleans it up on stop().

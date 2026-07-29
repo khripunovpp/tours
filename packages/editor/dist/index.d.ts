@@ -338,11 +338,7 @@ export declare class TourBuilder {
 	private createFromTemplate;
 	private setActive;
 	private addStepAfter;
-	/**
-	 * Scroll the panel so a step's card is visible. Runs after render(), so the
-	 * card exists; `scrollIntoView` on the card itself keeps this correct when the
-	 * step was inserted in the middle rather than appended.
-	 */
+	/** Scroll the panel so a step's card is visible. Runs after render(). */
 	private revealStep;
 	/** A URL glob for the current page (matches its query/hash variations). */
 	private currentPage;

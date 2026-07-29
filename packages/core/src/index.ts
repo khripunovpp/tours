@@ -29,7 +29,7 @@ export type {
 
 export { createPicker } from './picker.js';
 export type { PickerHandle, PickerOptions } from './picker.js';
-export { createPlayer, resumeTour } from './player.js';
+export { createPlayer, resumeTour, isBuilderMounted } from './player.js';
 export type { PlayerHandle, PlayerOptions, RuntimeStep, RuntimeTour } from './player.js';
 export { matchUrl, deriveUrl } from './url.js';
 export { armTrigger } from './trigger.js';

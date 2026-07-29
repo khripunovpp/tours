@@ -64,6 +64,32 @@ export interface PlayerOptions {
    * after the reload. Hash (SPA) navigation is unaffected.
    */
   onNavigate?: (url: string, stepId: string) => void;
+  /**
+   * Start even while the tour builder is mounted on the page. Default false.
+   *
+   * The builder is itself an overlay with its own preview, so a player started
+   * underneath it stacks two overlays on the same page — always a mistake,
+   * except for the builder's own preview, which sets this.
+   *
+   * Guarding here rather than at each call site means a host does not have to
+   * remember the check in every place it starts a tour: `?tours-edit=1` alone
+   * is enough to suppress them all.
+   */
+  allowWhileEditing?: boolean;
+}
+
+/** Attribute the builder puts on its shadow host — see @tours/editor. */
+const EDITOR_HOST = '[data-tours-editor]';
+
+/**
+ * True while the tour builder is mounted.
+ *
+ * Detected through the DOM rather than by importing the editor: core must not
+ * depend on it (the dependency runs the other way), and this keeps the player
+ * usable without the editor in the bundle.
+ */
+export function isBuilderMounted(): boolean {
+  return typeof document !== 'undefined' && document.querySelector(EDITOR_HOST) !== null;
 }
 
 /**
@@ -277,6 +303,10 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
   function start(startIndex = 0): void {
     if (active) return;
     if (tour.steps.length === 0) return;
+    if (!options.allowWhileEditing && isBuilderMounted()) {
+      log.log(`start suppressed for "${tour.id}" — the builder is mounted`);
+      return;
+    }
     active = true;
     index = Math.max(0, Math.min(startIndex, tour.steps.length - 1));
     skipped = 0;

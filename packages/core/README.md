@@ -131,8 +131,18 @@ first case, and needs nothing extra.
 
 Pass a function instead of an array when the tours are loaded later — it is
 re-read on every navigation. Use `canRun` to gate on things the schema cannot
-express (audience, feature flags); it is re-checked each time. The return value
-unmounts: it stops any running tour and releases the watcher.
+express (audience, feature flags); it is re-checked each time.
+
+`MountOptions` **extends `PlayerOptions`** — `state`, `viewer`, `on`,
+`onNavigate`, `renderResume` and `allowWhileEditing` are all accepted here and
+passed to the player unchanged, which is why one `viewer` gates both a tour's
+rules and its individual steps. Only `canRun` and `autoResume` are specific to
+mounting.
+
+The returned handle is `{ start(tourId), stop(), unmount() }`. `start` runs a
+tour from the top through the mount — use it for a "show me the tour" button
+rather than calling `createPlayer` yourself, or the mount will not know a tour
+is running and may start a second one on the next navigation.
 
 The lower-level pieces below (`resumeTour`, `armTrigger`) remain available if
 you want to drive this yourself.

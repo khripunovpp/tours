@@ -482,6 +482,16 @@ export declare function matchUrl(match: UrlMatch | undefined, url: string): bool
  */
 export declare function deriveUrl(match: UrlMatch | undefined): string | null;
 export declare function armTrigger(tour: RuntimeTour, fire: () => void): () => void;
+/**
+ * Options for `mountTours`.
+ *
+ * **Extends `PlayerOptions`, and that is where most fields live** — `state`,
+ * `viewer`, `on`, `onNavigate`, `renderResume`, `allowWhileEditing`. The object
+ * is handed to `createPlayer` unchanged, so anything the player understands can
+ * be passed here, and one `viewer` feeds both a tour's rules and its steps.
+ *
+ * Only the two fields below are specific to mounting.
+ */
 export interface MountOptions extends PlayerOptions {
 	/**
 	 * Gate a tour on host-specific conditions the schema cannot express —

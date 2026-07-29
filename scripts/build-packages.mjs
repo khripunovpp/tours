@@ -1,16 +1,23 @@
 /**
  * Build the three installable packages into `packages/<name>/dist`.
  *
- * Each package ships every format the ecosystem still asks for, so it installs
- * under any package manager, any bundler, and straight from a CDN:
+ * Each package installs under any package manager, any bundler, and straight
+ * from a CDN:
  *
  *   dist/index.js      ESM  — modern bundlers, Node ESM, Deno, Bun
- *   dist/index.cjs     CJS  — `require()`, older Node, legacy tooling
  *   dist/index.umd.js  UMD  — classic <script>, unpkg/jsDelivr, no build step
- *   dist/index.d.ts    types for the ESM entry
- *   dist/index.d.cts   types for the CJS entry (Node resolves these separately;
- *                      without it `require()` gets no types under
- *                      moduleResolution node16/nodenext)
+ *   dist/index.d.ts    types
+ *
+ * **ESM-only, deliberately.** There is no CJS build, so `require('@tours/core')`
+ * throws ERR_REQUIRE_ESM. These packages are browser-only — they need `document`
+ * and `attachShadow`, so they cannot run in bare Node regardless, and every
+ * current bundler prefers the ESM entry anyway. Carrying a CJS copy cost ~50%
+ * on the tarball (core 107 KB → 71 KB without it) to serve only jsdom tests and
+ * pre-`exports` tooling. Anything that needs a plain script-tag global should
+ * load the UMD bundle instead.
+ *
+ * are-the-types-wrong therefore reports `node16 (from CJS)` as "ESM (dynamic
+ * import only)". That is the intended state, not a regression.
  *
  * Outputs are fully self-contained: cross-package imports are aliased to source
  * and bundled in, so a published package declares **no runtime dependencies**.
@@ -27,7 +34,7 @@
  */
 import { build } from 'vite';
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
@@ -70,12 +77,12 @@ function lib({ dir, formats, fileName, global, minify, empty }) {
 for (const { name, global } of PACKAGES) {
   const dir = `packages/${name}`;
 
-  // ESM + CJS: unminified, because consumers minify these themselves and want
-  // readable stack traces until they do.
+  // ESM: unminified, because consumers minify it themselves and want readable
+  // stack traces until they do.
   await lib({
     dir,
-    formats: ['es', 'cjs'],
-    fileName: (format) => (format === 'es' ? 'index.js' : 'index.cjs'),
+    formats: ['es'],
+    fileName: () => 'index.js',
     minify: false,
     empty: true,
   });
@@ -105,9 +112,6 @@ for (const { name, global } of PACKAGES) {
     { stdio: ['ignore', 'ignore', 'inherit'] },
   );
 
-  // Node picks types per resolved entry: `require()` reads .d.cts, `import`
-  // reads .d.ts. The declarations are identical, so copy rather than rebuild.
-  copyFileSync(`${dir}/dist/index.d.ts`, `${dir}/dist/index.d.cts`);
 }
 
 console.log('✓ npm packages built to packages/*/dist\n');

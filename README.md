@@ -39,10 +39,13 @@ createPlayer({
 ## Install
 
 There is no npm registry release yet, so pick whichever of these fits your
-toolchain. Every package ships ESM, CJS, UMD and types, has **zero runtime
-dependencies**, and passes [publint](https://publint.dev) and
-[are-the-types-wrong](https://arethetypeswrong.github.io) clean on all four
-resolution modes (node10, node16 CJS, node16 ESM, bundler).
+toolchain. Every package ships **ESM + UMD + types**, has **zero runtime
+dependencies**, and passes [publint](https://publint.dev) clean.
+
+The packages are **ESM-only** — there is no CommonJS build. Node has resolved
+`require()` of ESM natively since 20.19 / 22.12, so `require('@tours/core')`
+works there; on older Node it throws `ERR_REQUIRE_ESM`, hence
+`engines.node: ">=20.19"`. For a plain `<script>` global, use the UMD bundle.
 
 ### Tarball — works with every package manager
 
@@ -50,9 +53,9 @@ Release tarballs are attached to each [GitHub release](https://github.com/khripu
 This is the most portable option: npm, pnpm, yarn and bun all handle it.
 
 ```bash
-npm i https://github.com/khripunovpp/tours/releases/download/v0.2.0/tours-core-0.2.0.tgz
-npm i https://github.com/khripunovpp/tours/releases/download/v0.2.0/tours-editor-0.2.0.tgz
-npm i https://github.com/khripunovpp/tours/releases/download/v0.2.0/tours-schema-0.2.0.tgz
+npm i https://github.com/khripunovpp/tours/releases/download/v0.3.0/tours-core-0.3.0.tgz
+npm i https://github.com/khripunovpp/tours/releases/download/v0.3.0/tours-editor-0.3.0.tgz
+npm i https://github.com/khripunovpp/tours/releases/download/v0.3.0/tours-schema-0.3.0.tgz
 ```
 
 ### Straight from git — pnpm and yarn only
@@ -60,10 +63,10 @@ npm i https://github.com/khripunovpp/tours/releases/download/v0.2.0/tours-schema
 `#path:` selects a package inside the monorepo.
 
 ```bash
-pnpm add "git+https://github.com/khripunovpp/tours.git#v0.2.0&path:/packages/core"
+pnpm add "git+https://github.com/khripunovpp/tours.git#v0.3.0&path:/packages/core"
 ```
 
-Drop `#v0.2.0&` to track `main` instead of a tag.
+Drop `#v0.3.0&` to track `main` instead of a tag.
 
 > **Do not use plain npm for this.** npm ignores `#path:` without erroring: it
 > reports `added 1 package` and installs the **monorepo root** into
@@ -78,7 +81,7 @@ GitHub, so this works today without an npm release:
 
 ```html
 <script
-  src="https://cdn.jsdelivr.net/gh/khripunovpp/tours@v0.2.0/packages/core/dist/index.umd.js"
+  src="https://cdn.jsdelivr.net/gh/khripunovpp/tours@v0.3.0/packages/core/dist/index.umd.js"
   integrity="sha384-MZ7SpgOcX5238HgVwwzDT2m9w7x+mR7bYODNWkAjD9g9LkLiQpRhngDTH9YcYmTK"
   crossorigin="anonymous"
 ></script>
@@ -187,7 +190,7 @@ Two more packages are internal and not installable —
 
 ## Development
 
-Requires Node 20+ and pnpm 11.
+Requires Node 20.19+ and pnpm 11.
 
 ```bash
 pnpm install
@@ -206,8 +209,12 @@ pnpm dev:react      # also: dev:vue, dev:svelte, dev:solid, dev:angular
 pnpm dev:all        # every demo in parallel
 ```
 
-In dev, `@tours/*` imports resolve to TypeScript **source** via the
-`development` export condition — edits hot-reload with no rebuild.
+In dev, `@tours/*` imports resolve to TypeScript **source** through the aliases
+in [`scripts/dev-aliases.mjs`](scripts/dev-aliases.mjs), wired into every demo's
+Vite config — edits hot-reload with no rebuild. The packages' own `exports`
+point only at built `dist`, because that is all an installed copy has; an
+export condition aimed at `src` resolves fine in the workspace but breaks every
+consumer running a dev server.
 
 ### Build
 

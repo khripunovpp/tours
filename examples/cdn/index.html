@@ -10,7 +10,7 @@
 
       `integrity` pins the exact bytes: if the file at this URL ever changes,
       the browser refuses to run it. That only works against an **immutable**
-      URL, which is why this points at the `@v0.2.0` tag and not at a branch —
+      URL, which is why this points at the `@v0.3.0` tag and not at a branch —
       with a moving target the hash would break on the next commit.
 
       `crossorigin="anonymous"` is required alongside it. Without it the
@@ -20,7 +20,7 @@
       Check them against what the CDN really serves: node scripts/sri.mjs --verify
     -->
     <script
-      src="https://cdn.jsdelivr.net/gh/khripunovpp/tours@v0.2.0/packages/core/dist/index.umd.js"
+      src="https://cdn.jsdelivr.net/gh/khripunovpp/tours@v0.3.0/packages/core/dist/index.umd.js"
       integrity="sha384-MZ7SpgOcX5238HgVwwzDT2m9w7x+mR7bYODNWkAjD9g9LkLiQpRhngDTH9YcYmTK"
       crossorigin="anonymous"
     ></script>

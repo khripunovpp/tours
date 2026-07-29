@@ -41,7 +41,7 @@ required together: without `crossorigin` the response is opaque, the browser
 cannot hash it, and the script is blocked.
 
 Integrity only means something against an **immutable** URL, so the example
-points at the `@v0.2.0` tag. Aim it at a branch and the hash breaks on the next
+points at the `@v0.3.0` tag. Aim it at a branch and the hash breaks on the next
 commit.
 
 Regenerate after a release, and check the CDN really serves those bytes:

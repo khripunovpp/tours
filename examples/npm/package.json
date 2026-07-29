@@ -6,6 +6,6 @@
     "start": "npx --yes serve ."
   },
   "dependencies": {
-    "@tours/core": "https://github.com/khripunovpp/tours/releases/download/v0.2.0/tours-core-0.2.0.tgz"
+    "@tours/core": "https://github.com/khripunovpp/tours/releases/download/v0.3.0/tours-core-0.3.0.tgz"
   }
 }

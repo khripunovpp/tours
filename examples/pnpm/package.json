@@ -6,6 +6,6 @@
     "start": "pnpm dlx serve ."
   },
   "dependencies": {
-    "@tours/core": "git+https://github.com/khripunovpp/tours.git#v0.2.0&path:/packages/core"
+    "@tours/core": "git+https://github.com/khripunovpp/tours.git#v0.3.0&path:/packages/core"
   }
 }

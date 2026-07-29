@@ -358,6 +358,83 @@ button { font: inherit; cursor: pointer; }
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 .card__sel--empty { color: #d97706; }
+.card__sel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  padding: 1px 5px;
+  cursor: pointer;
+}
+.card__sel:hover { background: var(--e-surface); border-color: var(--e-border); }
+.card__selcount {
+  font-family: system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--e-accent);
+}
+.card__page { cursor: pointer; }
+.card__page:hover { border-color: var(--e-accent); color: var(--e-fg); }
+
+/* Selector list editor, floated over the panel body. */
+.selpop {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  margin: 0 0 12px;
+  padding: 10px;
+  background: var(--e-bg);
+  border: 1px solid var(--e-accent);
+  border-radius: 10px;
+  box-shadow: var(--e-shadow);
+}
+.selpop__head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.selpop__head .spacer { flex: 1; }
+.selpop__title { font-size: 12px; font-weight: 700; color: var(--e-fg); }
+.selpop__empty { margin: 0 0 8px; font-size: 12px; color: var(--e-muted); }
+.selpop__list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.selpop__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px;
+  border-radius: 6px;
+}
+.selpop__row:hover { background: var(--e-surface); }
+.selpop__rank {
+  flex: none;
+  width: 16px; height: 16px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700;
+  color: var(--e-muted);
+  background: var(--e-surface);
+  border-radius: 4px;
+}
+.selpop__code {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--e-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.selpop__add {
+  width: 100%;
+  font: inherit;
+  font-size: 12px;
+  padding: 7px 10px;
+  color: var(--e-fg);
+  background: var(--e-surface);
+  border: 1px dashed var(--e-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.selpop__add:hover { border-color: var(--e-accent); }
+.selpop__add--on { color: #fff; background: var(--e-accent); border-style: solid; border-color: var(--e-accent); }
 
 .card__content {
   padding: 12px;

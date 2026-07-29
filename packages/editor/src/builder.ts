@@ -143,6 +143,16 @@ export class TourBuilder {
 
   private picker: PickerHandle | null = null;
   private picking = false;
+  /**
+   * Append the picked candidates instead of replacing the step's list. Used by
+   * the selector editor, where the point is to add a fallback rather than start
+   * over.
+   */
+  private pickAppend = false;
+  /** Step whose selector list is open in the editor popover, if any. */
+  private selectorEditorFor: string | null = null;
+  /** Index being dragged in the selector list, while a drag is in progress. */
+  private dragFrom: number | null = null;
   private player: PlayerHandle | null = null;
   /** Dashed outline over the active step's target element (no backdrop). */
   private highlight: HTMLElement | null = null;
@@ -388,7 +398,7 @@ export class TourBuilder {
 
   // ---------- picker (selector search) ----------
 
-  private togglePicking(): void {
+  private togglePicking(append = false): void {
     if (this.picking) {
       this.stopPicking();
       return;
@@ -396,12 +406,20 @@ export class TourBuilder {
     const step = this.activeStep;
     if (!step) return;
     this.picking = true;
+    this.pickAppend = append;
     this.picker = createPicker(
       (selectors) => {
-        step.selectors = selectors;
+        if (this.pickAppend) {
+          // Every candidate for the picked element is a useful fallback, so the
+          // whole ranked list is added — minus anything already listed.
+          for (const s of selectors) if (!step.selectors.includes(s)) step.selectors.push(s);
+        } else {
+          step.selectors = selectors;
+        }
         // The element was picked on this page — bind the step to it.
         if (!step.page) step.page = this.currentPage();
         this.picking = false;
+        this.pickAppend = false;
         this.picker = null;
         this.log.log('bound selector to step', step.id, selectors);
         this.render();
@@ -416,6 +434,7 @@ export class TourBuilder {
     this.picker?.stop();
     this.picker = null;
     this.picking = false;
+    this.pickAppend = false;
   }
 
   // ---------- preview ----------
@@ -1083,6 +1102,14 @@ export class TourBuilder {
       return body;
     }
 
+    // Selector editor sits over the list rather than inside a card, so it stays
+    // readable regardless of how far down the step is.
+    const editing = this.selectorEditorFor
+      ? this.tour.steps.find((s) => s.id === this.selectorEditorFor)
+      : undefined;
+    if (editing) body.append(this.renderSelectorEditor(editing));
+    else if (this.selectorEditorFor) this.selectorEditorFor = null;
+
     const list = h('div', { class: 'steps' });
     // A connector (line + "+") before the first card, then each card followed
     // by another connector, so the author can insert anywhere.
@@ -1268,6 +1295,79 @@ export class TourBuilder {
     return c;
   }
 
+  /**
+   * Selector list editor, shown over the panel.
+   *
+   * A step keeps a ranked list of candidates, but the UI only ever showed the
+   * first one and offered no way to drop a bad entry or add a fallback — the
+   * picker could only replace the lot. This is that missing editor.
+   */
+  private renderSelectorEditor(step: DraftStep): HTMLElement {
+    const pop = h('div', { class: 'selpop' });
+
+    const head = h('div', { class: 'selpop__head' });
+    head.append(h('span', { class: 'selpop__title' }, ['Selectors']));
+    const close = iconButton('close', 'Close');
+    close.addEventListener('click', () => {
+      this.selectorEditorFor = null;
+      this.render();
+    });
+    head.append(h('div', { class: 'spacer' }), close);
+
+    const list = h('div', { class: 'selpop__list' });
+    if (step.selectors.length === 0) {
+      list.append(h('p', { class: 'selpop__empty' }, ['No selectors yet. Add one with the crosshair below.']));
+    }
+    step.selectors.forEach((value, i) => {
+      const row = h('div', { class: 'selpop__row', draggable: 'true' });
+      // Order is the ranking — the player tries candidates top-down — so it has
+      // to be editable, not just visible.
+      row.addEventListener('dragstart', (e) => {
+        this.dragFrom = i;
+        row.classList.add('selpop__row--dragging');
+        (e as DragEvent).dataTransfer?.setData('text/plain', String(i));
+      });
+      row.addEventListener('dragend', () => {
+        this.dragFrom = null;
+        row.classList.remove('selpop__row--dragging');
+      });
+      row.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        row.classList.add('selpop__row--over');
+      });
+      row.addEventListener('dragleave', () => row.classList.remove('selpop__row--over'));
+      row.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const from = this.dragFrom;
+        this.dragFrom = null;
+        if (from === null || from === i) return;
+        const [moved] = step.selectors.splice(from, 1);
+        step.selectors.splice(i, 0, moved!);
+        this.markDirty();
+        this.render();
+      });
+      row.append(h('span', { class: 'selpop__grip', title: 'Drag to reorder' }, ['⠿']));
+      row.append(h('span', { class: 'selpop__rank' }, [String(i + 1)]));
+      row.append(h('code', { class: 'selpop__code', title: value }, [value]));
+      const del = iconButton('trash', 'Remove this selector');
+      del.addEventListener('click', () => {
+        step.selectors.splice(i, 1);
+        this.markDirty();
+        this.render();
+      });
+      row.append(del);
+      list.append(row);
+    });
+
+    const add = h('button', { class: `selpop__add ${this.picking ? 'selpop__add--on' : ''}`.trim(), type: 'button' }, [
+      this.picking ? '◎ Picking — click an element, or press Esc' : '⌖ Add by picking an element',
+    ]);
+    add.addEventListener('click', () => this.togglePicking(true));
+
+    pop.append(head, list, add);
+    return pop;
+  }
+
   private renderCard(step: DraftStep, index: number): HTMLElement {
     const isActive = step.id === this.activeStepId;
     const card = h('div', {
@@ -1285,9 +1385,31 @@ export class TourBuilder {
     // Card-settings accordion sections, shown only for the active card.
     if (isActive) {
       card.append(this.section('placement', 'Card position', () => this.renderPlacementBody(step)));
+      card.append(this.section('behaviour', 'Behaviour', () => this.renderBehaviourBody(step)));
       card.append(this.section('page', 'Page', () => this.renderPageBody(step)));
     }
     return card;
+  }
+
+  /**
+   * Per-step behaviour toggles.
+   *
+   * Exists because of the standing rule that anything the schema can express
+   * must be reachable from the builder — `overlay` shipped with this section,
+   * not after it.
+   */
+  private renderBehaviourBody(step: DraftStep): HTMLElement {
+    const wrap = h('div', { class: 'settings' });
+    wrap.append(
+      this.checkboxField('Dim the rest of the page', step.overlay !== false, (on) => {
+        step.overlay = on;
+        this.render();
+      }),
+      h('div', { class: 'settings__hint' }, [
+        'Off leaves the page fully usable and only outlines the target — for a step the visitor should be free to poke at.',
+      ]),
+    );
+    return wrap;
   }
 
   /** Page sub-panel: which pages this step shows on (multi-page tours). */
@@ -1413,10 +1535,27 @@ export class TourBuilder {
     type.innerHTML = ICONS[step.type === 'action' ? 'bolt' : 'step'];
     type.append(document.createTextNode(step.type === 'action' ? 'Action' : 'Step'));
 
+    // The chip is a button: the selector list is the thing authors most often
+    // need to fix, and it was previously unreachable — only the first candidate
+    // was even visible, and nothing could remove a bad one.
     const sel = step.selectors[0];
-    const selEl = h('span', { class: `card__sel ${sel ? '' : 'card__sel--empty'}`.trim(), title: sel ?? '' }, [
-      sel ?? 'no selector',
-    ]);
+    const count = step.selectors.length;
+    const selEl = h(
+      'button',
+      {
+        class: `card__sel ${sel ? '' : 'card__sel--empty'}`.trim(),
+        type: 'button',
+        title: step.selectors.join('\n') || 'No selector yet — click to add one',
+      },
+      [sel ?? 'no selector'],
+    );
+    if (count > 1) selEl.append(h('span', { class: 'card__selcount' }, [`+${count - 1}`]));
+    selEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.setActive(step.id);
+      this.selectorEditorFor = this.selectorEditorFor === step.id ? null : step.id;
+      this.render();
+    });
 
     const del = iconButton('trash', 'Delete step');
     del.addEventListener('click', () => this.removeStep(step.id));
@@ -1425,7 +1564,16 @@ export class TourBuilder {
     // Show a page chip when the step is for another page.
     if (step.page && !matchUrl({ glob: step.page }, window.location.href)) {
       const path = step.page.replace(/^https?:\/\/[^/]+/, '').replace(/\*$/, '') || '/';
-      row.append(h('span', { class: 'card__page', title: step.page }, [`⧉ ${path}`]));
+      // Clicking it opens the Page section rather than doing nothing, so the
+      // chip is a way in rather than just a label.
+      const pageEl = h('button', { class: 'card__page', type: 'button', title: step.page }, [`⧉ ${path}`]);
+      pageEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.setActive(step.id);
+        this.openSections.add('page');
+        this.render();
+      });
+      row.append(pageEl);
     }
     row.append(selEl, del);
     return row;

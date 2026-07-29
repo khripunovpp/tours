@@ -137,6 +137,19 @@ unmounts: it stops any running tour and releases the watcher.
 The lower-level pieces below (`resumeTour`, `armTrigger`) remain available if
 you want to drive this yourself.
 
+Set `autoResume: false` to keep everything except the resuming — trigger arming,
+the navigation watcher and the set-aside invitation all stay — and call
+`resumeTour` when your own conditions are met:
+
+```ts
+mountTours(tours, { state, autoResume: false });
+// …later, once your data is in:
+resumeTour(tour, { state });
+```
+
+That hands over *when*, not *where*: `resumeTour` still scans forward for the
+step this page satisfies, which is the part worth not reimplementing.
+
 ### Multi-page tours
 
 Pass a state backend so progress survives navigation, and call `resumeTour` on

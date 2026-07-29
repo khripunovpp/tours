@@ -928,7 +928,7 @@ function oe(t, e = {}) {
         return;
       }
     }
-    if (n)
+    if (n && e.autoResume !== !1)
       for (const c of s()) {
         if (!f(c)) continue;
         const g = te(c, e);

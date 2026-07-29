@@ -33,6 +33,20 @@ export interface MountOptions extends PlayerOptions {
    * it may return different answers as the session changes.
    */
   canRun?: (tour: RuntimeTour) => boolean;
+  /**
+   * Continue a tour that is mid-flight on this page. Default true.
+   *
+   * `false` hands the *timing* back to the host — resume once your data has
+   * loaded, once a modal is closed, behind a route guard — while keeping
+   * everything else this mount does: trigger arming, the navigation watcher,
+   * and the invitation for a tour the visitor set aside.
+   *
+   * The host then calls `resumeTour(tour, { state })` itself. Note it still
+   * owns only *when*: `resumeTour` keeps deciding *where*, by scanning forward
+   * for the step this page satisfies. Reimplementing that is the bug this
+   * library exists to prevent.
+   */
+  autoResume?: boolean;
 }
 
 export interface MountHandle {
@@ -123,7 +137,10 @@ export function mountTours(
 
     // Continuing takes priority: a tour already in flight should never be
     // restarted from the top by its own auto-start trigger.
-    if (state) {
+    //
+    // Skipped wholesale when the host has taken the timing — but the arming
+    // below still runs, which is the point of opting out of only this part.
+    if (state && options.autoResume !== false) {
       for (const tour of list()) {
         if (!eligible(tour)) continue;
         const player = resumeTour(tour, options);

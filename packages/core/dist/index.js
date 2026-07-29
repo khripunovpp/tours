@@ -1303,7 +1303,7 @@ function mountTours(input, options = {}) {
         return;
       }
     }
-    if (state) {
+    if (state && options.autoResume !== false) {
       for (const tour of list()) {
         if (!eligible(tour)) continue;
         const player = resumeTour(tour, options);

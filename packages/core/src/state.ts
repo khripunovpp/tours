@@ -15,6 +15,13 @@ export interface TourProgress {
   tourId: string;
   /** Index of the step to show next. */
   index: number;
+  /**
+   * The visitor set the tour aside rather than finishing it. Progress is kept,
+   * but nothing auto-resumes — an invitation is offered instead, so picking it
+   * back up stays the visitor's choice. Survives navigation, so the invitation
+   * reappears on later pages too.
+   */
+  minimized?: boolean;
 }
 
 export const PROGRESS_KEY = 'tours:progress';

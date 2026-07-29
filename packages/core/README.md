@@ -190,6 +190,67 @@ const matches = matchRules(tour.rules, {
 if (matches) player.start();
 ```
 
+### Closing a tour
+
+The × is always available — a visitor who has lost interest must be able to
+clear the screen. What it *means* is a per-tour setting:
+
+```ts
+{
+  id: 'welcome',
+  // …
+  dismiss: {
+    mode: 'minimize',              // or 'end' (default)
+    resume: {                      // optional; these are the defaults
+      text: 'Carry on with the tour?',
+      button: 'Resume',
+      corner: 'bottom-right',
+    },
+  },
+}
+```
+
+- **`end`** (default) — the tour is finished: progress is cleared and it does
+  not come back.
+- **`minimize`** — the tour is set aside: progress is kept and a small corner
+  invitation offers to pick it up. It reappears on later pages too, because the
+  flag is stored with the progress rather than held in memory.
+
+A minimized tour never auto-resumes — that would make minimizing pointless.
+Coming back is always the visitor's click.
+
+The invitation is the same popover as the `cta` start trigger, so a site has one
+small component to style, not two. Restyle it with custom properties on the host
+page:
+
+```css
+:root {
+  --tours-cta-bg: #101828;
+  --tours-cta-fg: #f9fafb;
+  --tours-cta-radius: 10px;
+  --tours-cta-btn-bg: #7c3aed;
+  --tours-cta-btn-bg-hover: #6d28d9;
+  --tours-cta-btn-fg: #fff;
+  --tours-cta-border: #1f2937;
+  --tours-cta-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+}
+```
+
+For a design those cannot reach, replace the renderer outright — it must return
+a function that removes whatever it built:
+
+```ts
+mountTours(tours, {
+  state: createLocalState(),
+  renderResume: ({ tourId, text, button, onResume }) => {
+    const el = myDesignSystem.toast({ text, action: { label: button, onClick: onResume } });
+    return () => el.dismiss();
+  },
+});
+```
+
+`player.minimize()` does the same thing programmatically.
+
 ### Card buttons
 
 The footer adapts to the step rather than showing a fixed pair:
@@ -228,7 +289,7 @@ reacting to your own UI.
 
 | Export | Purpose |
 |---|---|
-| `createPlayer(tour, options?)` | `PlayerHandle` — `start(index?)`, `stop()`, `next()`, `prev()` |
+| `createPlayer(tour, options?)` | `PlayerHandle` — `start(index?)`, `stop()`, `next()`, `prev()`, `minimize()`, `isActive()` |
 | `resumeTour(tour, options?)` | Continue after navigation; `null` if nothing to resume here |
 | `mountTours(tours, opts)` | Register tours; auto-resume + auto-start across navigation |
 | `armTrigger(tour, fire)` | Wire the tour's trigger; returns a cancel function |

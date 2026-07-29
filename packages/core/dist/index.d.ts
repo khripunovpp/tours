@@ -105,6 +105,26 @@ export type Trigger = {
 	/** Distance from the corner edges in px (default 24). */
 	offset?: number;
 };
+interface DismissPolicy {
+	/**
+	 * `end` (default) — finish for good: progress is cleared and the tour does
+	 * not come back.
+	 * `minimize` — set aside: progress is kept and a small invitation offers to
+	 * pick it up again, on this page and on later ones.
+	 */
+	mode: "end" | "minimize";
+	/**
+	 * The invitation shown after minimizing. Same shape as the `cta` trigger,
+	 * because it is the same popover — one component for "start this tour" and
+	 * "carry on with this tour".
+	 */
+	resume?: {
+		text: string;
+		button: string;
+		corner?: CtaCorner;
+		offset?: number;
+	};
+}
 /** Tour-level visual settings, read by both the player and the editor. */
 export interface DisplaySettings {
 	/**
@@ -137,6 +157,8 @@ export interface Tour {
 	audience?: "all" | "auth" | "guest";
 	/** Optional visual settings shared by player and editor. */
 	display?: DisplaySettings;
+	/** What the card's × does. Defaults to ending the tour. */
+	dismiss?: DismissPolicy;
 }
 export interface PickerHandle {
 	start(): void;
@@ -210,6 +232,13 @@ export interface TourProgress {
 	tourId: string;
 	/** Index of the step to show next. */
 	index: number;
+	/**
+	 * The visitor set the tour aside rather than finishing it. Progress is kept,
+	 * but nothing auto-resumes — an invitation is offered instead, so picking it
+	 * back up stays the visitor's choice. Survives navigation, so the invitation
+	 * reappears on later pages too.
+	 */
+	minimized?: boolean;
 }
 export declare const PROGRESS_KEY = "tours:progress";
 /** localStorage-backed state; degrades to a no-op if storage is unavailable. */
@@ -222,6 +251,14 @@ export declare function clearProgress(state: StateBackend): void;
 export declare function seenCount(state: StateBackend, tourId: string): number;
 /** Record one more showing of a tour. */
 export declare function markSeen(state: StateBackend, tourId: string): void;
+interface ResumeInvite {
+	tourId: string;
+	text: string;
+	button: string;
+	corner?: CtaCorner;
+	offset?: number;
+	onResume: () => void;
+}
 /**
  * A step as the player accepts it: identical to the stored `Step`, except that
  * `selectors` may also carry live DOM nodes or ref getters.
@@ -247,6 +284,11 @@ export interface PlayerHandle {
 	stop(): void;
 	next(): void;
 	prev(): void;
+	/**
+	 * Put the tour aside without finishing it: tear down the overlay, keep
+	 * progress, and offer an invitation to pick it back up.
+	 */
+	minimize(): void;
 	/** True between a successful start() and stop(). */
 	isActive(): boolean;
 }
@@ -276,6 +318,14 @@ export interface PlayerOptions {
 	 * is enough to suppress them all.
 	 */
 	allowWhileEditing?: boolean;
+	/**
+	 * Render the "carry on with the tour" invitation yourself, instead of the
+	 * built-in corner popover. Must return a function that removes what it built.
+	 *
+	 * For small changes prefer the `--tours-cta-*` custom properties, which the
+	 * default popover reads from the host page.
+	 */
+	renderResume?: (invite: ResumeInvite) => () => void;
 }
 /**
  * True while the tour builder is mounted.

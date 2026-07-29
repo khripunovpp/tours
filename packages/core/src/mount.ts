@@ -21,7 +21,8 @@
 import { createPlayer, resumeTour, type PlayerHandle, type PlayerOptions, type RuntimeTour } from './player.js';
 import { armTrigger } from './trigger.js';
 import { matchRules, detectDevice } from './rules.js';
-import { seenCount, markSeen } from './state.js';
+import { seenCount, markSeen, readProgress, writeProgress } from './state.js';
+import { showResumeInvite } from './cta.js';
 import { onLocationChange } from './history.js';
 import { createLogger } from './logger.js';
 
@@ -55,10 +56,13 @@ export function mountTours(
 
   let current: PlayerHandle | null = null;
   let armed: Array<() => void> = [];
+  let closeInvite: (() => void) | null = null;
 
   function disarm(): void {
     for (const cancel of armed) cancel();
     armed = [];
+    closeInvite?.();
+    closeInvite = null;
   }
 
   function eligible(tour: RuntimeTour): boolean {
@@ -71,6 +75,35 @@ export function mountTours(
     if (current?.isActive()) return;
     current = null;
     disarm();
+
+    // A tour the visitor set aside must not come back on its own — that would
+    // make minimizing useless. Re-offer the invitation instead, on this page
+    // and on every later one, since the flag outlives the document.
+    const progress = state ? readProgress(state) : null;
+    if (state && progress?.minimized) {
+      const tour = list().find((t) => t.id === progress.tourId && eligible(t));
+      if (tour) {
+        const cfg = tour.dismiss?.resume;
+        closeInvite = showResumeInvite(
+          {
+            tourId: tour.id,
+            text: cfg?.text ?? 'Carry on with the tour?',
+            button: cfg?.button ?? 'Resume',
+            corner: cfg?.corner,
+            offset: cfg?.offset,
+            onResume: () => {
+              closeInvite = null;
+              writeProgress(state, { tourId: tour.id, index: progress.index });
+              const player = createPlayer(tour, options);
+              current = player;
+              player.start(progress.index);
+            },
+          },
+          options.renderResume,
+        );
+        return;
+      }
+    }
 
     // Continuing takes priority: a tour already in flight should never be
     // restarted from the top by its own auto-start trigger.

@@ -16,6 +16,8 @@ export interface CtaOptions {
 
 const CTA_STYLES = `
 :host { all: initial; }
+/* Host-page custom properties still cascade in, so a site can restyle the
+   popover without a custom renderer. */
 .cta {
   position: fixed;
   z-index: 2147483200;
@@ -23,24 +25,24 @@ const CTA_STYLES = `
   max-width: 300px;
   padding: 16px 18px;
   font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  color: #111827;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+  color: var(--tours-cta-fg, #111827);
+  background: var(--tours-cta-bg, #fff);
+  border: 1px solid var(--tours-cta-border, #e5e7eb);
+  border-radius: var(--tours-cta-radius, 14px);
+  box-shadow: var(--tours-cta-shadow, 0 12px 32px rgba(15, 23, 42, 0.18));
 }
 .cta__text { margin: 0 0 12px; padding-right: 18px; }
 .cta__btn {
   font: inherit;
   font-weight: 600;
-  color: #fff;
-  background: #2563eb;
+  color: var(--tours-cta-btn-fg, #fff);
+  background: var(--tours-cta-btn-bg, #2563eb);
   border: none;
-  border-radius: 9px;
+  border-radius: var(--tours-cta-btn-radius, 9px);
   padding: 9px 16px;
   cursor: pointer;
 }
-.cta__btn:hover { background: #1d4ed8; }
+.cta__btn:hover { background: var(--tours-cta-btn-bg-hover, #1d4ed8); }
 .cta__close {
   position: absolute;
   top: 8px;
@@ -57,6 +59,41 @@ const CTA_STYLES = `
 }
 .cta__close:hover { color: #111827; background: #f3f4f6; }
 `;
+
+/**
+ * An invitation to carry on with a tour that was set aside. Deliberately the
+ * same popover as the "start this tour" CTA — one component for both, so a
+ * site only has one small thing to style.
+ */
+export interface ResumeInvite {
+  tourId: string;
+  text: string;
+  button: string;
+  corner?: CtaCorner;
+  offset?: number;
+  onResume: () => void;
+}
+
+/**
+ * Show the resume invitation, or hand off to a host-supplied renderer.
+ *
+ * `render` is the escape hatch for a design the CSS variables cannot reach: it
+ * receives the invite and must return a function that removes whatever it
+ * built. The player never touches the returned element.
+ */
+export function showResumeInvite(
+  invite: ResumeInvite,
+  render?: (invite: ResumeInvite) => () => void,
+): () => void {
+  if (render) return render(invite);
+  return showCta({
+    text: invite.text,
+    button: invite.button,
+    corner: invite.corner,
+    offset: invite.offset,
+    onStart: invite.onResume,
+  });
+}
 
 /** Show the CTA popover; returns a function that removes it. */
 export function showCta(options: CtaOptions): () => void {

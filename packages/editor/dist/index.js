@@ -704,6 +704,100 @@ function writeProgress(state, progress) {
 function clearProgress(state) {
   state.remove(PROGRESS_KEY);
 }
+const CTA_STYLES = `
+:host { all: initial; }
+/* Host-page custom properties still cascade in, so a site can restyle the
+   popover without a custom renderer. */
+.cta {
+  position: fixed;
+  z-index: 2147483200;
+  box-sizing: border-box;
+  max-width: 300px;
+  padding: 16px 18px;
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--tours-cta-fg, #111827);
+  background: var(--tours-cta-bg, #fff);
+  border: 1px solid var(--tours-cta-border, #e5e7eb);
+  border-radius: var(--tours-cta-radius, 14px);
+  box-shadow: var(--tours-cta-shadow, 0 12px 32px rgba(15, 23, 42, 0.18));
+}
+.cta__text { margin: 0 0 12px; padding-right: 18px; }
+.cta__btn {
+  font: inherit;
+  font-weight: 600;
+  color: var(--tours-cta-btn-fg, #fff);
+  background: var(--tours-cta-btn-bg, #2563eb);
+  border: none;
+  border-radius: var(--tours-cta-btn-radius, 9px);
+  padding: 9px 16px;
+  cursor: pointer;
+}
+.cta__btn:hover { background: var(--tours-cta-btn-bg-hover, #1d4ed8); }
+.cta__close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font: 16px/1 system-ui, sans-serif;
+  color: #9aa4b8;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.cta__close:hover { color: #111827; background: #f3f4f6; }
+`;
+function showResumeInvite(invite, render) {
+  if (render) return render(invite);
+  return showCta({
+    text: invite.text,
+    button: invite.button,
+    corner: invite.corner,
+    offset: invite.offset,
+    onStart: invite.onResume
+  });
+}
+function showCta(options) {
+  const corner = options.corner ?? "bottom-right";
+  const offset = options.offset ?? 24;
+  const host = document.createElement("div");
+  host.setAttribute("data-tours-cta", "");
+  const root = host.attachShadow({ mode: "open" });
+  const style = document.createElement("style");
+  style.textContent = CTA_STYLES;
+  root.appendChild(style);
+  const card = document.createElement("div");
+  card.className = "cta";
+  const [vertical, horizontal] = corner.split("-");
+  card.style[vertical] = `${offset}px`;
+  card.style[horizontal] = `${offset}px`;
+  const remove = () => {
+    if (host.parentNode) host.parentNode.removeChild(host);
+  };
+  const close = document.createElement("button");
+  close.className = "cta__close";
+  close.type = "button";
+  close.textContent = "×";
+  close.setAttribute("aria-label", "Dismiss");
+  close.addEventListener("click", remove);
+  const text = document.createElement("p");
+  text.className = "cta__text";
+  text.textContent = options.text;
+  const button = document.createElement("button");
+  button.className = "cta__btn";
+  button.type = "button";
+  button.textContent = options.button;
+  button.addEventListener("click", () => {
+    remove();
+    options.onStart();
+  });
+  card.append(close, text, button);
+  root.appendChild(card);
+  document.body.appendChild(host);
+  return remove;
+}
 const EDITOR_HOST = "[data-tours-editor]";
 function isBuilderMounted() {
   return typeof document !== "undefined" && document.querySelector(EDITOR_HOST) !== null;
@@ -717,6 +811,7 @@ function createPlayer(tour, options = {}) {
   let tooltip = null;
   let backdrop = null;
   let awaitNext = null;
+  let closeInvite = null;
   let active = false;
   let index = 0;
   let skipped = 0;
@@ -819,7 +914,7 @@ function createPlayer(tour, options = {}) {
       contentText: step.content.default,
       progress: `Step ${position} of ${total}`,
       showClose: true,
-      onClose: stop,
+      onClose: dismiss,
       radius: cardRadius,
       back: canGoBack ? { label: step.backLabel ?? "Back", onClick: prev } : void 0,
       next: showNext ? {
@@ -913,6 +1008,7 @@ function createPlayer(tour, options = {}) {
       log.log(`start suppressed for "${tour.id}" — the builder is mounted`);
       return;
     }
+    dropInvite();
     active = true;
     index = Math.max(0, Math.min(startIndex, tour.steps.length - 1));
     skipped = 0;
@@ -973,8 +1069,43 @@ function createPlayer(tour, options = {}) {
   }
   function stop() {
     log.log("stop");
+    dropInvite();
     teardownUi();
     if (state) clearProgress(state);
+  }
+  function dropInvite() {
+    closeInvite?.();
+    closeInvite = null;
+  }
+  function dismiss() {
+    if (tour.dismiss?.mode === "minimize") minimize();
+    else stop();
+  }
+  function minimize() {
+    if (!active) return;
+    log.log("minimized", tour.id, `at ${index}`);
+    teardownUi();
+    if (state) writeProgress(state, { tourId: tour.id, index, minimized: true });
+    offerResume();
+  }
+  function offerResume() {
+    dropInvite();
+    const cfg = tour.dismiss?.resume;
+    closeInvite = showResumeInvite(
+      {
+        tourId: tour.id,
+        text: cfg?.text ?? "Carry on with the tour?",
+        button: cfg?.button ?? "Resume",
+        corner: cfg?.corner,
+        offset: cfg?.offset,
+        onResume: () => {
+          closeInvite = null;
+          if (state) writeProgress(state, { tourId: tour.id, index });
+          start(index);
+        }
+      },
+      options.renderResume
+    );
   }
   function next() {
     if (!active) return;
@@ -1040,7 +1171,7 @@ function createPlayer(tour, options = {}) {
     waitForPageChange();
     window.history.back();
   }
-  return { start, stop, next, prev, isActive: () => active };
+  return { start, stop, next, prev, minimize, isActive: () => active };
 }
 const EDITOR_STYLES = `
 :host {

@@ -100,6 +100,26 @@ export type Trigger = {
 	/** Distance from the corner edges in px (default 24). */
 	offset?: number;
 };
+interface DismissPolicy {
+	/**
+	 * `end` (default) — finish for good: progress is cleared and the tour does
+	 * not come back.
+	 * `minimize` — set aside: progress is kept and a small invitation offers to
+	 * pick it up again, on this page and on later ones.
+	 */
+	mode: "end" | "minimize";
+	/**
+	 * The invitation shown after minimizing. Same shape as the `cta` trigger,
+	 * because it is the same popover — one component for "start this tour" and
+	 * "carry on with this tour".
+	 */
+	resume?: {
+		text: string;
+		button: string;
+		corner?: CtaCorner;
+		offset?: number;
+	};
+}
 /** Tour-level visual settings, read by both the player and the editor. */
 export interface DisplaySettings {
 	/**
@@ -132,6 +152,8 @@ export interface Tour {
 	audience?: "all" | "auth" | "guest";
 	/** Optional visual settings shared by player and editor. */
 	display?: DisplaySettings;
+	/** What the card's × does. Defaults to ending the tour. */
+	dismiss?: DismissPolicy;
 }
 export type Placement = "top" | "bottom" | "left" | "right" | "auto";
 export type Align = "start" | "center" | "end";

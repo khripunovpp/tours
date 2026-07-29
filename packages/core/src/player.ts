@@ -24,6 +24,7 @@ import {
   clearProgress,
 } from './state.js';
 import { createLogger } from './logger.js';
+import { showResumeInvite, type ResumeInvite } from './cta.js';
 
 /**
  * A step as the player accepts it: identical to the stored `Step`, except that
@@ -48,6 +49,11 @@ export interface PlayerHandle {
   stop(): void;
   next(): void;
   prev(): void;
+  /**
+   * Put the tour aside without finishing it: tear down the overlay, keep
+   * progress, and offer an invitation to pick it back up.
+   */
+  minimize(): void;
   /** True between a successful start() and stop(). */
   isActive(): boolean;
 }
@@ -78,6 +84,14 @@ export interface PlayerOptions {
    * is enough to suppress them all.
    */
   allowWhileEditing?: boolean;
+  /**
+   * Render the "carry on with the tour" invitation yourself, instead of the
+   * built-in corner popover. Must return a function that removes what it built.
+   *
+   * For small changes prefer the `--tours-cta-*` custom properties, which the
+   * default popover reads from the host page.
+   */
+  renderResume?: (invite: ResumeInvite) => () => void;
 }
 
 /** Attribute the builder puts on its shadow host — see @tours/editor. */
@@ -108,6 +122,8 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
   let backdrop: HTMLElement | null = null;
   // Set while waiting for the visitor to complete an interactive step.
   let awaitNext: (() => void) | null = null;
+  // Removes the "carry on?" invitation shown while minimized.
+  let closeInvite: (() => void) | null = null;
   let active = false;
   let index = 0;
   // Steps skipped because their target never appeared — excluded from progress.
@@ -279,7 +295,7 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
       contentText: step.content.default,
       progress: `Step ${position} of ${total}`,
       showClose: true,
-      onClose: stop,
+      onClose: dismiss,
       radius: cardRadius,
       back: canGoBack ? { label: step.backLabel ?? 'Back', onClick: prev } : undefined,
       next: showNext
@@ -411,6 +427,7 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
       log.log(`start suppressed for "${tour.id}" — the builder is mounted`);
       return;
     }
+    dropInvite();
     active = true;
     index = Math.max(0, Math.min(startIndex, tour.steps.length - 1));
     skipped = 0;
@@ -485,8 +502,56 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
   /** End the tour (finished or dismissed): tear down and forget progress. */
   function stop(): void {
     log.log('stop');
+    dropInvite();
     teardownUi();
     if (state) clearProgress(state);
+  }
+
+  function dropInvite(): void {
+    closeInvite?.();
+    closeInvite = null;
+  }
+
+  /**
+   * What the card's × does. Closing is always permitted — a visitor who has
+   * lost interest must be able to clear the screen — but a tour may ask to be
+   * merely set aside rather than ended.
+   */
+  function dismiss(): void {
+    if (tour.dismiss?.mode === 'minimize') minimize();
+    else stop();
+  }
+
+  function minimize(): void {
+    if (!active) return;
+    log.log('minimized', tour.id, `at ${index}`);
+    teardownUi();
+    // Keep the position, and mark it so nothing auto-resumes: picking the tour
+    // back up has to stay the visitor's decision, or minimizing would just be
+    // a slow way of doing nothing.
+    if (state) writeProgress(state, { tourId: tour.id, index, minimized: true });
+    offerResume();
+  }
+
+  /** Show the invitation to carry on, here and now. */
+  function offerResume(): void {
+    dropInvite();
+    const cfg = tour.dismiss?.resume;
+    closeInvite = showResumeInvite(
+      {
+        tourId: tour.id,
+        text: cfg?.text ?? 'Carry on with the tour?',
+        button: cfg?.button ?? 'Resume',
+        corner: cfg?.corner,
+        offset: cfg?.offset,
+        onResume: () => {
+          closeInvite = null;
+          if (state) writeProgress(state, { tourId: tour.id, index });
+          start(index);
+        },
+      },
+      options.renderResume,
+    );
   }
 
   function next(): void {
@@ -566,7 +631,7 @@ export function createPlayer(tour: RuntimeTour, options: PlayerOptions = {}): Pl
     window.history.back();
   }
 
-  return { start, stop, next, prev, isActive: () => active };
+  return { start, stop, next, prev, minimize, isActive: () => active };
 }
 
 /**
